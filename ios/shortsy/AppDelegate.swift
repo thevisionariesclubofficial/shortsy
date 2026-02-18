@@ -34,6 +34,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
+  // react-native-video v6 does not support Bridgeless Mode.
+  // Disable it so the Interop Layer handles the Video component correctly.
+  override func bridgelessEnabled() -> Bool {
+    return false
+  }
+
   override func sourceURL(for bridge: RCTBridge) -> URL? {
     self.bundleURL()
   }
