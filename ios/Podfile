@@ -19,6 +19,9 @@ target 'shortsy' do
 
   use_react_native!(
     :path => config[:reactNativePath],
+    # Disable new architecture to ensure react-native-video compatibility
+    :fabric_enabled => false,
+    :new_arch_enabled => false,
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )

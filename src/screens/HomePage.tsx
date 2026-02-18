@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { Component, useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
   FlatList,
   Platform,
@@ -9,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Video, { ResizeMode } from 'react-native-video';
 import LinearGradient from 'react-native-linear-gradient';
 import { Content, mockContent, moods } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
@@ -16,6 +18,27 @@ import { MoodCard } from '../components/MoodCard';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
+
+const HERO_VIDEO_URL =
+  'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3';
+
+// ─── Error boundary to catch native Video crashes gracefully ────────────────
+class VideoErrorBoundary extends Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
 
 // ─── Genre colour map (mirrors ContentCard) ────────────────────────────────
 const GENRE_BG: Record<string, [string, string, string]> = {
@@ -113,23 +136,49 @@ function HeroCard({
   onPress: () => void;
 }) {
   const [bg1, bg2, bg3] = GENRE_BG[hero.genre] ?? GENRE_BG.default;
+  const [videoError, setVideoError] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+
+  // Delay video mount by one frame so the hero UI renders first
+  useEffect(() => {
+    const t = setTimeout(() => setVideoReady(true), 300);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <View style={[styles.hero, { height: HERO_HEIGHT }]}>
-      {/* Colourful background replacing image */}
+      {/* ── Gradient fallback (always behind video) ── */}
       <LinearGradient
         colors={[bg1, bg2, bg3]}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* Decorative circles */}
       <View style={heroStyles.circle1} />
       <View style={heroStyles.circle2} />
 
+      {/* ── Autoplay muted looping video (Netflix style, mounted after first frame) ── */}
+      {videoReady && !videoError && (
+        <VideoErrorBoundary fallback={null}>
+          <Video
+            source={{ uri: HERO_VIDEO_URL }}
+            style={StyleSheet.absoluteFill}
+            resizeMode={ResizeMode.COVER}
+            muted={true}
+            repeat={true}
+            paused={false}
+            playInBackground={false}
+            playWhenInactive={false}
+            ignoreSilentSwitch="obey"
+            onError={() => setVideoError(true)}
+            disableFocus={true}
+          />
+        </VideoErrorBoundary>
+      )}
+
       {/* Fade-to-black overlay at bottom */}
       <LinearGradient
-        colors={['transparent', '#000000dd', '#000000']}
+        colors={['transparent', '#000000cc', '#000000']}
         style={heroStyles.overlay}
       />
 
