@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -13,6 +13,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { Content, mockContent, moods } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { MoodCard } from '../components/MoodCard';
+import Video, { VideoRef } from 'react-native-video';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
@@ -113,16 +114,38 @@ function HeroCard({
   onPress: () => void;
 }) {
   const [bg1, bg2, bg3] = GENRE_BG[hero.genre] ?? GENRE_BG.default;
-
+const videoRef = useRef<VideoRef>(null);
+  const background = 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3';
   return (
     <View style={[styles.hero, { height: HERO_HEIGHT }]}>
       {/* Colourful background replacing image */}
-      <LinearGradient
+       <Video
+      // Can be a URL or a local file.
+      source={{ uri: background }}
+      paused={false}
+      repeat={true}
+      resizeMode="cover"
+      // For better performance, consider setting `bufferConfig` and `preload`.
+      // Store reference  
+      ref={videoRef}
+      // Callback when remote video is buffering                                      
+      onBuffer={() => console.log('Buffering...')}
+      // Callback when the video cannot be loaded              
+      onError={() => console.log('Error loading video')}               
+      style={{
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+  }}
+    />
+      {/* <LinearGradient
         colors={[bg1, bg2, bg3]}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={StyleSheet.absoluteFill}
-      />
+      /> */}
       {/* Decorative circles */}
       <View style={heroStyles.circle1} />
       <View style={heroStyles.circle2} />
