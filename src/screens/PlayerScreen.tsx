@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Content } from '../data/mockData';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -78,24 +79,45 @@ function MoreVertIcon() {
   );
 }
 
+function LoadingSpinner() {
+  const spin = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(spin, { toValue: 1, duration: 900, useNativeDriver: true })
+    ).start();
+  }, [spin]);
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  return (
+    <Animated.View style={[spinnerStyles.ring, { transform: [{ rotate }] }]} />
+  );
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PlayerScreenProps {
   content: Content;
   onBack: () => void;
+  videoUrl?: string;
+  episodeNumber?: number;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function PlayerScreen({ content, onBack }: PlayerScreenProps) {
+export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: PlayerScreenProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted,   setIsMuted]   = useState(false);
   const [progress,  setProgress]  = useState(0);
   const [showControls, setShowControls] = useState(true);
-  const [currentEp, setCurrentEp] = useState(1);
+  const [currentEp, setCurrentEp] = useState(episodeNumber ?? 1);
+  const [isBuffering, setIsBuffering] = useState(!!videoUrl); // true while loading real video
+  // Real video tracking (only used when videoUrl is provided)
+  const [duration,    setDuration]    = useState(0);   // total seconds
+  const [currentTime, setCurrentTime] = useState(0);   // elapsed seconds
 
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressBarRef = useRef<View>(null);
+  const autoPlayOnLoad = useRef(false);
+  const currentEpRef = useRef(episodeNumber ?? 1);
 
   // ── Control visibility ──────────────────────────────────────────────────────
   const showControlsNow = () => {
@@ -121,9 +143,9 @@ export function PlayerScreen({ content, onBack }: PlayerScreenProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showControls, isPlaying]);
 
-  // ── Progress ticker ─────────────────────────────────────────────────────────
+  // ── Fake progress ticker (mock-only, not used when real videoUrl present) ────
   useEffect(() => {
-    if (isPlaying) {
+    if (!videoUrl && isPlaying) {
       progressTimer.current = setInterval(() => {
         setProgress(p => {
           if (p >= 100) { setIsPlaying(false); return 100; }
@@ -134,47 +156,169 @@ export function PlayerScreen({ content, onBack }: PlayerScreenProps) {
       if (progressTimer.current) clearInterval(progressTimer.current);
     }
     return () => { if (progressTimer.current) clearInterval(progressTimer.current); };
-  }, [isPlaying]);
+  }, [isPlaying, videoUrl]);
 
   const togglePlay = () => {
-    setIsPlaying(v => !v);
+    if (videoUrl) {
+      if (isPlaying) {
+        epPlayer.pause();
+      } else {
+        // If the video has ended, restart from the beginning
+        if (duration > 0 && currentTime >= duration - 0.5) {
+          epPlayer.seekTo(0);
+        }
+        epPlayer.play();
+      }
+      // isPlaying state will be synced via onPlaybackStateChange event
+    } else {
+      setIsPlaying(v => !v);
+    }
     showControlsNow();
   };
 
-  // ── Format time from percentage ─────────────────────────────────────────────
+  // ── Switch episode from sidebar ─────────────────────────────────────────────
+  const switchEpisode = async (epIndex: number) => {
+    const epList = content.episodeList;
+    if (!epList || epIndex < 1 || epIndex > epList.length) return;
+    currentEpRef.current = epIndex;
+    setCurrentEp(epIndex);
+    setCurrentTime(0);
+    setDuration(0);
+    setProgress(0);
+    setIsBuffering(true);
+    autoPlayOnLoad.current = true;
+    await epPlayer.replaceSourceAsync(epList[epIndex - 1].videoUrl);
+  };
+
+  // ── Format seconds → m:ss ──────────────────────────────────────────────────
+  const fmt = (sec: number) => {
+    const s = Math.floor(sec);
+    const m = Math.floor(s / 60);
+    return `${m}:${(s % 60).toString().padStart(2, '0')}`;
+  };
+
+  // Fallback formatter for mock content (uses content.duration string)
   const formatTime = (pct: number) => {
     const rawMin = parseInt(content.duration) || 10;
     const totalSec = rawMin * 60;
     const elapsed  = Math.floor((pct / 100) * totalSec);
-    const m = Math.floor(elapsed / 60);
-    const s = elapsed % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+    return fmt(elapsed);
   };
+
+  // Derived progress percentage (real video vs mock)
+  const realProgress = videoUrl && duration > 0
+    ? (currentTime / duration) * 100
+    : progress;
 
   // ── Tap on progress track ───────────────────────────────────────────────────
   const [trackWidth, setTrackWidth] = useState(1);
   const handleProgressTap = (e: GestureResponderEvent) => {
     const x = e.nativeEvent.locationX;
-    setProgress(Math.max(0, Math.min(100, (x / trackWidth) * 100)));
+    const pct = Math.max(0, Math.min(1, x / trackWidth));
+    if (videoUrl && duration > 0) {
+      epPlayer.seekTo(pct * duration);
+    } else {
+      setProgress(pct * 100);
+    }
   };
+
+  // Real video player for episode URLs
+  const epPlayer = useVideoPlayer(videoUrl ?? '', p => {
+    if (videoUrl) {
+      p.loop = false;
+      p.play();
+    }
+  });
+
+  // ── Real video event listeners ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!videoUrl) return;
+
+    const loadSub = epPlayer.addEventListener('onLoad', (data: any) => {
+      setDuration(data.duration ?? 0);
+      setCurrentTime(data.currentTime ?? 0);
+      setIsBuffering(false);
+      if (autoPlayOnLoad.current) {
+        autoPlayOnLoad.current = false;
+        epPlayer.play();
+      }
+    });
+
+    const progressSub = epPlayer.addEventListener('onProgress', (data: any) => {
+      setCurrentTime(data.currentTime ?? 0);
+    });
+
+    const stateSub = epPlayer.addEventListener('onPlaybackStateChange', (data: any) => {
+      setIsPlaying(data.isPlaying ?? false);
+    });
+
+    const bufferSub = epPlayer.addEventListener('onBuffer', (buffering: any) => {
+      // onBuffer passes a boolean directly in v7
+      setIsBuffering(typeof buffering === 'boolean' ? buffering : buffering?.isBuffering ?? false);
+    });
+
+    // When video ends: advance to next episode, or reset on last episode
+    const endSub = epPlayer.addEventListener('onEnd', () => {
+      const epList = content.episodeList;
+      const nextEp = currentEpRef.current + 1;
+      if (epList && nextEp <= epList.length) {
+        // Auto-advance to next episode
+        switchEpisode(nextEp);
+      } else {
+        // Last episode (or non-series): seek to beginning and show controls
+        epPlayer.seekTo(0);
+        setCurrentTime(0);
+        setIsPlaying(false);
+        showControlsNow();
+      }
+    });
+
+    return () => {
+      loadSub.remove();
+      progressSub.remove();
+      stateSub.remove();
+      bufferSub.remove();
+      endSub.remove();
+    };
+  // epPlayer reference is stable for the lifetime of this screen
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUrl]);
 
   return (
     <TouchableWithoutFeedback onPress={showControlsNow}>
       <View style={styles.container}>
-        {/* ── Video area: blurred bg + centred image ── */}
+        {/* ── Video area ── */}
         <View style={styles.videoArea}>
-          <Image
-            source={{ uri: content.thumbnail }}
-            style={styles.bgBlur}
-            blurRadius={18}
-          />
-          <View style={styles.bgDim} />
-          <Image
-            source={{ uri: content.thumbnail }}
-            style={styles.mainImage}
-            resizeMode="contain"
-          />
+          {videoUrl ? (
+            <VideoView
+              player={epPlayer}
+              resizeMode='contain'
+              style={StyleSheet.absoluteFill}
+              controls={false}
+            />
+          ) : (
+            <>
+              <Image
+                source={{ uri: content.thumbnail }}
+                style={styles.bgBlur}
+                blurRadius={18}
+              />
+              <View style={styles.bgDim} />
+              <Image
+                source={{ uri: content.thumbnail }}
+                style={styles.mainImage}
+                resizeMode="contain"
+              />
+            </>
+          )}
         </View>
+
+        {/* ── Loading spinner ── */}
+        {isBuffering && videoUrl ? (
+          <View style={styles.loadingWrap} pointerEvents="none">
+            <LoadingSpinner />
+          </View>
+        ) : null}
 
         {/* ── Controls overlay ── */}
         <Animated.View style={[styles.overlay, { opacity: controlsOpacity }]} pointerEvents={showControls ? 'box-none' : 'none'}>
@@ -210,9 +354,9 @@ export function PlayerScreen({ content, onBack }: PlayerScreenProps) {
           <View style={styles.bottomBar}>
             {/* Time + progress */}
             <View style={styles.timeRow}>
-              <Text style={styles.timeText}>{formatTime(progress)}</Text>
+              <Text style={styles.timeText}>{videoUrl ? fmt(currentTime) : formatTime(progress)}</Text>
               <Text style={styles.timeSep}>/</Text>
-              <Text style={styles.timeDim}>{content.duration}</Text>
+              <Text style={styles.timeDim}>{videoUrl ? fmt(duration) : content.duration}</Text>
             </View>
             <View
               style={styles.track}
@@ -221,8 +365,8 @@ export function PlayerScreen({ content, onBack }: PlayerScreenProps) {
               onResponderGrant={handleProgressTap}
               onResponderMove={handleProgressTap}>
               <View style={styles.trackBg} />
-              <View style={[styles.trackFill, { width: `${progress}%` }]} />
-              <View style={[styles.trackThumb, { left: `${progress}%` as any }]} />
+              <View style={[styles.trackFill, { width: `${realProgress}%` }]} />
+              <View style={[styles.trackThumb, { left: `${realProgress}%` as any }]} />
             </View>
 
             {/* Playback buttons */}
@@ -235,7 +379,14 @@ export function PlayerScreen({ content, onBack }: PlayerScreenProps) {
                   {isPlaying ? <PauseIcon size={20} /> : <PlayIcon size={20} />}
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={(e) => { e.stopPropagation?.(); setIsMuted(v => !v); }}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    setIsMuted(v => {
+                      const next = !v;
+                      if (videoUrl) epPlayer.muted = next;
+                      return next;
+                    });
+                  }}
                   style={styles.iconBtn}
                   activeOpacity={0.7}>
                   <VolumeIcon muted={isMuted} />
@@ -246,15 +397,15 @@ export function PlayerScreen({ content, onBack }: PlayerScreenProps) {
         </Animated.View>
 
         {/* ── Episodes sidebar (vertical-series only) ── */}
-        {content.type === 'vertical-series' && content.episodes && showControls && (
+        {content.type === 'vertical-series' && content.episodeList && content.episodeList.length > 0 && showControls && (
           <View style={styles.sidebar}>
             <Text style={styles.sidebarLabel}>Episodes</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {Array.from({ length: content.episodes }, (_, i) => (
+              {content.episodeList.map((ep, i) => (
                 <TouchableOpacity
-                  key={i}
+                  key={ep.id}
                   style={[styles.epBtn, currentEp === i + 1 && styles.epBtnActive]}
-                  onPress={() => setCurrentEp(i + 1)}
+                  onPress={() => switchEpisode(i + 1)}
                   activeOpacity={0.7}>
                   <Text style={[styles.epText, currentEp === i + 1 && styles.epTextActive]}>
                     {i + 1}
@@ -277,6 +428,13 @@ const styles = StyleSheet.create({
   bgBlur:     { ...StyleSheet.absoluteFillObject, opacity: 0.35 },
   bgDim:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   mainImage:  { flex: 1, width: '100%' },
+
+  loadingWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
 
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -377,4 +535,15 @@ const iconStyles = StyleSheet.create({
   // More vertical
   moreWrap: { width: 20, height: 20, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 2 },
   moreDot:  { width: 4, height: 4, borderRadius: 2, backgroundColor: '#ffffff' },
+});
+
+const spinnerStyles = StyleSheet.create({
+  ring: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 4,
+    borderColor: 'rgba(168,85,247,0.25)',
+    borderTopColor: '#a855f7',
+  },
 });

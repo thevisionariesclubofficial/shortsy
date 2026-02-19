@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   Dimensions,
-  FlatList,
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -13,20 +13,10 @@ import LinearGradient from 'react-native-linear-gradient';
 import { Content, mockContent, moods } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { MoodCard } from '../components/MoodCard';
+import { VideoView, useVideoPlayer } from 'react-native-video';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
-
-// ─── Genre colour map (mirrors ContentCard) ────────────────────────────────
-const GENRE_BG: Record<string, [string, string, string]> = {
-  Drama: ['#2e1065', '#4c1d95', '#7c3aed'],
-  Thriller: ['#0c0a09', '#1c1917', '#78350f'],
-  'Musical Drama': ['#4a0d2e', '#831843', '#be185d'],
-  Comedy: ['#052e16', '#14532d', '#16a34a'],
-  Romance: ['#4c0519', '#881337', '#e11d48'],
-  'Sci-Fi': ['#082f49', '#0c4a6e', '#0284c7'],
-  default: ['#0f0e30', '#1e1b4b', '#4338ca'],
-};
 
 // ─── Pure-View icons ──────────────────────────────────────────────────────────
 function FilmIcon({ color = '#a855f7' }: { color?: string }) {
@@ -83,6 +73,15 @@ function AwardIcon({ color = '#f59e0b' }: { color?: string }) {
   );
 }
 
+function PlayResumeIcon() {
+  return (
+    <View style={iconStyles.resumeWrap}>
+      <View style={iconStyles.resumeBar} />
+      <View style={iconStyles.resumeTriangle} />
+    </View>
+  );
+}
+
 // ─── Section header ───────────────────────────────────────────────────────────
 function SectionHeader({
   Icon,
@@ -108,24 +107,20 @@ function SectionHeader({
 function HeroCard({
   hero,
   onPress,
+  player,
 }: {
   hero: Content;
   onPress: () => void;
+  player: ReturnType<typeof useVideoPlayer>;
 }) {
-  const [bg1, bg2, bg3] = GENRE_BG[hero.genre] ?? GENRE_BG.default;
-
   return (
     <View style={[styles.hero, { height: HERO_HEIGHT }]}>
-      {/* Colourful background replacing image */}
-      <LinearGradient
-        colors={[bg1, bg2, bg3]}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
+      {/* Video background */}
+      <VideoView
+      resizeMode='cover'
+        player={player}
         style={StyleSheet.absoluteFill}
       />
-      {/* Decorative circles */}
-      <View style={heroStyles.circle1} />
-      <View style={heroStyles.circle2} />
 
       {/* Fade-to-black overlay at bottom */}
       <LinearGradient
@@ -172,13 +167,31 @@ function HeroCard({
 interface HomePageProps {
   onContentClick: (content: Content) => void;
   onSearchClick: () => void;
+  rentedContent?: Content[];
+  onRentedClick: (content: Content) => void;
 }
 
-export function HomePage({ onContentClick, onSearchClick }: HomePageProps) {
+export function HomePage({ onContentClick, onSearchClick, rentedContent = [], onRentedClick }: HomePageProps) {
   const featuredContent = mockContent.filter(c => c.featured);
   const festivalWinners = mockContent.filter(c => c.festivalWinner);
   const verticalSeries = mockContent.filter(c => c.type === 'vertical-series');
   const hero = featuredContent[0];
+
+  const background = 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3';
+  const player = useVideoPlayer(background, p => {
+    p.loop = true;
+    p.play();
+  });
+
+  const handleScroll = (e: { nativeEvent: { contentOffset: { y: number } } }) => {
+    const scrollY = e.nativeEvent.contentOffset.y;
+    // Hero is visible when scrollY is less than its height
+    if (scrollY >= HERO_HEIGHT) {
+      if (player.isPlaying) player.pause();
+    } else {
+      if (!player.isPlaying) player.play();
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -193,11 +206,57 @@ export function HomePage({ onContentClick, onSearchClick }: HomePageProps) {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}>
 
         {/* ── Hero ── */}
         {hero && (
-          <HeroCard hero={hero} onPress={() => onContentClick(hero)} />
+          <HeroCard hero={hero} onPress={() => onContentClick(hero)} player={player} />
+        )}
+
+        {/* ── Continue Watching ── */}
+        {rentedContent.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              Icon={<PlayResumeIcon />}
+              title="Continue Watching"
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.continueRow}>
+              {rentedContent.map(content => (
+                <TouchableOpacity
+                  key={content.id}
+                  style={cwStyles.card}
+                  activeOpacity={0.8}
+                  onPress={() => onRentedClick(content)}>
+                  <Image
+                    source={{ uri: content.thumbnail }}
+                    style={cwStyles.thumb}
+                    resizeMode="cover"
+                  />
+                  {/* dark overlay */}
+                  <View style={cwStyles.overlay} />
+                  {/* series badge */}
+                  {content.type === 'vertical-series' && (
+                    <View style={cwStyles.badge}>
+                      <Text style={cwStyles.badgeText}>Series</Text>
+                    </View>
+                  )}
+                  {/* play button */}
+                  <View style={cwStyles.playCircle}>
+                    <View style={cwStyles.playTriangle} />
+                  </View>
+                  <View style={cwStyles.info}>
+                    <Text style={cwStyles.title} numberOfLines={1}>{content.title}</Text>
+                    <Text style={cwStyles.sub}>{content.type === 'vertical-series' ? `${content.episodes} eps` : content.duration}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
         )}
 
         {/* ── Mood Discovery ── */}
@@ -228,16 +287,19 @@ export function HomePage({ onContentClick, onSearchClick }: HomePageProps) {
             title="Vertical Series"
             subtitle="Premium storytelling in 9:16"
           />
-          <View style={styles.grid}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.hRow}>
             {verticalSeries.map(content => (
-              <View key={content.id} style={styles.gridItem}>
+              <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}
                   onClick={() => onContentClick(content)}
                 />
               </View>
             ))}
-          </View>
+          </ScrollView>
         </View>
 
         {/* ── Festival Winners ── */}
@@ -246,16 +308,19 @@ export function HomePage({ onContentClick, onSearchClick }: HomePageProps) {
             Icon={<AwardIcon />}
             title="Festival Winners"
           />
-          <View style={styles.grid}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.hRow}>
             {festivalWinners.map(content => (
-              <View key={content.id} style={styles.gridItem}>
+              <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}
                   onClick={() => onContentClick(content)}
                 />
               </View>
             ))}
-          </View>
+          </ScrollView>
         </View>
 
         {/* ── All Content ── */}
@@ -264,16 +329,19 @@ export function HomePage({ onContentClick, onSearchClick }: HomePageProps) {
             Icon={<FilmIcon />}
             title="All Content"
           />
-          <View style={styles.grid}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.hRow}>
             {mockContent.map(content => (
-              <View key={content.id} style={styles.gridItem}>
+              <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}
                   onClick={() => onContentClick(content)}
                 />
               </View>
             ))}
-          </View>
+          </ScrollView>
         </View>
 
         {/* bottom padding for tab bar */}
@@ -339,12 +407,15 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingRight: 16,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  continueRow: {
     gap: 12,
+    paddingRight: 16,
   },
-  gridItem: {
+  hRow: {
+    gap: 12,
+    paddingRight: 16,
+  },
+  hItem: {
     width: (width - 16 * 2 - 12) / 2,
   },
 });
@@ -584,5 +655,79 @@ const iconStyles = StyleSheet.create({
     bottom: 0,
     right: 2,
     transform: [{ rotate: '-15deg' }],
+  },
+  resumeWrap:     { width: 18, height: 18, flexDirection: 'row', alignItems: 'center', gap: 2 },
+  resumeBar:      { width: 3, height: 14, backgroundColor: '#a855f7', borderRadius: 2 },
+  resumeTriangle: { width: 0, height: 0, borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 12, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#a855f7' },
+});
+
+// ─── Continue Watching card styles ────────────────────────────────────────────
+const CW_WIDTH = width * 0.52;
+const cwStyles = StyleSheet.create({
+  card: {
+    width: CW_WIDTH,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a1a',
+  },
+  thumb: {
+    width: '100%',
+    height: CW_WIDTH * 0.62,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  badge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.4,
+  },
+  playCircle: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1.5,
+    borderColor: '#ffffff88',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playTriangle: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 5,
+    borderBottomWidth: 5,
+    borderLeftWidth: 9,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: '#ffffff',
+    marginLeft: 2,
+  },
+  info: {
+    padding: 10,
+    gap: 3,
+  },
+  title: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  sub: {
+    fontSize: 11,
+    color: '#737373',
   },
 });
