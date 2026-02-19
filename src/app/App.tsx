@@ -1,131 +1,65 @@
 /**
- * Shortsy App
- * https://github.com/facebook/react-native
+ * Shortsy App — Root Component
  *
- * @format
+ * Intentionally thin: all state and business logic lives in `useAppState`.
+ * This component is responsible only for mapping screen state → UI.
  */
-
-import React, { useState } from 'react';
+import React from 'react';
 import { StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Content } from '../data/mockData';
-import { SplashScreen } from '../screens/SplashScreen';
-import { OnboardingScreen } from '../screens/OnboardingScreen';
-import { WelcomeChoice } from '../screens/WelcomeChoice';
-import { LoginScreen } from '../screens/LoginScreen';
-import { SignupScreen } from '../screens/SignupScreen';
+import { BottomNav } from '../components/BottomNav';
+import { RentalModal } from '../components/RentalModal';
+import { useAppState } from '../hooks/useAppState';
+import { BrowsePage } from '../screens/BrowsePage';
+import { ContentDetailScreen } from '../screens/ContentDetailScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 import { HomePage } from '../screens/HomePage';
-import { BrowsePage } from '../screens/BrowsePage';
-import { ProfilePage } from '../screens/ProfilePage';
-import { ContentDetailScreen } from '../screens/ContentDetailScreen';
+import { LoginScreen } from '../screens/LoginScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { PaymentScreen } from '../screens/PaymentScreen';
 import { PaymentSuccessScreen } from '../screens/PaymentSuccessScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
+import { ProfilePage } from '../screens/ProfilePage';
 import { SearchScreen } from '../screens/SearchScreen';
-import { RentalModal } from '../components/RentalModal';
-import { BottomNav, BottomTab } from '../components/BottomNav';
-
-// ─── App state (mirrors reference discriminated union) ────────────────────────
-type AppState =
-  | { type: 'splash' }
-  | { type: 'onboarding' }
-  | { type: 'welcome' }
-  | { type: 'login' }
-  | { type: 'signup' }
-  | { type: 'forgotPassword' }
-  | { type: 'home' }
-  | { type: 'search' }
-  | { type: 'browse' }
-  | { type: 'profile' }
-  | { type: 'detail';          content: Content }
-  | { type: 'payment';         content: Content }
-  | { type: 'paymentSuccess';  content: Content }
-  | { type: 'player';          content: Content };
-
-// Screens where BottomNav should be hidden
-const HIDE_NAV: AppState['type'][] = ['player', 'detail', 'payment', 'paymentSuccess', 'search'];
+import { SignupScreen } from '../screens/SignupScreen';
+import { SplashScreen } from '../screens/SplashScreen';
+import { WelcomeChoice } from '../screens/WelcomeChoice';
 
 function App() {
-  const [appState,          setAppState]          = useState<AppState>({ type: 'splash' });
-  const [isAuthenticated,   setIsAuthenticated]   = useState(false);
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
-  const [rentedContent,     setRentedContent]     = useState<Content[]>([]);
-  const [showRentalModal,   setShowRentalModal]   = useState(false);
+  const {
+    screen,
+    rentedContent,
+    showRentalModal,
+    needsAuth,
+    showNav,
+    activeTab,
+    isRented,
+    navigate,
+    onSplashComplete,
+    onOnboardingComplete,
+    onLogin,
+    onLogout,
+    onSignup,
+    onContentClick,
+    onRentedClick,
+    onRent,
+    onEpisodePlay,
+    onPaymentSuccess,
+    onTabChange,
+    onRentalModalClose,
+    onRentalModalConfirm,
+  } = useAppState();
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  const isRented = (c: Content) => rentedContent.some(r => r.id === c.id);
-
-  const addRented = (c: Content) =>
-    setRentedContent(prev => prev.find(r => r.id === c.id) ? prev : [...prev, c]);
-
-  // ── Handlers ───────────────────────────────────────────────────────────────
-  const handleSplashComplete = () => {
-    if (isAuthenticated)       { setAppState({ type: 'home' });        return; }
-    if (hasSeenOnboarding)     { setAppState({ type: 'login' });       return; }
-                                 setAppState({ type: 'onboarding' });
-  };
-
-  const handleOnboardingComplete = () => {
-    setHasSeenOnboarding(true);
-    setAppState({ type: 'welcome' });   // keep WelcomeChoice in our flow
-  };
-
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-    setAppState({ type: 'home' });
-  };
-
-  const handleSignup = () => {
-    setIsAuthenticated(true);
-    setAppState({ type: 'home' });
-  };
-
-  // If already rented → go straight to player; otherwise → detail
-  const handleContentClick = (content: Content) => {
-    if (isRented(content)) {
-      setAppState({ type: 'player', content });
-    } else {
-      setAppState({ type: 'detail', content });
-    }
-  };
-
-  const handleRent = (content: Content) =>
-    setAppState({ type: 'payment', content });
-
-  const handlePaymentSuccess = (content: Content) => {
-    addRented(content);
-    setAppState({ type: 'paymentSuccess', content });
-  };
-
-  const handleTabChange = (tab: BottomTab) => {
-    if (tab === 'home')    setAppState({ type: 'home' });
-    if (tab === 'browse')  setAppState({ type: 'browse' });
-    if (tab === 'profile') setAppState({ type: 'profile' });
-  };
-
-  const getActiveTab = (): BottomTab => {
-    if (appState.type === 'browse')  return 'browse';
-    if (appState.type === 'profile') return 'profile';
-    return 'home';
-  };
-
-  const showNav = !HIDE_NAV.includes(appState.type) && isAuthenticated;
-
-  // ── Auth guard: unauthenticated users past onboarding see login ────────────
-  const needsAuth =
-    !isAuthenticated &&
-    !['splash', 'onboarding', 'welcome', 'login', 'signup', 'forgotPassword'].includes(appState.type);
-
+  // ── Auth guard ────────────────────────────────────────────────────────────
   if (needsAuth) {
     return (
       <SafeAreaProvider>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <LoginScreen
-          onLogin={handleLogin}
-          onSignup={() => setAppState({ type: 'signup' })}
-          onForgotPassword={() => setAppState({ type: 'forgotPassword' })}
-          onBack={() => setAppState({ type: 'welcome' })}
+          onLogin={onLogin}
+          onSignup={() => navigate({ type: 'signup' })}
+          onForgotPassword={() => navigate({ type: 'forgotPassword' })}
+          onBack={() => navigate({ type: 'welcome' })}
         />
       </SafeAreaProvider>
     );
@@ -135,105 +69,116 @@ function App() {
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* ── Pre-auth screens ── */}
-      {appState.type === 'splash' && (
-        <SplashScreen onComplete={handleSplashComplete} />
+      {/* ── Pre-auth ── */}
+      {screen.type === 'splash' && (
+        <SplashScreen onComplete={onSplashComplete} />
       )}
-      {appState.type === 'onboarding' && (
-        <OnboardingScreen onComplete={handleOnboardingComplete} />
+      {screen.type === 'onboarding' && (
+        <OnboardingScreen onComplete={onOnboardingComplete} />
       )}
-      {appState.type === 'welcome' && (
+      {screen.type === 'welcome' && (
         <WelcomeChoice
-          onLogin={() => setAppState({ type: 'login' })}
-          onSignup={() => setAppState({ type: 'signup' })}
+          onLogin={() => navigate({ type: 'login' })}
+          onSignup={() => navigate({ type: 'signup' })}
         />
       )}
-      {appState.type === 'login' && (
+      {screen.type === 'login' && (
         <LoginScreen
-          onLogin={handleLogin}
-          onSignup={() => setAppState({ type: 'signup' })}
-          onForgotPassword={() => setAppState({ type: 'forgotPassword' })}
-          onBack={() => setAppState({ type: 'welcome' })}
+          onLogin={onLogin}
+          onSignup={() => navigate({ type: 'signup' })}
+          onForgotPassword={() => navigate({ type: 'forgotPassword' })}
+          onBack={() => navigate({ type: 'welcome' })}
         />
       )}
-      {appState.type === 'forgotPassword' && (
-        <ForgotPasswordScreen onBack={() => setAppState({ type: 'login' })} />
+      {screen.type === 'forgotPassword' && (
+        <ForgotPasswordScreen onBack={() => navigate({ type: 'login' })} />
       )}
-      {appState.type === 'signup' && (
+      {screen.type === 'signup' && (
         <SignupScreen
-          onSignup={handleSignup}
-          onLogin={() => setAppState({ type: 'login' })}
-          onBack={() => setAppState({ type: 'login' })}
+          onSignup={onSignup}
+          onLogin={() => navigate({ type: 'login' })}
+          onBack={() => navigate({ type: 'login' })}
         />
       )}
 
-      {/* ── Authenticated tab screens (BottomNav rendered here) ── */}
-      {(appState.type === 'home' || appState.type === 'browse' || appState.type === 'profile') && (
+      {/* ── Main tabs ── */}
+      {(screen.type === 'home' || screen.type === 'browse' || screen.type === 'profile') && (
         <View style={styles.main}>
-          {appState.type === 'home' && (
+          {screen.type === 'home' && (
             <HomePage
-              onContentClick={handleContentClick}
-              onSearchClick={() => setAppState({ type: 'search' })}
+              onContentClick={onContentClick}
+              onSearchClick={() => navigate({ type: 'search' })}
+              rentedContent={rentedContent}
+              onRentedClick={onRentedClick}
             />
           )}
-          {appState.type === 'browse' && (
-            <BrowsePage onContentClick={handleContentClick} />
+          {screen.type === 'browse' && (
+            <BrowsePage onContentClick={onContentClick} />
           )}
-          {appState.type === 'profile' && (
+          {screen.type === 'profile' && (
             <ProfilePage
-              onLogout={() => { setIsAuthenticated(false); setAppState({ type: 'login' }); }}
+              onLogout={onLogout}
               rentedContent={rentedContent}
-              onContentClick={handleContentClick}
+              onContentClick={onContentClick}
             />
           )}
           {showNav && (
-            <BottomNav activeTab={getActiveTab()} onTabChange={handleTabChange} />
+            <BottomNav activeTab={activeTab} onTabChange={onTabChange} />
           )}
         </View>
       )}
 
-      {/* ── Search (no BottomNav) ── */}
-      {appState.type === 'search' && (
+      {/* ── Search ── */}
+      {screen.type === 'search' && (
         <SearchScreen
-          onBack={() => setAppState({ type: 'home' })}
-          onContentClick={handleContentClick}
+          onBack={() => navigate({ type: 'home' })}
+          onContentClick={onContentClick}
         />
       )}
 
-      {/* ── Detail / payment / player (no BottomNav) ── */}
-      {appState.type === 'detail' && (
+      {/* ── Detail ── */}
+      {screen.type === 'detail' && (
         <ContentDetailScreen
-          content={appState.content}
-          onBack={() => setAppState({ type: 'home' })}
-          onRent={handleRent}
-          isRented={isRented(appState.content)}
+          content={screen.content}
+          onBack={() => navigate({ type: 'home' })}
+          onRent={onRent}
+          isRented={isRented(screen.content)}
+          onEpisodePlay={(ep, epNum) => onEpisodePlay(ep, screen.content, epNum)}
         />
       )}
-      {appState.type === 'payment' && (
+
+      {/* ── Payment ── */}
+      {screen.type === 'payment' && (
         <PaymentScreen
-          content={appState.content}
-          onBack={() => setAppState({ type: 'detail', content: appState.content })}
-          onSuccess={() => handlePaymentSuccess(appState.content)}
+          content={screen.content}
+          onBack={() => navigate({ type: 'detail', content: screen.content })}
+          onSuccess={() => onPaymentSuccess(screen.content)}
         />
       )}
-      {appState.type === 'paymentSuccess' && (
+
+      {/* ── Payment success ── */}
+      {screen.type === 'paymentSuccess' && (
         <PaymentSuccessScreen
-          content={appState.content}
-          onWatchNow={() => setAppState({ type: 'player', content: appState.content })}
-          onGoHome={() => setAppState({ type: 'home' })}
+          content={screen.content}
+          onWatchNow={() => navigate({ type: 'player', content: screen.content })}
+          onGoHome={() => navigate({ type: 'home' })}
         />
       )}
-      {appState.type === 'player' && (
+
+      {/* ── Player ── */}
+      {screen.type === 'player' && (
         <View style={styles.main}>
           <PlayerScreen
-            content={appState.content}
-            onBack={() => setAppState({ type: 'home' })}
+            content={screen.content}
+            onBack={() => navigate({ type: 'home' })}
+            videoUrl={screen.videoUrl}
+            episodeNumber={screen.episodeNumber}
           />
           {showRentalModal && (
             <RentalModal
-              content={appState.content}
-              onClose={() => setShowRentalModal(false)}
-              onConfirm={() => { addRented(appState.content); setShowRentalModal(false); }}
+              content={screen.content}
+              onClose={onRentalModalClose}
+              onConfirm={() => onRentalModalConfirm(screen.content)}
             />
           )}
         </View>

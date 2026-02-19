@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Content } from '../data/mockData';
+import { Content, Episode } from '../data/mockData';
 
 // ─── Genre colours (mirrors ContentCard) ─────────────────────────────────────
 const GENRE_BG: Record<string, [string, string, string]> = {
@@ -103,12 +103,22 @@ function PlayIcon() {
   return <View style={iconStyles.playTriangle} />;
 }
 
+function LockIcon() {
+  return (
+    <View style={iconStyles.lockWrap}>
+      <View style={iconStyles.lockShackle} />
+      <View style={iconStyles.lockBody} />
+    </View>
+  );
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ContentDetailScreenProps {
   content: Content;
   onBack: () => void;
   onRent: (content: Content) => void;
   isRented: boolean;
+  onEpisodePlay: (ep: Episode, episodeNumber: number) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -117,6 +127,7 @@ export function ContentDetailScreen({
   onBack,
   onRent,
   isRented,
+  onEpisodePlay,
 }: ContentDetailScreenProps) {
   const [liked, setLiked] = useState(false);
   const [bg1, bg2, bg3] = GENRE_BG[content.genre] ?? GENRE_BG.default;
@@ -229,12 +240,35 @@ export function ContentDetailScreen({
           </View>
 
           {/* Episodes (series only) */}
-          {content.type === 'vertical-series' && content.episodes && (
+          {content.type === 'vertical-series' && content.episodeList && content.episodeList.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{content.episodes} Episodes</Text>
-              <Text style={styles.synopsisDim}>
-                Binge the entire season • {content.duration} per episode
-              </Text>
+              <Text style={styles.sectionLabel}>{content.episodeList.length} Episodes · {content.duration} each</Text>
+              {content.episodeList.map((ep: Episode, index: number) => (
+                <TouchableOpacity
+                  key={ep.id}
+                  style={epStyles.row}
+                  activeOpacity={0.75}
+                  onPress={() => isRented && onEpisodePlay(ep, index + 1)}>
+                  <View style={epStyles.numWrap}>
+                    <Text style={epStyles.num}>{index + 1}</Text>
+                  </View>
+                  <Image
+                    source={{ uri: ep.thumbnail }}
+                    style={epStyles.thumb}
+                    resizeMode="cover"
+                  />
+                  <View style={epStyles.meta}>
+                    <Text style={epStyles.title} numberOfLines={1}>{ep.title}</Text>
+                    <View style={epStyles.durationRow}>
+                      <ClockIcon />
+                      <Text style={epStyles.duration}>{ep.duration}</Text>
+                    </View>
+                  </View>
+                  <View style={[epStyles.playBtn, !isRented && epStyles.lockBtn]}>
+                    {isRented ? <PlayIcon /> : <LockIcon />}
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
           )}
 
@@ -464,5 +498,70 @@ const iconStyles = StyleSheet.create({
     borderBottomColor: 'transparent',
     borderLeftColor: '#ffffff',
     marginRight: -2,
+  },
+
+  // Lock
+  lockWrap:    { width: 14, height: 16, alignItems: 'center' },
+  lockShackle: { width: 8, height: 7, borderWidth: 2, borderColor: '#a3a3a3', borderBottomWidth: 0, borderTopLeftRadius: 4, borderTopRightRadius: 4, marginBottom: -1 },
+  lockBody:    { width: 14, height: 9, backgroundColor: '#a3a3a3', borderRadius: 3 },
+});
+
+// ─── Episode tile styles ──────────────────────────────────────────────────────
+const epStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1f1f1f',
+    gap: 12,
+  },
+  numWrap: {
+    width: 22,
+    alignItems: 'center',
+  },
+  num: {
+    fontSize: 13,
+    color: '#525252',
+    fontWeight: '600',
+  },
+  thumb: {
+    width: 100,
+    height: 62,
+    borderRadius: 8,
+    backgroundColor: '#1a1a1a',
+  },
+  meta: {
+    flex: 1,
+    gap: 6,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+    lineHeight: 18,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  duration: {
+    fontSize: 12,
+    color: '#737373',
+  },
+  playBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(124,58,237,0.25)',
+    borderWidth: 1,
+    borderColor: '#7c3aed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockBtn: {
+    backgroundColor: 'rgba(82,82,82,0.2)',
+    borderColor: '#404040',
   },
 });
