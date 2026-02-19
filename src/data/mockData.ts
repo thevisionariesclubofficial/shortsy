@@ -45,6 +45,7 @@ export const mockContent: Content[] = [
     rating: 4.7,
     views: 12500,
     description: 'A touching story about missed connections and second chances on Mumbai\'s last local train.',
+    trailer: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
     videoUrl: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
     featured: true,
     festivalWinner: true,
@@ -63,6 +64,7 @@ export const mockContent: Content[] = [
     rating: 4.8,
     views: 25000,
     description: 'A psychological thriller series shot entirely in vertical format. 12 episodes of pure adrenaline.',
+    trailer: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/verticals%2F4536566-hd_1080_1920_30fps.mp4?alt=media&token=24361c61-525f-4139-8079-e03ff95716c6',
     episodes: 12,
     episodeList: [
       { id: '2-1', title: 'The First Call',      duration: '2:05', thumbnail: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80',      videoUrl: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/verticals%2F4536566-hd_1080_1920_30fps.mp4?alt=media&token=24361c61-525f-4139-8079-e03ff95716c6' },
@@ -94,6 +96,7 @@ export const mockContent: Content[] = [
     rating: 4.5,
     views: 8900,
     description: 'A beautiful exploration of tradition and modernity through the eyes of a young girl during Diwali.',
+    trailer: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
     videoUrl: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
     festivalWinner: true,
   },
@@ -111,6 +114,7 @@ export const mockContent: Content[] = [
     rating: 4.3,
     views: 15600,
     description: 'Urban romance told through chance encounters. 8 episodes of modern love in Kolkata.',
+    trailer: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/verticals%2F4536566-hd_1080_1920_30fps.mp4?alt=media&token=24361c61-525f-4139-8079-e03ff95716c6',
     episodes: 8,
     episodeList: [
       { id: '4-1', title: 'A Rainy Evening',     duration: '1:30', thumbnail: 'https://images.unsplash.com/photo-1536532184021-da8b5b6f6f37?w=400&q=80',      videoUrl: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/verticals%2F4536566-hd_1080_1920_30fps.mp4?alt=media&token=24361c61-525f-4139-8079-e03ff95716c6' },
@@ -137,6 +141,7 @@ export const mockContent: Content[] = [
     rating: 4.6,
     views: 20100,
     description: 'A powerful one-shot film about truth and consequences. Raw. Real. Unfiltered.',
+    trailer: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
     videoUrl: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
   },
   {
@@ -153,6 +158,7 @@ export const mockContent: Content[] = [
     rating: 4.4,
     views: 5200,
     description: 'An experimental visual journey exploring consciousness and dreams. Pure cinema.',
+    trailer: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
     videoUrl: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
     festivalWinner: true,
   },
@@ -170,6 +176,7 @@ export const mockContent: Content[] = [
     rating: 4.9,
     views: 35000,
     description: 'A modern love story shot in 9:16. College romance with Instagram-worthy cinematography.',
+    trailer: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/verticals%2F4536566-hd_1080_1920_30fps.mp4?alt=media&token=24361c61-525f-4139-8079-e03ff95716c6',
     episodes: 10,
     episodeList: [
       { id: '7-1', title: 'Day One',              duration: '2:10', thumbnail: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80',      videoUrl: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/verticals%2F4536566-hd_1080_1920_30fps.mp4?alt=media&token=24361c61-525f-4139-8079-e03ff95716c6' },
@@ -199,6 +206,7 @@ export const mockContent: Content[] = [
     rating: 4.7,
     views: 7800,
     description: 'A documentary following indie filmmakers as they create their first feature. Inspiring and real.',
+    trailer: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
     videoUrl: 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3',
   },
 ];

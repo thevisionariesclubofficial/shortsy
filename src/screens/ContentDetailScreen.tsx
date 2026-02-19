@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Animated,
+  Dimensions,
   Image,
   ScrollView,
   StyleSheet,
@@ -9,7 +10,10 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Content, Episode } from '../data/mockData';
+
+const SCREEN_H = Dimensions.get('window').height;
 
 // ─── Genre colours (mirrors ContentCard) ─────────────────────────────────────
 const GENRE_BG: Record<string, [string, string, string]> = {
@@ -130,7 +134,36 @@ export function ContentDetailScreen({
   onEpisodePlay,
 }: ContentDetailScreenProps) {
   const [liked, setLiked] = useState(false);
+  const [trailerReady, setTrailerReady] = useState(false);
+  const [trailerEnded, setTrailerEnded] = useState(false);
   const [bg1, bg2, bg3] = GENRE_BG[content.genre] ?? GENRE_BG.default;
+
+  const trailerPlayer = useVideoPlayer(content.trailer ?? '', p => {
+    if (content.trailer) {
+      p.muted = true;
+      p.loop = false;
+      // Don't play yet — wait for onLoad so thumbnail shows first
+    }
+  });
+
+  useEffect(() => {
+    if (!content.trailer) { return; }
+    setTrailerReady(false);
+    setTrailerEnded(false);
+    trailerPlayer.muted = true;
+    trailerPlayer.loop = false;
+    trailerPlayer.replaceSourceAsync(content.trailer);
+    const loadSub = trailerPlayer.addEventListener('onLoad', () => {
+      setTrailerReady(true);
+      trailerPlayer.play();
+    });
+    const endSub = trailerPlayer.addEventListener('onEnd', () => setTrailerEnded(true));
+    return () => {
+      loadSub.remove();
+      endSub.remove();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content.id]);
 
   const formatViews = (v: number) =>
     v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
@@ -143,7 +176,10 @@ export function ContentDetailScreen({
         showsVerticalScrollIndicator={false}>
 
         {/* ── Hero ── */}
-        <View style={styles.hero}>
+        <View style={[
+          styles.hero,
+          content.type === 'vertical-series' && { height: Math.round(SCREEN_H * 0.65) },
+        ]}>
           {/* Gradient fallback */}
           <LinearGradient
             colors={[bg1, bg2, bg3]}
@@ -151,12 +187,21 @@ export function ContentDetailScreen({
             end={{ x: 0.9, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
-          {/* Actual thumbnail */}
+          {/* Thumbnail — always visible as base layer */}
           {content.thumbnail ? (
             <Image
               source={{ uri: content.thumbnail }}
               style={styles.heroImage}
               resizeMode="cover"
+            />
+          ) : null}
+          {/* Trailer — always mounted so it loads in background; opacity reveals it once ready */}
+          {content.trailer ? (
+            <VideoView
+              player={trailerPlayer}
+              style={{ ...StyleSheet.absoluteFillObject, opacity: trailerReady && !trailerEnded ? 1 : 0 }}
+              resizeMode="cover"
+              controls={false}
             />
           ) : null}
           {/* Bottom fade */}
