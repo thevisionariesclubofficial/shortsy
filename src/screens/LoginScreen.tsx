@@ -175,11 +175,15 @@ export function LoginScreen({
       await login({ email: email.trim(), password });
       onLogin();
     } catch (err: any) {
+      console.error('Login error:', err);
       const code = err?.code ?? '';
+      const message = err?.message ?? '';
       if (code === 'INVALID_CREDENTIALS') {
         setError('Incorrect email or password. Please try again.');
       } else if (code === 'RATE_LIMITED') {
         setError('Too many attempts. Please try again later.');
+      } else if (message) {
+        setError(message);
       } else {
         setError('Something went wrong. Please try again.');
       }

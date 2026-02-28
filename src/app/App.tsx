@@ -26,6 +26,7 @@ import { SignupScreen } from '../screens/SignupScreen';
 import { SplashScreen } from '../screens/SplashScreen';
 import { WelcomeChoice } from '../screens/WelcomeChoice';
 import { resolveWatchNowScreen } from '../services/navigationService';
+import AddContentScreen from '../screens/AddContentScreen';
 
 function App() {
   const {
@@ -85,6 +86,10 @@ function App() {
           onSignup={() => navigate({ type: 'signup' })}
         />
       )}
+            {/* ── Add Content ── */}
+      {screen.type === 'addContent' && (
+        <AddContentScreen navigation={{ goBack: () => navigate({ type: 'profile' }) }} />
+      )}
       {screen.type === 'login' && (
         <LoginScreen
           onLogin={onLogin}
@@ -124,6 +129,7 @@ function App() {
               rentedContent={rentedContent}
               onContentClick={onContentClick}
               onHistoryClick={onHistoryClick}
+              navigate={navigate}
             />
           )}
           {showNav && (

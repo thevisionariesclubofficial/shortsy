@@ -91,14 +91,19 @@ export function useAppState(): AppStateHook {
   // In mock mode this is empty on app start; with a real API it will
   // restore the user's active rentals after a cold launch.
   useEffect(() => {
-    getUserRentals({ active: true })
-      .then(({ rentals }) => {
-        if (rentals.length > 0) {
-          setRentedContent(rentals.map(r => r.content));
-          logger.info('APP', `Loaded ${rentals.length} active rental(s) from service`);
-        }
-      })
-      .catch(err => logger.error('APP', 'Failed to load rentals on mount', err));
+    const session = getSession();
+    if (session) {
+      getUserRentals({ active: true })
+        .then(({ rentals }) => {
+          if (rentals.length > 0) {
+            setRentedContent(rentals.map(r => r.content));
+            logger.info('APP', `Loaded ${rentals.length} active rental(s) from service`);
+          }
+        })
+        .catch(err => logger.error('APP', 'Failed to load rentals on mount', err));
+    } else {
+      logger.info('APP', 'Skipped rentals fetch: not authenticated');
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
