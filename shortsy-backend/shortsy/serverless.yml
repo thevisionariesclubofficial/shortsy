@@ -19,8 +19,8 @@ provider:
     USER_POOL_CLIENT_ID:  !Ref CognitoUserPoolClient
     CDN_BASE:             ${env:CDN_BASE, 'https://cdn.shortsy.app'}
     S3_MEDIA_BUCKET:      ${self:service}-media-${self:provider.stage}
-    RAZORPAY_KEY_ID:      ${env:RAZORPAY_KEY_ID, ''}
-    RAZORPAY_KEY_SECRET:  ${env:RAZORPAY_KEY_SECRET, ''}
+    RAZORPAY_KEY_ID:      ${env:RAZORPAY_KEY_ID, 'rzp_test_SLajOeA4k89FaD'}
+    RAZORPAY_KEY_SECRET:  ${env:RAZORPAY_KEY_SECRET, 'KFg2xasu5pQ8P8qWphrruzAb'}
     STREAM_EXPIRY_SECONDS: '3600'
 
   httpApi:
@@ -85,6 +85,12 @@ custom:
 
 # ── Functions ─────────────────────────────────────────────────────────────────
 functions:
+  orderCreate:
+        handler: src/handlers/order.createOrder
+        events:
+          - httpApi:
+              path: /v1/order
+              method: POST
   contentAdd:
     handler: src/handlers/content.add
     events:

@@ -38,7 +38,7 @@ class RentalError extends Error {
 }
 
 // ── Razorpay (no SDK — plain HTTP to avoid cold-start bloat) ─────────────────
-async function createGatewayOrder(
+export async function createGatewayOrder(
   amountINR: number,
   receipt: string,
 ): Promise<{ id: string }> {
