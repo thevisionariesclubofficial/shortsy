@@ -12,10 +12,10 @@ import {
   buildEpisodePlayerScreen,
   resolveContentScreen,
   resolvePostSplashScreen,
-  resolveRentedContentScreen,
+  resolveRentedClickWithProgress,
 } from '../services/navigationService';
 import { clearRentalStore, getUserRentals } from '../services/rentalService';
-import { clearProgressStore } from '../services/playbackService';
+import { clearProgressStore, getWatchProgress } from '../services/playbackService';
 import { clearProfileStore } from '../services/profileService';
 import { getSession, logout as authLogout } from '../services/authService';
 import { setAccessToken } from '../services/apiClient';
@@ -155,7 +155,12 @@ export function useAppState(): AppStateHook {
   );
 
   const onRentedClick = useCallback(
-    (content: Content) => navigate(resolveRentedContentScreen(content)),
+    async (content: Content) => {
+      // Fetch saved progress so we can resume at exactly the right episode/position.
+      // getWatchProgress is fast (in-memory in mock mode); errors are silently swallowed.
+      const progress = await getWatchProgress(content.id).catch(() => null);
+      navigate(resolveRentedClickWithProgress(content, progress));
+    },
     [navigate],
   );
 
