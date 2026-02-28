@@ -1,4 +1,5 @@
 import type { Content } from '../data/mockData';
+import type { RentalRecord } from './api';
 
 // ─── Screen state ─────────────────────────────────────────────────────────────
 export type AppScreen =
@@ -12,9 +13,10 @@ export type AppScreen =
   | { type: 'search' }
   | { type: 'browse' }
   | { type: 'profile' }
+  | { type: 'history' }
   | { type: 'detail';         content: Content }
   | { type: 'payment';        content: Content }
-  | { type: 'paymentSuccess'; content: Content }
+  | { type: 'paymentSuccess'; content: Content; rental: RentalRecord }
   | { type: 'player';         content: Content; videoUrl?: string; episodeNumber?: number };
 
 /** Screens that hide the bottom navigation bar. */
@@ -24,6 +26,7 @@ export const SCREENS_WITHOUT_NAV: ReadonlyArray<AppScreen['type']> = [
   'payment',
   'paymentSuccess',
   'search',
+  'history',
 ];
 
 /** Screens that do not require the user to be authenticated. */

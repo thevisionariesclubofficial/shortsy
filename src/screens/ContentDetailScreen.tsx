@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
   Image,
+  InteractionManager,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +13,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Content, Episode } from '../data/mockData';
+import { checkRentalStatus } from '../services/rentalService';
 
 const SCREEN_H = Dimensions.get('window').height;
 
@@ -121,47 +123,81 @@ interface ContentDetailScreenProps {
   content: Content;
   onBack: () => void;
   onRent: (content: Content) => void;
+  onWatchNow: () => void;
   isRented: boolean;
   onEpisodePlay: (ep: Episode, episodeNumber: number) => void;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export function ContentDetailScreen({
-  content,
-  onBack,
-  onRent,
-  isRented,
-  onEpisodePlay,
-}: ContentDetailScreenProps) {
-  const [liked, setLiked] = useState(false);
-  const [trailerReady, setTrailerReady] = useState(false);
-  const [trailerEnded, setTrailerEnded] = useState(false);
-  const [bg1, bg2, bg3] = GENRE_BG[content.genre] ?? GENRE_BG.default;
+// ─── TrailerPlayer ───────────────────────────────────────────────────────────
+// Self-contained: useVideoPlayer is called only when this component mounts,
+// which is deferred until after the navigation transition via InteractionManager.
+function TrailerPlayer({ uri }: { uri: string }) {
+  const opacity = useRef(new Animated.Value(0)).current;
 
-  const trailerPlayer = useVideoPlayer(content.trailer ?? '', p => {
-    if (content.trailer) {
-      p.muted = true;
-      p.loop = false;
-      // Don't play yet — wait for onLoad so thumbnail shows first
-    }
+  const player = useVideoPlayer({ uri }, p => {
+    p.muted = true;
+    p.loop = false;
   });
 
   useEffect(() => {
-    if (!content.trailer) { return; }
-    setTrailerReady(false);
-    setTrailerEnded(false);
-    trailerPlayer.muted = true;
-    trailerPlayer.loop = false;
-    trailerPlayer.replaceSourceAsync(content.trailer);
-    const loadSub = trailerPlayer.addEventListener('onLoad', () => {
-      setTrailerReady(true);
-      trailerPlayer.play();
+    const loadSub = player.addEventListener('onLoad', () => {
+      player.play();
+      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     });
-    const endSub = trailerPlayer.addEventListener('onEnd', () => setTrailerEnded(true));
+    const endSub = player.addEventListener('onEnd', () => {
+      Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }).start();
+    });
     return () => {
       loadSub.remove();
       endSub.remove();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <Animated.View
+      style={[StyleSheet.absoluteFillObject, { opacity }]}
+      pointerEvents="none">
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+        controls={false}
+      />
+    </Animated.View>
+  );
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────────
+export function ContentDetailScreen({
+  content,
+  onBack,
+  onRent,
+  onWatchNow,
+  isRented,
+  onEpisodePlay,
+}: ContentDetailScreenProps) {
+  const [liked, setLiked] = useState(false);
+  // Deferred: mount TrailerPlayer only after navigation transition completes
+  const [videoMounted, setVideoMounted] = useState(false);
+
+  // Start from the prop value (instant, no flicker), then verify against the
+  // service layer so ground truth is always from the backend (real or mock).
+  const [rentalActive, setRentalActive] = useState(isRented);
+
+  useEffect(() => {
+    checkRentalStatus(content.id)
+      .then(({ isRented: active }) => setRentalActive(active))
+      .catch(() => { /* silently fallback to prop value */ });
+  }, [content.id]);
+  const [bg1, bg2, bg3] = GENRE_BG[content.genre] ?? GENRE_BG.default;
+
+  // Gate: mount TrailerPlayer only after the navigation push animation finishes
+  useEffect(() => {
+    if (!content.trailer) { return; }
+    setVideoMounted(false);
+    const task = InteractionManager.runAfterInteractions(() => setVideoMounted(true));
+    return () => task.cancel();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content.id]);
 
@@ -195,14 +231,9 @@ export function ContentDetailScreen({
               resizeMode="cover"
             />
           ) : null}
-          {/* Trailer — always mounted so it loads in background; opacity reveals it once ready */}
-          {content.trailer ? (
-            <VideoView
-              player={trailerPlayer}
-              style={{ ...StyleSheet.absoluteFillObject, opacity: trailerReady && !trailerEnded ? 1 : 0 }}
-              resizeMode="cover"
-              controls={false}
-            />
+          {/* TrailerPlayer mounts only after nav transition; self-manages crossfade */}
+          {videoMounted && content.trailer ? (
+            <TrailerPlayer uri={content.trailer} />
           ) : null}
           {/* Bottom fade */}
           <LinearGradient
@@ -293,7 +324,7 @@ export function ContentDetailScreen({
                   key={ep.id}
                   style={epStyles.row}
                   activeOpacity={0.75}
-                  onPress={() => isRented && onEpisodePlay(ep, index + 1)}>
+                  onPress={() => rentalActive && onEpisodePlay(ep, index + 1)}>
                   <View style={epStyles.numWrap}>
                     <Text style={epStyles.num}>{index + 1}</Text>
                   </View>
@@ -309,8 +340,8 @@ export function ContentDetailScreen({
                       <Text style={epStyles.duration}>{ep.duration}</Text>
                     </View>
                   </View>
-                  <View style={[epStyles.playBtn, !isRented && epStyles.lockBtn]}>
-                    {isRented ? <PlayIcon /> : <LockIcon />}
+                  <View style={[epStyles.playBtn, !rentalActive && epStyles.lockBtn]}>
+                    {rentalActive ? <PlayIcon /> : <LockIcon />}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -337,8 +368,8 @@ export function ContentDetailScreen({
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
-        {isRented ? (
-          <TouchableOpacity style={styles.watchBtn} activeOpacity={0.85}>
+        {rentalActive ? (
+          <TouchableOpacity style={styles.watchBtn} activeOpacity={0.85} onPress={onWatchNow}>
             <PlayIcon />
             <Text style={styles.watchBtnText}>Watch Now</Text>
           </TouchableOpacity>

@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { login } from '../services/authService';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function FilmIcon() {
@@ -161,13 +162,30 @@ export function LoginScreen({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter your email and password.');
+      return;
+    }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError('');
+    try {
+      await login({ email: email.trim(), password });
       onLogin();
-    }, 1500);
+    } catch (err: any) {
+      const code = err?.code ?? '';
+      if (code === 'INVALID_CREDENTIALS') {
+        setError('Incorrect email or password. Please try again.');
+      } else if (code === 'RATE_LIMITED') {
+        setError('Too many attempts. Please try again later.');
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -247,6 +265,13 @@ export function LoginScreen({
               style={styles.forgotWrap}>
               <Text style={styles.forgotText}>Forgot Password?</Text>
             </TouchableOpacity>
+
+            {/* Inline error */}
+            {error !== '' && (
+              <View style={styles.errorWrap}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
 
             {/* Sign In button */}
             <Pressable
@@ -358,6 +383,19 @@ const styles = StyleSheet.create({
   forgotText: {
     color: '#c084fc',
     fontSize: 13,
+  },
+  errorWrap: {
+    backgroundColor: '#3b0a0a',
+    borderWidth: 1,
+    borderColor: '#7f1d1d',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  errorText: {
+    color: '#fca5a5',
+    fontSize: 13,
+    textAlign: 'center',
   },
   signInBtn: {
     height: 52,

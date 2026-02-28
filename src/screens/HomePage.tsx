@@ -1,8 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,10 +12,16 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Content, mockContent, moods } from '../data/mockData';
+import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { MoodCard } from '../components/MoodCard';
 import { VideoView, useVideoPlayer } from 'react-native-video';
+import {
+  clearContentCache,
+  getFeaturedContent,
+  getContentMetadata,
+  listContent,
+} from '../services/contentService';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
@@ -172,14 +180,69 @@ interface HomePageProps {
 }
 
 export function HomePage({ onContentClick, onSearchClick, rentedContent = [], onRentedClick }: HomePageProps) {
-  const featuredContent = mockContent.filter(c => c.featured);
-  const festivalWinners = mockContent.filter(c => c.festivalWinner);
-  const verticalSeries = mockContent.filter(c => c.type === 'vertical-series');
-  const hero = featuredContent[0];
+  // ── Service-fetched state ─────────────────────────────────────────────────
+  const [allContent,       setAllContent]       = useState<Content[]>([]);
+  const [featuredContent,  setFeaturedContent]  = useState<Content[]>([]);
+  const [festivalWinners,  setFestivalWinners]  = useState<Content[]>([]);
+  const [verticalSeries,   setVerticalSeries]   = useState<Content[]>([]);
+  const [moodList,         setMoodList]         = useState<{ id: string; name: string; emoji: string }[]>([]);
+  const [hero,             setHero]             = useState<Content | null>(null);
+  const [loading,          setLoading]          = useState(true);
+  const [refreshing,       setRefreshing]       = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    clearContentCache();
+    setRefreshing(true);
+    try {
+      const [featuredRes, metaRes, allRes] = await Promise.all([
+        getFeaturedContent(),
+        getContentMetadata(),
+        listContent(),
+      ]);
+      setHero(featuredRes.featured[0] ?? null);
+      setFeaturedContent(featuredRes.featured);
+      setMoodList(metaRes.moods);
+      const all = allRes.data;
+      setAllContent(all);
+      setFestivalWinners(all.filter(c => c.festivalWinner));
+      setVerticalSeries(all.filter(c => c.type === 'vertical-series'));
+    } catch (err) {
+      console.error('[HomePage] Pull-to-refresh failed:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    async function fetchHomeData() {
+      try {
+        // All three calls fire in parallel
+        const [featuredRes, metaRes, allRes] = await Promise.all([
+          getFeaturedContent(),
+          getContentMetadata(),
+          listContent(),
+        ]);
+
+        setHero(featuredRes.featured[0] ?? null);
+        setFeaturedContent(featuredRes.featured);
+        setMoodList(metaRes.moods);
+
+        const all = allRes.data;
+        setAllContent(all);
+        setFestivalWinners(all.filter(c => c.festivalWinner));
+        setVerticalSeries(all.filter(c => c.type === 'vertical-series'));
+      } catch (err) {
+        console.error('[HomePage] Failed to fetch home data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHomeData();
+  }, []);
 
   const background = 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3';
   const player = useVideoPlayer(background, p => {
-    p.loop = true;
+    p.loop = false;
     p.play();
   });
 
@@ -203,12 +266,25 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
         <SearchIcon />
       </TouchableOpacity>
 
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#a855f7" />
+        </View>
+      ) : (
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
-        scrollEventThrottle={16}>
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#a855f7"
+            colors={['#a855f7']}
+          />
+        }>
 
         {/* ── Hero ── */}
         {hero && (
@@ -269,7 +345,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.moodRow}>
-            {moods.map(mood => (
+            {moodList.map(mood => (
               <MoodCard
                 key={mood.id}
                 name={mood.name}
@@ -333,7 +409,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.hRow}>
-            {mockContent.map(content => (
+            {allContent.map(content => (
               <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}
@@ -347,6 +423,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
         {/* bottom padding for tab bar */}
         <View style={{ height: 80 }} />
       </ScrollView>
+      )}
     </View>
   );
 }
@@ -355,6 +432,12 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: '#000000',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#000000',
   },
   searchFab: {

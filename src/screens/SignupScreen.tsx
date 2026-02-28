@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { signup } from '../services/authService';
 
 // ─── Icon components ──────────────────────────────────────────────────────────
 
@@ -193,7 +194,7 @@ export function SignupScreen({ onSignup, onLogin, onBack }: SignupScreenProps) {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!acceptTerms) {
       Alert.alert('Terms Required', 'Please accept the terms and conditions.');
       return;
@@ -206,11 +207,26 @@ export function SignupScreen({ onSignup, onLogin, onBack }: SignupScreenProps) {
       Alert.alert('Weak Password', 'Password must be at least 8 characters.');
       return;
     }
+    if (!name.trim()) {
+      Alert.alert('Name Required', 'Please enter your full name.');
+      return;
+    }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await signup({ email: email.trim(), password, displayName: name.trim() });
       onSignup();
-    }, 1500);
+    } catch (err: any) {
+      const code = err?.code ?? '';
+      if (code === 'EMAIL_ALREADY_EXISTS') {
+        Alert.alert('Email Taken', 'That email is already registered. Try logging in instead.');
+      } else if (code === 'VALIDATION_ERROR') {
+        Alert.alert('Validation Error', err?.message ?? 'Please check your details and try again.');
+      } else {
+        Alert.alert('Sign Up Failed', 'Something went wrong. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const canSubmit = acceptTerms && !isLoading;

@@ -5,7 +5,7 @@
  * Owns all application state and exposes stable handler callbacks to the UI.
  * App.tsx should remain a pure render component — all logic lives here.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { BottomTab } from '../components/BottomNav';
 import type { Content, Episode } from '../data/mockData';
 import {
@@ -14,8 +14,15 @@ import {
   resolvePostSplashScreen,
   resolveRentedContentScreen,
 } from '../services/navigationService';
+import { clearRentalStore, getUserRentals } from '../services/rentalService';
+import { clearProgressStore } from '../services/playbackService';
+import { clearProfileStore } from '../services/profileService';
+import { getSession, logout as authLogout } from '../services/authService';
+import { setAccessToken } from '../services/apiClient';
+import { logger } from '../utils/logger';
 import type { AppScreen } from '../types/navigation';
 import { AUTH_EXEMPT_SCREENS, SCREENS_WITHOUT_NAV } from '../types/navigation';
+import type { RentalRecord } from '../types/api';
 
 // ─── Public shape returned by this hook ───────────────────────────────────────
 export interface AppStateHook {
@@ -48,12 +55,13 @@ export interface AppStateHook {
   onRentedClick: (content: Content) => void;
   onRent: (content: Content) => void;
   onEpisodePlay: (ep: Episode, content: Content, episodeNumber: number) => void;
-  onPaymentSuccess: (content: Content) => void;
+  onPaymentSuccess: (content: Content, rental: RentalRecord) => void;
 
   // ── UI handlers ──
   onTabChange: (tab: BottomTab) => void;
   onRentalModalClose: () => void;
   onRentalModalConfirm: (content: Content) => void;
+  onHistoryClick: () => void;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -79,6 +87,21 @@ export function useAppState(): AppStateHook {
     );
   }, []);
 
+  // Load any active rentals from the service on first mount.
+  // In mock mode this is empty on app start; with a real API it will
+  // restore the user's active rentals after a cold launch.
+  useEffect(() => {
+    getUserRentals({ active: true })
+      .then(({ rentals }) => {
+        if (rentals.length > 0) {
+          setRentedContent(rentals.map(r => r.content));
+          logger.info('APP', `Loaded ${rentals.length} active rental(s) from service`);
+        }
+      })
+      .catch(err => logger.error('APP', 'Failed to load rentals on mount', err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Auth handlers ───────────────────────────────────────────────────────────
   const onSplashComplete = useCallback(() => {
     navigate(resolvePostSplashScreen(isAuthenticated, hasSeenOnboarding));
@@ -90,16 +113,36 @@ export function useAppState(): AppStateHook {
   }, [navigate]);
 
   const onLogin = useCallback(() => {
+    // Wire the access token from the auth session into apiClient so all
+    // subsequent service calls carry the correct Bearer header.
+    const session = getSession();
+    if (session) {
+      setAccessToken(session.tokens.accessToken);
+      logger.info('APP', `User logged in: ${session.user.email}`);
+    }
     setIsAuthenticated(true);
     navigate({ type: 'home' });
   }, [navigate]);
 
   const onLogout = useCallback(() => {
+    // Fire-and-forget: invalidate server session (mock: instant; real: POST /auth/logout)
+    authLogout().catch(() => {});
+    // Clear all module-level stores so the next user starts fresh
+    clearRentalStore();
+    clearProgressStore();
+    clearProfileStore();
     setIsAuthenticated(false);
+    setRentedContent([]);
     navigate({ type: 'login' });
   }, [navigate]);
 
   const onSignup = useCallback(() => {
+    // Same token wiring as onLogin
+    const session = getSession();
+    if (session) {
+      setAccessToken(session.tokens.accessToken);
+      logger.info('APP', `New account created: ${session.user.email}`);
+    }
     setIsAuthenticated(true);
     navigate({ type: 'home' });
   }, [navigate]);
@@ -128,9 +171,9 @@ export function useAppState(): AppStateHook {
   );
 
   const onPaymentSuccess = useCallback(
-    (content: Content) => {
+    (content: Content, rental: RentalRecord) => {
       addRented(content);
-      navigate({ type: 'paymentSuccess', content });
+      navigate({ type: 'paymentSuccess', content, rental });
     },
     [addRented, navigate],
   );
@@ -159,6 +202,11 @@ export function useAppState(): AppStateHook {
       setShowRentalModal(false);
     },
     [addRented],
+  );
+
+  const onHistoryClick = useCallback(
+    () => navigate({ type: 'history' }),
+    [navigate],
   );
 
   // ── Derived values ──────────────────────────────────────────────────────────
@@ -196,5 +244,6 @@ export function useAppState(): AppStateHook {
     onTabChange,
     onRentalModalClose,
     onRentalModalConfirm,
+    onHistoryClick,
   };
 }

@@ -1,7 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Image,
+  Modal,
+  Platform,
+  ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -9,6 +13,18 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Content } from '../data/mockData';
+import type { RentalRecord } from '../types/api';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Computes a human-readable access window from the rental record. */
+function formatAccessDuration(rental: RentalRecord): string {
+  const rentedAt  = new Date(rental.rentedAt).getTime();
+  const expiresAt = new Date(rental.expiresAt).getTime();
+  const diffHours = Math.round((expiresAt - rentedAt) / (1000 * 60 * 60));
+  if (diffHours >= 24) return `${Math.round(diffHours / 24)} days`;
+  return `${diffHours} hours`;
+}
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function CheckCircleIcon() {
@@ -50,7 +66,197 @@ function ShareIcon() {
   );
 }
 
-// ─── Ripple circle (ping animation) ──────────────────────────────────────────
+function XCloseIcon() {
+  return (
+    <View style={{ width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ position: 'absolute', width: 12, height: 2, backgroundColor: '#a3a3a3', borderRadius: 1, transform: [{ rotate: '45deg' }] }} />
+      <View style={{ position: 'absolute', width: 12, height: 2, backgroundColor: '#a3a3a3', borderRadius: 1, transform: [{ rotate: '-45deg' }] }} />
+    </View>
+  );
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+function fmt(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  });
+}
+
+function buildShareText(content: Content, rental: RentalRecord): string {
+  return [
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    '         SHORTSY RECEIPT         ',
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    '',
+    `Transaction ID : ${rental.transactionId}`,
+    `Rented On      : ${fmt(rental.rentedAt)}`,
+    `Expires On     : ${fmt(rental.expiresAt)}`,
+    '',
+    `Title          : ${content.title}`,
+    `Director       : ${content.director}`,
+    `Genre          : ${content.genre}`,
+    `Language       : ${content.language}`,
+    '',
+    '─────────────────────────────',
+    `Amount Paid    : ₹${rental.amountPaid}`,
+    `Creator Earns  : ₹${Math.round(rental.amountPaid * 0.7)}  (70%)`,
+    `Payment Status : CONFIRMED ✓`,
+    '─────────────────────────────',
+    '',
+    'Thank you for supporting independent cinema! 🎬',
+    'shortsy.app',
+  ].join('\n');
+}
+
+// ─── ReceiptModal ───────────────────────────────────────────────────────────
+function ReceiptRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <View style={receiptStyles.row}>
+      <Text style={receiptStyles.rowLabel}>{label}</Text>
+      <Text style={[receiptStyles.rowValue, highlight && receiptStyles.rowValueGreen]}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function Perforation() {
+  return (
+    <View style={receiptStyles.perfWrap}>
+      <View style={receiptStyles.perfHoleL} />
+      <View style={receiptStyles.perfDashes}>
+        {Array.from({ length: 18 }).map((_, i) => (
+          <View key={i} style={receiptStyles.perfDash} />
+        ))}
+      </View>
+      <View style={receiptStyles.perfHoleR} />
+    </View>
+  );
+}
+
+function ReceiptModal({
+  visible, onClose, content, rental,
+}: { visible: boolean; onClose: () => void; content: Content; rental: RentalRecord }) {
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: buildShareText(content, rental),
+        title: `Shortsy Receipt – ${content.title}`,
+      });
+    } catch { /* user cancelled */ }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}>
+      <View style={receiptStyles.modalRoot}>
+        {/* Drag handle */}
+        <View style={receiptStyles.handle} />
+
+        {/* Header */}
+        <View style={receiptStyles.modalHeader}>
+          <Text style={receiptStyles.modalTitle}>Receipt</Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={receiptStyles.closeBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <XCloseIcon />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={receiptStyles.scroll}
+          showsVerticalScrollIndicator={false}>
+
+          {/* ── Receipt paper ── */}
+          <View style={receiptStyles.paper}>
+
+            {/* Brand header */}
+            <LinearGradient
+              colors={['#7c3aed', '#db2777']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={receiptStyles.paperHeader}>
+              <Text style={receiptStyles.brandName}>SHORTSY</Text>
+              <Text style={receiptStyles.brandTagline}>Indie Cinema Platform</Text>
+            </LinearGradient>
+
+            {/* Status badge */}
+            <View style={receiptStyles.statusWrap}>
+              <View style={receiptStyles.statusBadge}>
+                <View style={receiptStyles.statusDot} />
+                <Text style={receiptStyles.statusText}>PAYMENT CONFIRMED</Text>
+              </View>
+            </View>
+
+            {/* Content thumbnail + title */}
+            <View style={receiptStyles.contentRow}>
+              <View style={receiptStyles.thumbBox}>
+                <LinearGradient colors={['#1e1b4b', '#4338ca']} style={StyleSheet.absoluteFill} />
+                {content.thumbnail ? (
+                  <Image source={{ uri: content.thumbnail }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                ) : null}
+              </View>
+              <View style={receiptStyles.contentMeta}>
+                <Text style={receiptStyles.contentTitle} numberOfLines={2}>{content.title}</Text>
+                <Text style={receiptStyles.contentDir}>{content.director}</Text>
+                <Text style={receiptStyles.contentGenre}>{content.genre} · {content.language}</Text>
+              </View>
+            </View>
+
+            <View style={receiptStyles.divider} />
+
+            {/* Transaction details */}
+            <Text style={receiptStyles.sectionLabel}>TRANSACTION DETAILS</Text>
+            <ReceiptRow label="Transaction ID" value={rental.transactionId} />
+            <ReceiptRow label="Rented On"      value={fmt(rental.rentedAt)} />
+            <ReceiptRow label="Expires On"     value={fmt(rental.expiresAt)} />
+            <ReceiptRow label="Access Window"  value={formatAccessDuration(rental)} />
+
+            <View style={receiptStyles.divider} />
+
+            {/* Payment breakdown */}
+            <Text style={receiptStyles.sectionLabel}>PAYMENT BREAKDOWN</Text>
+            <ReceiptRow label="Amount Paid"   value={`₹${rental.amountPaid}`} highlight />
+            <ReceiptRow label="Creator Earns" value={`₹${Math.round(rental.amountPaid * 0.7)}  (70%)`} />
+            <ReceiptRow label="Platform Fee"  value={`₹${Math.round(rental.amountPaid * 0.3)}  (30%)`} />
+            <ReceiptRow label="Payment Mode"  value="UPI / Card" />
+
+            {/* Perforated tear line */}
+            <Perforation />
+
+            {/* Footer note */}
+            <Text style={receiptStyles.footerNote}>
+              {'Thank you for supporting independent cinema! 🎬\nThis receipt is your proof of rental. Keep it safe.'}
+            </Text>
+            <Text style={receiptStyles.footerUrl}>shortsy.app</Text>
+          </View>
+
+          {/* Share / Download button */}
+          <TouchableOpacity
+            style={receiptStyles.shareBtn}
+            onPress={handleShare}
+            activeOpacity={0.85}>
+            <LinearGradient
+              colors={['#7c3aed', '#db2777']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={[StyleSheet.absoluteFill, { borderRadius: 14 }]}
+            />
+            <DownloadIcon />
+            <Text style={receiptStyles.shareBtnText}>Download / Share Receipt</Text>
+          </TouchableOpacity>
+
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 function RippleRing() {
   const scale   = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0.6)).current;
@@ -93,6 +299,7 @@ function PulseBlob() {
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PaymentSuccessScreenProps {
   content: Content;
+  rental: RentalRecord;
   onWatchNow: () => void;
   onGoHome: () => void;
 }
@@ -100,12 +307,14 @@ interface PaymentSuccessScreenProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 export function PaymentSuccessScreen({
   content,
+  rental,
   onWatchNow,
   onGoHome,
 }: PaymentSuccessScreenProps) {
   // Pop-in animation for the whole card
   const cardScale = useRef(new Animated.Value(0.85)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
+  const [showReceipt, setShowReceipt] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -118,6 +327,13 @@ export function PaymentSuccessScreen({
     <View style={styles.container}>
       {/* Background pulse blob */}
       <PulseBlob />
+
+      <ReceiptModal
+        visible={showReceipt}
+        onClose={() => setShowReceipt(false)}
+        content={content}
+        rental={rental}
+      />
 
       <Animated.View style={[styles.inner, { transform: [{ scale: cardScale }], opacity: cardOpacity }]}>
 
@@ -148,13 +364,11 @@ export function PaymentSuccessScreen({
             <Text style={styles.contentDir}>{content.director}</Text>
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Amount Paid</Text>
-              <Text style={styles.receiptGreen}>₹{content.price}</Text>
+              <Text style={styles.receiptGreen}>₹{rental.amountPaid}</Text>
             </View>
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Access Duration</Text>
-              <Text style={styles.receiptValue}>
-                {content.type === 'vertical-series' ? '7 days' : '48 hours'}
-              </Text>
+              <Text style={styles.receiptValue}>{formatAccessDuration(rental)}</Text>
             </View>
           </View>
         </View>
@@ -182,7 +396,7 @@ export function PaymentSuccessScreen({
 
           {/* Receipt + Share */}
           <View style={styles.secondRow}>
-            <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.7} onPress={() => setShowReceipt(true)}>
               <DownloadIcon />
               <Text style={styles.outlineBtnText}>Receipt</Text>
             </TouchableOpacity>
@@ -358,4 +572,203 @@ const iconStyles = StyleSheet.create({
   shareDotBR:  { position: 'absolute', bottom: 0, right: 0, width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ffffff' },
   shareLine1:  { position: 'absolute', width: 12, height: 1.5, backgroundColor: '#ffffff', top: 4, left: 2, transform: [{ rotate: '-35deg' }] },
   shareLine2:  { position: 'absolute', width: 12, height: 1.5, backgroundColor: '#ffffff', bottom: 4, left: 2, transform: [{ rotate: '35deg' }] },
+});
+
+const receiptStyles = StyleSheet.create({
+  modalRoot: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+    paddingTop: 12,
+  },
+  handle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: '#333333',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: '#1f1f1f',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 48,
+    gap: 16,
+  },
+
+  // ── Paper ──
+  paper: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  paperHeader: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 4,
+  },
+  brandName: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 4,
+  },
+  brandTagline: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.75)',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+
+  statusWrap: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#f0fdf4',
+    borderBottomWidth: 1,
+    borderBottomColor: '#dcfce7',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: '#22c55e',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#16a34a',
+    letterSpacing: 1,
+  },
+
+  contentRow: {
+    flexDirection: 'row',
+    gap: 14,
+    padding: 16,
+    backgroundColor: '#fafafa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  thumbBox: {
+    width: 60, height: 84, borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a1a',
+  },
+  contentMeta: { flex: 1, justifyContent: 'center', gap: 3 },
+  contentTitle: { fontSize: 15, fontWeight: '700', color: '#111111', lineHeight: 20 },
+  contentDir:   { fontSize: 12, color: '#666666' },
+  contentGenre: { fontSize: 11, color: '#999999', marginTop: 2 },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginHorizontal: 16,
+    marginVertical: 4,
+  },
+
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9ca3af',
+    letterSpacing: 1.5,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 6,
+  },
+
+  // ReceiptRow
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+  },
+  rowLabel: { fontSize: 13, color: '#6b7280' },
+  rowValue: { fontSize: 13, fontWeight: '600', color: '#111111', textAlign: 'right', flex: 1, marginLeft: 8 },
+  rowValueGreen: { color: '#16a34a', fontSize: 15 },
+
+  // Perforation
+  perfWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  perfHoleL: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#0a0a0a',
+    marginLeft: -11,
+  },
+  perfDashes: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 4,
+  },
+  perfDash: {
+    width: 6, height: 2,
+    backgroundColor: '#d1d5db',
+    borderRadius: 1,
+  },
+  perfHoleR: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#0a0a0a',
+    marginRight: -11,
+  },
+
+  // Footer
+  footerNote: {
+    fontSize: 12,
+    color: '#9ca3af',
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+  },
+  footerUrl: {
+    fontSize: 11,
+    color: '#c084fc',
+    textAlign: 'center',
+    paddingTop: 4,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
+    fontWeight: '600',
+  },
+
+  // Share button
+  shareBtn: {
+    height: 52,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    overflow: 'hidden',
+  },
+  shareBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    zIndex: 1,
+  },
 });

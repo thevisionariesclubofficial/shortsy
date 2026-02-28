@@ -9,9 +9,12 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Content } from '../data/mockData';
+import { getWatchProgress, saveWatchProgress } from '../services/playbackService';
+import type { SaveProgressRequest } from '../types/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function ArrowLeftIcon() {
@@ -118,6 +121,15 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
   const progressBarRef = useRef<View>(null);
   const autoPlayOnLoad = useRef(false);
   const currentEpRef = useRef(episodeNumber ?? 1);
+  // Progress tracking refs (used inside event listener closures to avoid stale state)
+  const currentTimeRef  = useRef(0);   // mirrors currentTime state
+  const durationRef     = useRef(0);   // mirrors duration state
+  const lastSaveRef     = useRef(0);   // Date.now() of last progress save (10s throttle)
+  const hasRestored     = useRef(false); // true once we've attempted to restore progress
+
+  const isShortFilm = content.type === 'short-film';
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   // ── Control visibility ──────────────────────────────────────────────────────
   const showControlsNow = () => {
@@ -176,14 +188,47 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
     showControlsNow();
   };
 
+  // Save progress then navigate back
+  const handleBack = () => {
+    if (videoUrl && currentTimeRef.current > 0) {
+      const req: SaveProgressRequest = {
+        currentTime: currentTimeRef.current,
+        duration: durationRef.current,
+        completed: false,
+      };
+      if (content.type === 'vertical-series') {
+        const ep = content.episodeList?.[currentEpRef.current - 1];
+        if (ep) { req.episodeId = ep.id; req.episodeNumber = currentEpRef.current; }
+      }
+      saveWatchProgress(content.id, req).catch(() => {});
+    }
+    onBack();
+  };
+
   // ── Switch episode from sidebar ─────────────────────────────────────────────
   const switchEpisode = async (epIndex: number) => {
     const epList = content.episodeList;
     if (!epList || epIndex < 1 || epIndex > epList.length) return;
+    // Save current episode progress (completed) before switching
+    if (currentTimeRef.current > 0) {
+      const ep = epList[currentEpRef.current - 1];
+      if (ep) {
+        const req: SaveProgressRequest = {
+          currentTime: currentTimeRef.current,
+          duration: durationRef.current,
+          completed: true,
+          episodeId: ep.id,
+          episodeNumber: currentEpRef.current,
+        };
+        saveWatchProgress(content.id, req).catch(() => {});
+      }
+    }
     currentEpRef.current = epIndex;
     setCurrentEp(epIndex);
     setCurrentTime(0);
+    currentTimeRef.current = 0;
     setDuration(0);
+    durationRef.current = 0;
     setProgress(0);
     setIsBuffering(true);
     autoPlayOnLoad.current = true;
@@ -235,17 +280,67 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
     if (!videoUrl) return;
 
     const loadSub = epPlayer.addEventListener('onLoad', (data: any) => {
-      setDuration(data.duration ?? 0);
-      setCurrentTime(data.currentTime ?? 0);
+      const dur = data.duration ?? 0;
+      durationRef.current = dur;
+      setDuration(dur);
+      const t = data.currentTime ?? 0;
+      currentTimeRef.current = t;
+      setCurrentTime(t);
       setIsBuffering(false);
+
       if (autoPlayOnLoad.current) {
+        // Episode switch — just play, don't restore progress
         autoPlayOnLoad.current = false;
+        epPlayer.play();
+        return;
+      }
+
+      // First load: restore saved watch progress then play
+      if (!hasRestored.current && dur > 10) {
+        hasRestored.current = true;
+        getWatchProgress(content.id)
+          .then(saved => {
+            if (saved && !saved.completed && saved.currentTime > 5 && saved.currentTime < dur - 5) {
+              // For vertical-series: restore the right episode first
+              if (
+                content.type === 'vertical-series' &&
+                saved.lastEpisodeNumber &&
+                saved.lastEpisodeNumber !== currentEpRef.current
+              ) {
+                switchEpisode(saved.lastEpisodeNumber);
+                return;
+              }
+              epPlayer.seekTo(saved.currentTime);
+              currentTimeRef.current = saved.currentTime;
+              setCurrentTime(saved.currentTime);
+            }
+          })
+          .catch(() => {})
+          .finally(() => epPlayer.play());
+      } else {
         epPlayer.play();
       }
     });
 
     const progressSub = epPlayer.addEventListener('onProgress', (data: any) => {
-      setCurrentTime(data.currentTime ?? 0);
+      const t = data.currentTime ?? 0;
+      currentTimeRef.current = t;
+      setCurrentTime(t);
+      // Throttled auto-save every 10 seconds
+      const now = Date.now();
+      if (now - lastSaveRef.current >= 10_000 && t > 0 && durationRef.current > 0) {
+        lastSaveRef.current = now;
+        const req: SaveProgressRequest = {
+          currentTime: t,
+          duration: durationRef.current,
+          completed: false,
+        };
+        if (content.type === 'vertical-series') {
+          const ep = content.episodeList?.[currentEpRef.current - 1];
+          if (ep) { req.episodeId = ep.id; req.episodeNumber = currentEpRef.current; }
+        }
+        saveWatchProgress(content.id, req).catch(() => {});
+      }
     });
 
     const stateSub = epPlayer.addEventListener('onPlaybackStateChange', (data: any) => {
@@ -257,8 +352,20 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
       setIsBuffering(typeof buffering === 'boolean' ? buffering : buffering?.isBuffering ?? false);
     });
 
-    // When video ends: advance to next episode, or reset on last episode
+    // When video ends: save completed progress then advance or reset
     const endSub = epPlayer.addEventListener('onEnd', () => {
+      if (durationRef.current > 0) {
+        const req: SaveProgressRequest = {
+          currentTime: durationRef.current,
+          duration: durationRef.current,
+          completed: true,
+        };
+        if (content.type === 'vertical-series') {
+          const ep = content.episodeList?.[currentEpRef.current - 1];
+          if (ep) { req.episodeId = ep.id; req.episodeNumber = currentEpRef.current; }
+        }
+        saveWatchProgress(content.id, req).catch(() => {});
+      }
       const epList = content.episodeList;
       const nextEp = currentEpRef.current + 1;
       if (epList && nextEp <= epList.length) {
@@ -267,6 +374,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
       } else {
         // Last episode (or non-series): seek to beginning and show controls
         epPlayer.seekTo(0);
+        currentTimeRef.current = 0;
         setCurrentTime(0);
         setIsPlaying(false);
         showControlsNow();
@@ -326,7 +434,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
           {/* Top bar */}
           <View style={styles.topBar}>
             <TouchableOpacity
-              onPress={(e) => { e.stopPropagation?.(); onBack(); }}
+              onPress={(e) => { e.stopPropagation?.(); handleBack(); }}
               style={styles.iconBtn}
               activeOpacity={0.7}>
               <ArrowLeftIcon />

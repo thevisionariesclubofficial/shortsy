@@ -13,6 +13,9 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Content } from '../data/mockData';
+import { confirmPayment, initiateRental } from '../services/rentalService';
+import { logger } from '../utils/logger';
+import type { RentalRecord } from '../types/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function ArrowLeftIcon() {
@@ -104,7 +107,7 @@ type PaymentMethod = 'upi' | 'card' | 'wallet' | 'netbanking';
 interface PaymentScreenProps {
   content: Content;
   onBack: () => void;
-  onSuccess: () => void;
+  onSuccess: (rental: RentalRecord) => void;
 }
 
 // ─── Reusable field ───────────────────────────────────────────────────────────
@@ -163,13 +166,51 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
     return true; // wallet / netbanking: just pick one
   };
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!isValid() || processing) return;
     setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
-      onSuccess();
-    }, 2500);
+    try {
+      // Step 1: Create payment order on the server
+      const order = await initiateRental({ contentId: content.id });
+      logger.info('PaymentScreen', 'Order created', { orderId: order.orderId, amount: order.amountINR });
+
+      // Step 2: Simulate payment gateway SDK processing (Razorpay / Stripe in production)
+      await new Promise<void>(resolve => setTimeout(resolve, 2000));
+
+      // Step 3: Confirm payment with gateway response
+      const { rental } = await confirmPayment({
+        orderId: order.orderId,
+        gatewayPaymentId: `mock_pay_${Date.now()}`,
+        gatewaySignature: `mock_sig_${Date.now()}`,
+      });
+      logger.info('PaymentScreen', 'Payment confirmed', {
+        transactionId: rental.transactionId,
+        expiresAt: rental.expiresAt,
+      });
+
+      // Step 4: Notify parent — triggers addRented + navigate to paymentSuccess
+      onSuccess(rental);
+    } catch (err: unknown) {
+      // If the content is already rented, treat as success (idempotent)
+      const isAlreadyRented =
+        err instanceof Error && (err as { code?: string }).code === 'ALREADY_RENTED';
+      if (isAlreadyRented) {
+        logger.warn('PaymentScreen', 'Content already rented — skipping gateway', { contentId: content.id });
+        // Build a minimal stub rental for the success screen
+        const stubRental: RentalRecord = {
+          contentId: content.id,
+          userId: 'mock_user',
+          rentedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + (content.type === 'vertical-series' ? 7 : 2) * 24 * 60 * 60 * 1000).toISOString(),
+          amountPaid: content.price,
+          transactionId: `txn_${Date.now()}`,
+        };
+        onSuccess(stubRental);
+      } else {
+        logger.error('PaymentScreen', 'Payment failed', err);
+        setProcessing(false);
+      }
+    }
   };
 
   const methods: { key: PaymentMethod; label: string; Icon: React.FC<{ active: boolean }> }[] = [

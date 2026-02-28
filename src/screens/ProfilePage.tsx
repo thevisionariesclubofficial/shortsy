@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  Linking,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,7 +10,8 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Content } from '../data/mockData';
-import { ContentCard } from '../components/ContentCard';
+import { getCurrentUser } from '../services/profileService';
+import type { UserProfile } from '../types/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function UserIcon() {
@@ -78,24 +81,191 @@ function CrownIcon() {
   );
 }
 
+// ─── Settings-modal icons ─────────────────────────────────────────────────────
+function HelpCircleIcon() {
+  return (
+    <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 2, height: 5, backgroundColor: '#a855f7', borderRadius: 1 }} />
+      <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: '#a855f7', marginTop: 1 }} />
+    </View>
+  );
+}
+
+function ChatLinesIcon() {
+  return (
+    <View style={{ width: 18, height: 16, borderRadius: 4, borderWidth: 1.5, borderColor: '#a855f7', alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 3, gap: 3 }}>
+      <View style={{ width: 10, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
+      <View style={{ width: 7, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
+    </View>
+  );
+}
+
+function EnvelopeSmIcon() {
+  return (
+    <View style={{ width: 18, height: 13, borderRadius: 2, borderWidth: 1.5, borderColor: '#a855f7', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ position: 'absolute', width: 24, height: 1.5, backgroundColor: '#a855f7', top: 2, transform: [{ rotate: '25deg' }] }} />
+      <View style={{ position: 'absolute', width: 24, height: 1.5, backgroundColor: '#a855f7', top: 2, transform: [{ rotate: '-25deg' }] }} />
+    </View>
+  );
+}
+
+function DocLinesIcon() {
+  return (
+    <View style={{ width: 14, height: 17, borderRadius: 2, borderWidth: 1.5, borderColor: '#a855f7', paddingHorizontal: 2, paddingTop: 3, gap: 2.5 }}>
+      <View style={{ width: 8, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
+      <View style={{ width: 6, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
+      <View style={{ width: 8, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
+      <View style={{ width: 5, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
+    </View>
+  );
+}
+
+function ShieldCheckIcon() {
+  return (
+    <View style={{ width: 16, height: 18, alignItems: 'center' }}>
+      <View style={{ width: 16, height: 16, borderWidth: 1.5, borderColor: '#a855f7', borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ position: 'absolute', width: 5, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1, bottom: 6, left: 2, transform: [{ rotate: '45deg' }] }} />
+        <View style={{ position: 'absolute', width: 8, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1, bottom: 7, right: 2, transform: [{ rotate: '-45deg' }] }} />
+      </View>
+    </View>
+  );
+}
+
+function InfoCircleIcon() {
+  return (
+    <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: '#a855f7' }} />
+      <View style={{ width: 2, height: 5, backgroundColor: '#a855f7', borderRadius: 1, marginTop: 1 }} />
+    </View>
+  );
+}
+
+function XCloseIcon() {
+  return (
+    <View style={{ width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ position: 'absolute', width: 12, height: 2, backgroundColor: '#a3a3a3', borderRadius: 1, transform: [{ rotate: '45deg' }] }} />
+      <View style={{ position: 'absolute', width: 12, height: 2, backgroundColor: '#a3a3a3', borderRadius: 1, transform: [{ rotate: '-45deg' }] }} />
+    </View>
+  );
+}
+
+// ─── SettingsModal ────────────────────────────────────────────────────────────
+function SettingsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const sections = [
+    {
+      title: 'Support',
+      items: [
+        { Icon: HelpCircleIcon,  label: 'Help Center',    url: 'https://shortsy.app/help' },
+        { Icon: ChatLinesIcon,   label: 'FAQs',           url: 'https://shortsy.app/faqs' },
+        { Icon: EnvelopeSmIcon,  label: 'Contact Us',     url: 'https://shortsy.app/contact' },
+      ],
+    },
+    {
+      title: 'Legal',
+      items: [
+        { Icon: DocLinesIcon,    label: 'Terms & Conditions', url: 'https://shortsy.app/terms' },
+        { Icon: ShieldCheckIcon, label: 'Privacy Policy',     url: 'https://shortsy.app/privacy' },
+        { Icon: DocLinesIcon,    label: 'Cookie Policy',      url: 'https://shortsy.app/cookies' },
+      ],
+    },
+    {
+      title: 'About',
+      items: [
+        { Icon: InfoCircleIcon, label: 'About Shortsy', url: 'https://shortsy.app/about' },
+      ],
+    },
+  ];
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}>
+      <View style={modalStyles.root}>
+        {/* Drag handle */}
+        <View style={modalStyles.handle} />
+
+        {/* Header */}
+        <View style={modalStyles.header}>
+          <Text style={modalStyles.headerTitle}>Settings</Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={modalStyles.closeBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <XCloseIcon />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={modalStyles.scrollContent}>
+          {sections.map(section => (
+            <View key={section.title} style={modalStyles.section}>
+              <Text style={modalStyles.sectionTitle}>{section.title}</Text>
+              <View style={modalStyles.sectionCard}>
+                {section.items.map(({ Icon, label, url }, idx) => (
+                  <TouchableOpacity
+                    key={label}
+                    style={[
+                      modalStyles.item,
+                      idx < section.items.length - 1 && modalStyles.itemBorder,
+                    ]}
+                    onPress={() => Linking.openURL(url).catch(() => {})}
+                    activeOpacity={0.7}>
+                    <View style={modalStyles.itemIconWrap}>
+                      <Icon />
+                    </View>
+                    <Text style={modalStyles.itemLabel}>{label}</Text>
+                    <View style={modalStyles.itemChevron} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ))}
+
+          {/* App version footer */}
+          <View style={modalStyles.footer}>
+            <Text style={modalStyles.footerVersion}>Shortsy v1.0.0</Text>
+            <Text style={modalStyles.footerCopy}>© 2026 Shortsy. All rights reserved.</Text>
+          </View>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ProfilePageProps {
   onLogout: () => void;
   rentedContent: Content[];
   onContentClick: (content: Content) => void;
+  onHistoryClick: () => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function ProfilePage({ onLogout, rentedContent, onContentClick }: ProfilePageProps) {
+export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick }: ProfilePageProps) {
   const totalSpent = rentedContent.reduce((sum, c) => sum + c.price, 0);
 
-  const menuItems = [
-    { Icon: HeartIcon, label: 'My Favorites', color: '#a3a3a3', danger: false },
-    { Icon: ClockIcon, label: 'Watch History', color: '#a3a3a3', danger: false },
-    { Icon: SettingsIcon, label: 'Settings', color: '#a3a3a3', danger: false },
+  const [user, setUser] = useState<UserProfile | null>(null);
+
+  // Load user profile on mount
+  useEffect(() => {
+    getCurrentUser()
+      .then(setUser)
+      .catch(() => {});
+  }, []);
+
+  const [showSettings, setShowSettings] = useState(false);
+
+  const menuItems: Array<{ Icon: React.ComponentType; label: string; onPress?: () => void }> = [
+    { Icon: HeartIcon,    label: 'My Favorites' },
+    { Icon: ClockIcon,    label: 'Watch History', onPress: onHistoryClick },
+    { Icon: SettingsIcon, label: 'Settings',      onPress: () => setShowSettings(true) },
   ];
 
   return (
+    <>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scroll}
@@ -116,15 +286,17 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick }: Profile
           <UserIcon />
         </LinearGradient>
         <View style={styles.avatarInfo}>
-          <Text style={styles.userName}>Film Lover</Text>
-          <Text style={styles.userEmail}>filmfan@indieplay.com</Text>
+          <Text style={styles.userName}>{user?.displayName ?? 'Film Lover'}</Text>
+          <Text style={styles.userEmail}>{user?.email ?? 'filmfan@shortsy.app'}</Text>
         </View>
       </View>
 
       {/* ── Stats ── */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{rentedContent.length}</Text>
+          <Text style={styles.statValue}>
+            {rentedContent.length}
+          </Text>
           <Text style={styles.statLabel}>Rentals</Text>
         </View>
         <View style={styles.statCard}>
@@ -132,8 +304,10 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick }: Profile
           <Text style={styles.statLabel}>Spent</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Favorites</Text>
+          <Text style={styles.statValue}>
+            {user?.stats?.totalWatchTimeMinutes ?? 0}m
+          </Text>
+          <Text style={styles.statLabel}>Watched</Text>
         </View>
       </View>
 
@@ -162,8 +336,8 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick }: Profile
 
       {/* ── Menu ── */}
       <View style={styles.menuSection}>
-        {menuItems.map(({ Icon, label }) => (
-          <TouchableOpacity key={label} style={styles.menuItem} activeOpacity={0.7}>
+        {menuItems.map(({ Icon, label, onPress }) => (
+          <TouchableOpacity key={label} style={styles.menuItem} activeOpacity={0.7} onPress={onPress}>
             <Icon />
             <Text style={styles.menuLabel}>{label}</Text>
             <View style={styles.menuChevron} />
@@ -175,31 +349,10 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick }: Profile
         </TouchableOpacity>
       </View>
 
-      {/* ── My Rentals ── */}
-      {rentedContent.length > 0 && (
-        <View style={styles.rentalsSection}>
-          <Text style={styles.rentalsTitle}>My Rentals</Text>
-          <View style={styles.rentalsGrid}>
-            {(() => {
-              const rows = [];
-              for (let i = 0; i < rentedContent.length; i += 2) {
-                rows.push(rentedContent.slice(i, i + 2));
-              }
-              return rows.map((row, ri) => (
-                <View key={ri} style={styles.rentalRow}>
-                  {row.map(c => (
-                    <View key={c.id} style={styles.rentalCard}>
-                      <ContentCard content={c} onClick={() => onContentClick(c)} />
-                    </View>
-                  ))}
-                  {row.length === 1 && <View style={styles.rentalCard} />}
-                </View>
-              ));
-            })()}
-          </View>
-        </View>
-      )}
+
     </ScrollView>
+    <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} />
+    </>
   );
 }
 
@@ -362,26 +515,6 @@ const styles = StyleSheet.create({
     borderColor: '#525252',
     transform: [{ rotate: '45deg' }],
   },
-  rentalsSection: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-  },
-  rentalsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 16,
-  },
-  rentalsGrid: {
-    gap: 12,
-  },
-  rentalRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  rentalCard: {
-    flex: 1,
-  },
 });
 
 const iconStyles = StyleSheet.create({
@@ -420,4 +553,111 @@ const iconStyles = StyleSheet.create({
   crownSpikeL: { left: 1, transform: [{ rotate: '-20deg' }] },
   crownSpikeC: { left: 8, height: 12, bottom: 6 },
   crownSpikeR: { right: 1, transform: [{ rotate: '20deg' }] },
+});
+
+const modalStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#000000',
+    paddingTop: 12,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#333333',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1f1f1f',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollContent: {
+    paddingBottom: 48,
+  },
+  section: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#525252',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  sectionCard: {
+    backgroundColor: '#111111',
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  itemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  itemIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#1a0533',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemLabel: {
+    flex: 1,
+    fontSize: 15,
+    color: '#ffffff',
+    fontWeight: '500',
+  },
+  itemChevron: {
+    width: 6,
+    height: 6,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderColor: '#525252',
+    transform: [{ rotate: '45deg' }],
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 32,
+    paddingBottom: 16,
+    alignItems: 'center',
+    gap: 4,
+  },
+  footerVersion: {
+    fontSize: 13,
+    color: '#525252',
+    fontWeight: '500',
+  },
+  footerCopy: {
+    fontSize: 11,
+    color: '#333333',
+  },
 });
