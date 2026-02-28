@@ -249,19 +249,10 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
   const totalSpent = rentedContent.reduce((sum, c) => sum + c.price, 0);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  // Navigation to AddContentScreen
-  const handleAddContent = () => {
-    if (navigate && typeof navigate === 'function') {
-      navigate({ type: 'addContent' });
-    } else {
-      console.warn('Navigate function not available');
-    }
-  };
   const menuItems: Array<{ Icon: React.ComponentType; label: string; onPress?: () => void }> = [
     { Icon: HeartIcon,    label: 'My Favorites' },
     { Icon: ClockIcon,    label: 'Watch History', onPress: onHistoryClick },
     { Icon: SettingsIcon, label: 'Settings',      onPress: () => setShowSettings(true) },
-    { Icon: DocLinesIcon, label: 'Add Content',   onPress: handleAddContent },
   ];
   useEffect(() => {
     getCurrentUser()

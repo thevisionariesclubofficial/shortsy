@@ -18,7 +18,7 @@ export type AppScreen =
   | { type: 'payment';        content: Content }
   | { type: 'paymentSuccess'; content: Content; rental: RentalRecord }
   | { type: 'player';         content: Content; videoUrl?: string; episodeNumber?: number }
-  | { type: 'addContent' };
+;
 
 /** Screens that hide the bottom navigation bar. */
 export const SCREENS_WITHOUT_NAV: ReadonlyArray<AppScreen['type']> = [
