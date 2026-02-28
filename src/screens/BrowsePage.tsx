@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Content, genres, languages, mockContent } from '../data/mockData';
+import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
+import { clearContentCache, getContentMetadata, listContent } from '../services/contentService';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function FilterIcon() {
@@ -56,7 +59,52 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
   const [selectedLanguage, setSelectedLanguage] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
 
-  const filtered = mockContent.filter(c => {
+  // ── Service-fetched state ─────────────────────────────────────────────────
+  const [allContent, setAllContent] = useState<Content[]>([]);
+  const [genreList,  setGenreList]  = useState<string[]>([]);
+  const [langList,   setLangList]   = useState<string[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    clearContentCache();
+    setRefreshing(true);
+    try {
+      const [allRes, metaRes] = await Promise.all([
+        listContent(),
+        getContentMetadata(),
+      ]);
+      setAllContent(allRes.data);
+      setGenreList(metaRes.genres);
+      setLangList(metaRes.languages);
+    } catch (err) {
+      console.error('[BrowsePage] Pull-to-refresh failed:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    async function fetchBrowseData() {
+      try {
+        const [allRes, metaRes] = await Promise.all([
+          listContent(),
+          getContentMetadata(),
+        ]);
+        setAllContent(allRes.data);
+        setGenreList(metaRes.genres);
+        setLangList(metaRes.languages);
+      } catch (err) {
+        console.error('[BrowsePage] Failed to fetch browse data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchBrowseData();
+  }, []);
+
+  // Client-side filtering on the fetched data
+  const filtered = allContent.filter(c => {
     if (selectedType !== 'all' && c.type !== selectedType) return false;
     if (selectedGenre !== 'All' && c.genre !== selectedGenre) return false;
     if (selectedLanguage !== 'All' && c.language !== selectedLanguage) return false;
@@ -97,51 +145,67 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}>
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#a855f7"
+            colors={['#a855f7']}
+          />
+        }>
 
         {/* ── Filter panel ── */}
         {showFilters && (
           <View style={styles.filterPanel}>
             <Text style={styles.filterSectionLabel}>Genre</Text>
             <View style={styles.pillWrap}>
-              {genres.map(g => (
+              {genreList.map(g => (
                 <Pill key={g} label={g} active={selectedGenre === g} onPress={() => setSelectedGenre(g)} />
               ))}
             </View>
 
             <Text style={[styles.filterSectionLabel, { marginTop: 16 }]}>Language</Text>
             <View style={styles.pillWrap}>
-              {languages.map(l => (
+              {langList.map(l => (
                 <Pill key={l} label={l} active={selectedLanguage === l} onPress={() => setSelectedLanguage(l)} />
               ))}
             </View>
           </View>
         )}
 
-        {/* ── Results count ── */}
-        <View style={styles.countRow}>
-          <Text style={styles.countText}>
-            {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
-          </Text>
-        </View>
-
-        {/* ── Grid ── */}
-        {rows.length > 0 ? (
-          rows.map((row, ri) => (
-            <View key={ri} style={styles.row}>
-              {row.map(content => (
-                <View key={content.id} style={styles.cardWrap}>
-                  <ContentCard content={content} onClick={() => onContentClick(content)} />
-                </View>
-              ))}
-              {/* Fill empty slot if odd */}
-              {row.length === 1 && <View style={styles.cardWrap} />}
-            </View>
-          ))
-        ) : (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No content found with selected filters</Text>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#a855f7" />
           </View>
+        ) : (
+          <>
+            {/* ── Results count ── */}
+            <View style={styles.countRow}>
+              <Text style={styles.countText}>
+                {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
+              </Text>
+            </View>
+
+            {/* ── Grid ── */}
+            {rows.length > 0 ? (
+              rows.map((row, ri) => (
+                <View key={ri} style={styles.row}>
+                  {row.map(content => (
+                    <View key={content.id} style={styles.cardWrap}>
+                      <ContentCard content={content} onClick={() => onContentClick(content)} />
+                    </View>
+                  ))}
+                  {/* Fill empty slot if odd */}
+                  {row.length === 1 && <View style={styles.cardWrap} />}
+                </View>
+              ))
+            ) : (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>No content found with selected filters</Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </View>
@@ -153,6 +217,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  loadingContainer: {
+    paddingVertical: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: {
     backgroundColor: 'rgba(0,0,0,0.97)',

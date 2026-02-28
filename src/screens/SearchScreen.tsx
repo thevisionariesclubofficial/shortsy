@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   FlatList,
@@ -10,8 +11,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Content, mockContent } from '../data/mockData';
+import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
+import { searchContent } from '../services/contentService';
+import { getPopularContent } from '../services/discoveryService';
 
 const { width } = Dimensions.get('window');
 
@@ -144,23 +147,36 @@ interface SearchScreenProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
-  const [query, setQuery]       = useState('');
-  const [history, setHistory]   = useState<string[]>(RECENT_SEED);
-  const inputRef                = useRef<TextInput>(null);
+  const [query, setQuery]                   = useState('');
+  const [history, setHistory]               = useState<string[]>(RECENT_SEED);
+  const [results, setResults]               = useState<Content[]>([]);
+  const [searching, setSearching]           = useState(false);
+  const [popularContent, setPopularContent] = useState<Content[]>([]);
+  const inputRef                            = useRef<TextInput>(null);
 
-  // ── Search logic ───────────────────────────────────────────────────────────
-  const results = query.trim()
-    ? mockContent.filter(c => {
-        const q = query.toLowerCase();
-        return (
-          c.title.toLowerCase().includes(q) ||
-          c.director.toLowerCase().includes(q) ||
-          c.genre.toLowerCase().includes(q) ||
-          c.language.toLowerCase().includes(q) ||
-          c.mood.toLowerCase().includes(q)
-        );
-      })
-    : [];
+  // ── Load popular content once on mount ────────────────────────────────────
+  useEffect(() => {
+    getPopularContent(6)
+      .then(setPopularContent)
+      .catch(() => {});
+  }, []);
+
+  // ── Debounced search (300ms) ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const timer = setTimeout(() => {
+      searchContent({ q: query.trim() })
+        .then(res => setResults(res.data))
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const handleSearch = (text: string) => {
     setQuery(text);
@@ -171,10 +187,6 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
 
   const removeFromHistory = (idx: number) =>
     setHistory(prev => prev.filter((_, i) => i !== idx));
-
-  const popularContent = [...mockContent]
-    .sort((a, b) => b.views - a.views)
-    .slice(0, 6);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -221,9 +233,14 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
         {query.trim() !== '' && (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>
-              {results.length} {results.length === 1 ? 'Result' : 'Results'}
+              {searching
+                ? 'Searching...'
+                : `${results.length} ${results.length === 1 ? 'Result' : 'Results'}`
+              }
             </Text>
-            {results.length > 0 ? (
+            {searching ? (
+              <ActivityIndicator size="small" color="#a855f7" style={{ marginTop: 8 }} />
+            ) : results.length > 0 ? (
               <View style={styles.grid}>
                 {results.map(c => (
                   <View key={c.id} style={styles.gridItem}>

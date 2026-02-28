@@ -13,6 +13,7 @@ import { useAppState } from '../hooks/useAppState';
 import { BrowsePage } from '../screens/BrowsePage';
 import { ContentDetailScreen } from '../screens/ContentDetailScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomePage } from '../screens/HomePage';
 import { LoginScreen } from '../screens/LoginScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
@@ -48,6 +49,7 @@ function App() {
     onTabChange,
     onRentalModalClose,
     onRentalModalConfirm,
+    onHistoryClick,
   } = useAppState();
 
   // ── Auth guard ────────────────────────────────────────────────────────────
@@ -120,6 +122,7 @@ function App() {
               onLogout={onLogout}
               rentedContent={rentedContent}
               onContentClick={onContentClick}
+              onHistoryClick={onHistoryClick}
             />
           )}
           {showNav && (
@@ -136,6 +139,15 @@ function App() {
         />
       )}
 
+      {/* ── History ── */}
+      {screen.type === 'history' && (
+        <HistoryScreen
+          rentedContent={rentedContent}
+          onBack={() => navigate({ type: 'profile' })}
+          onContentClick={onContentClick}
+        />
+      )}
+
       {/* ── Detail ── */}
       {screen.type === 'detail' && (
         <ContentDetailScreen
@@ -143,6 +155,7 @@ function App() {
           onBack={() => navigate({ type: 'home' })}
           onRent={onRent}
           isRented={isRented(screen.content)}
+          onWatchNow={() => navigate({ type: 'player', content: screen.content, videoUrl: screen.content.videoUrl })}
           onEpisodePlay={(ep, epNum) => onEpisodePlay(ep, screen.content, epNum)}
         />
       )}
@@ -152,7 +165,7 @@ function App() {
         <PaymentScreen
           content={screen.content}
           onBack={() => navigate({ type: 'detail', content: screen.content })}
-          onSuccess={() => onPaymentSuccess(screen.content)}
+          onSuccess={(rental) => onPaymentSuccess(screen.content, rental)}
         />
       )}
 
@@ -160,7 +173,8 @@ function App() {
       {screen.type === 'paymentSuccess' && (
         <PaymentSuccessScreen
           content={screen.content}
-          onWatchNow={() => navigate({ type: 'player', content: screen.content })}
+          rental={screen.rental}
+          onWatchNow={() => navigate({ type: 'player', content: screen.content, videoUrl: screen.content.videoUrl })}
           onGoHome={() => navigate({ type: 'home' })}
         />
       )}

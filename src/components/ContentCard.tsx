@@ -110,11 +110,11 @@ export function ContentCard({ content, onClick }: ContentCardProps) {
         </View>
 
         {/* Top-right: Price */}
-        <View style={styles.topRight}>
+        {/* <View style={styles.topRight}>
           <View style={styles.priceBadge}>
             <Text style={styles.priceText}>₹{content.price}</Text>
           </View>
-        </View>
+        </View> */}
       </View>
 
       {/* ── Info ── */}

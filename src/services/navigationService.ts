@@ -23,16 +23,13 @@ export function resolvePostSplashScreen(
  * Resolves the screen to navigate to when a content card is tapped.
  *
  * Rules:
- *  - Vertical series → always go to Detail (episode picker)
- *  - Short film, rented → go to Player with its video URL
- *  - Short film, not rented → go to Detail (to rent/preview)
+ *  - All content → always go to Detail (shows Watch Now if rented, Rent & Watch if not)
+ *  - Only "Continue Watching" cards bypass Detail and go straight to Player.
  */
 export function resolveContentScreen(
   content: Content,
-  isRented: boolean,
+  _isRented: boolean,
 ): AppScreen {
-  if (content.type === 'vertical-series') return { type: 'detail', content };
-  if (isRented) return { type: 'player', content, videoUrl: content.videoUrl };
   return { type: 'detail', content };
 }
 
