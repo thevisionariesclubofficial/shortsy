@@ -25,6 +25,7 @@ import { SearchScreen } from '../screens/SearchScreen';
 import { SignupScreen } from '../screens/SignupScreen';
 import { SplashScreen } from '../screens/SplashScreen';
 import { WelcomeChoice } from '../screens/WelcomeChoice';
+import { resolveWatchNowScreen } from '../services/navigationService';
 
 function App() {
   const {
@@ -174,7 +175,7 @@ function App() {
         <PaymentSuccessScreen
           content={screen.content}
           rental={screen.rental}
-          onWatchNow={() => navigate({ type: 'player', content: screen.content, videoUrl: screen.content.videoUrl })}
+          onWatchNow={() => navigate(resolveWatchNowScreen(screen.content))}
           onGoHome={() => navigate({ type: 'home' })}
         />
       )}

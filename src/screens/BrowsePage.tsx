@@ -11,6 +11,7 @@ import {
 import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { clearContentCache, getContentMetadata, listContent } from '../services/contentService';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function FilterIcon() {
@@ -118,7 +119,7 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* ── Sticky header ── */}
       <View style={styles.header}>
         {/* Top bar */}
@@ -208,7 +209,7 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
           </>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

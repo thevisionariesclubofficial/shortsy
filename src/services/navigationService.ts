@@ -55,3 +55,25 @@ export function buildEpisodePlayerScreen(
 ): AppScreen {
   return { type: 'player', content, videoUrl: ep.videoUrl, episodeNumber };
 }
+
+/**
+ * Resolves the Player screen to navigate to immediately after a successful
+ * payment ("Watch Now" button).
+ *
+ * Rules:
+ *  - Short film  → Player with the film's videoUrl
+ *  - Vertical series → Player starting at Episode 1 using the first
+ *    episode's videoUrl (series have no top-level videoUrl)
+ */
+export function resolveWatchNowScreen(content: Content): AppScreen {
+  if (content.type === 'vertical-series') {
+    const firstEp = content.episodeList?.[0];
+    return {
+      type: 'player',
+      content,
+      videoUrl: firstEp?.videoUrl,
+      episodeNumber: 1,
+    };
+  }
+  return { type: 'player', content, videoUrl: content.videoUrl };
+}
