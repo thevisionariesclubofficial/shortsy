@@ -260,7 +260,10 @@ export async function getWatchProgress(contentId: string): Promise<WatchProgress
   }
 
   try {
-    return await apiClient.get<WatchProgress>(`/content/${contentId}/progress`);
+    const raw = await apiClient.get<WatchProgress>(`/content/${contentId}/progress`);
+    // Normalize: the real API omits `completed` for vertical-series responses.
+    // Default to false so the resume guard `!saved.completed` in PlayerScreen works correctly.
+    return { ...raw, completed: raw.completed ?? false };
   } catch (err: unknown) {
     // 404 = never watched; treat as null, not an error
     if (err instanceof ApiClientError && err.status === 404) { return null; }

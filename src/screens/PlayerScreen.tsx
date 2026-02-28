@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Content } from '../data/mockData';
-import { getWatchProgress, saveWatchProgress } from '../services/playbackService';
+import { getWatchProgress, saveWatchProgress, getStreamUrl, getEpisodeStreamUrl } from '../services/playbackService';
+import { USE_MOCK } from '../services/apiClient';
+import { logger } from '../utils/logger';
 import type { SaveProgressRequest } from '../types/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -105,12 +107,17 @@ interface PlayerScreenProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: PlayerScreenProps) {
+  // true when the player has (or will fetch) a real video file.
+  // In real API mode, content.videoUrl / ep.videoUrl are null — signed URLs must be
+  // fetched via getStreamUrl / getEpisodeStreamUrl. hasRealVideo = true in that case too,
+  // so all player controls, VideoView, and buffering spinner activate immediately.
+  const hasRealVideo = !!videoUrl || !USE_MOCK;
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted,   setIsMuted]   = useState(false);
   const [progress,  setProgress]  = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [currentEp, setCurrentEp] = useState(episodeNumber ?? 1);
-  const [isBuffering, setIsBuffering] = useState(!!videoUrl); // true while loading real video
+  const [isBuffering, setIsBuffering] = useState(hasRealVideo); // true while video / signed URL loads
   // Real video tracking (only used when videoUrl is provided)
   const [duration,    setDuration]    = useState(0);   // total seconds
   const [currentTime, setCurrentTime] = useState(0);   // elapsed seconds
@@ -155,9 +162,9 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showControls, isPlaying]);
 
-  // ── Fake progress ticker (mock-only, not used when real videoUrl present) ────
+  // ── Fake progress ticker (mock thumbnail mode only — disabled when hasRealVideo) ──
   useEffect(() => {
-    if (!videoUrl && isPlaying) {
+    if (!hasRealVideo && isPlaying) {
       progressTimer.current = setInterval(() => {
         setProgress(p => {
           if (p >= 100) { setIsPlaying(false); return 100; }
@@ -168,10 +175,10 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
       if (progressTimer.current) clearInterval(progressTimer.current);
     }
     return () => { if (progressTimer.current) clearInterval(progressTimer.current); };
-  }, [isPlaying, videoUrl]);
+  }, [isPlaying, hasRealVideo]);
 
   const togglePlay = () => {
-    if (videoUrl) {
+    if (hasRealVideo) {
       if (isPlaying) {
         epPlayer.pause();
       } else {
@@ -190,7 +197,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
 
   // Save progress then navigate back
   const handleBack = () => {
-    if (videoUrl && currentTimeRef.current > 0) {
+    if (hasRealVideo && currentTimeRef.current > 0) {
       const req: SaveProgressRequest = {
         currentTime: currentTimeRef.current,
         duration: durationRef.current,
@@ -232,7 +239,16 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
     setProgress(0);
     setIsBuffering(true);
     autoPlayOnLoad.current = true;
-    await epPlayer.replaceSourceAsync(epList[epIndex - 1].videoUrl);
+    try {
+      // In real API mode, ep.videoUrl is null — fetch a fresh signed URL from the Playback API
+      const epUrl = videoUrl
+        ? epList[epIndex - 1].videoUrl
+        : (await getEpisodeStreamUrl(content.id, epList[epIndex - 1].id)).streamUrl;
+      await epPlayer.replaceSourceAsync(epUrl);
+    } catch (err) {
+      logger.error('PLAYER', 'Episode stream URL resolution failed', err as object);
+      setIsBuffering(false);
+    }
   };
 
   // ── Format seconds → m:ss ──────────────────────────────────────────────────
@@ -250,8 +266,8 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
     return fmt(elapsed);
   };
 
-  // Derived progress percentage (real video vs mock)
-  const realProgress = videoUrl && duration > 0
+  // Derived progress percentage (real video vs mock thumbnail)
+  const realProgress = hasRealVideo && duration > 0
     ? (currentTime / duration) * 100
     : progress;
 
@@ -260,24 +276,33 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
   const handleProgressTap = (e: GestureResponderEvent) => {
     const x = e.nativeEvent.locationX;
     const pct = Math.max(0, Math.min(1, x / trackWidth));
-    if (videoUrl && duration > 0) {
+    if (hasRealVideo && duration > 0) {
       epPlayer.seekTo(pct * duration);
     } else {
       setProgress(pct * 100);
     }
   };
 
-  // Real video player for episode URLs
-  const epPlayer = useVideoPlayer(videoUrl ?? '', p => {
-    if (videoUrl) {
-      p.loop = false;
-      p.play();
-    }
-  });
+  // Real video player for episode URLs.
+  // react-native-video requires a non-empty string source at construction time.
+  // In real-API mode videoUrl is undefined (signed URLs are fetched below via
+  // getStreamUrl/getEpisodeStreamUrl), so we supply a placeholder URI.
+  // The init callback intentionally does NOT call play() in that case, so the
+  // native player stays idle until replaceSourceAsync() loads the real URL.
+  const PENDING_SOURCE = 'https://localhost/stream-pending';
+  const epPlayer = useVideoPlayer(
+    videoUrl ?? PENDING_SOURCE,
+    p => {
+      if (videoUrl) {
+        p.loop = false;
+        p.play();
+      }
+    },
+  );
 
   // ── Real video event listeners ──────────────────────────────────────────────
   useEffect(() => {
-    if (!videoUrl) return;
+    if (!hasRealVideo) return;
 
     const loadSub = epPlayer.addEventListener('onLoad', (data: any) => {
       const dur = data.duration ?? 0;
@@ -391,13 +416,49 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
   // epPlayer reference is stable for the lifetime of this screen
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoUrl]);
-
+  // ── Fetch signed stream URL when videoUrl is not provided (real API mode) ───
+  // In real mode, Content.videoUrl and Episode.videoUrl are null from the API
+  // (spec §3.2: "videoUrl is null until rental confirmed; use GET /content/:id/stream").
+  // This effect calls the Playback API, loads the signed URL into the player, then
+  // the existing onLoad handler takes over (seek to resume position + play).
+  useEffect(() => {
+    if (videoUrl) return; // direct URL provided — mock mode or explicit passthrough
+    let cancelled = false;
+    async function resolveStreamUrl() {
+      try {
+        let signedUrl: string;
+        if (content.type === 'short-film') {
+          const res = await getStreamUrl(content.id);
+          signedUrl = res.streamUrl;
+        } else {
+          const ep = content.episodeList?.[currentEpRef.current - 1];
+          if (!ep) {
+            logger.warn('PLAYER', 'No episode found for stream URL resolution');
+            return;
+          }
+          const res = await getEpisodeStreamUrl(content.id, ep.id);
+          signedUrl = res.streamUrl;
+        }
+        if (!cancelled) {
+          // replaceSourceAsync fires onLoad → getWatchProgress → seekTo → play
+          await epPlayer.replaceSourceAsync(signedUrl);
+        }
+      } catch (err) {
+        logger.error('PLAYER', 'Stream URL resolution failed', err as object);
+        if (!cancelled) setIsBuffering(false);
+      }
+    }
+    resolveStreamUrl();
+    return () => { cancelled = true; };
+    // videoUrl and content are stable for the lifetime of this screen instance
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <TouchableWithoutFeedback onPress={showControlsNow}>
       <View style={styles.container}>
         {/* ── Video area ── */}
         <View style={styles.videoArea}>
-          {videoUrl ? (
+          {hasRealVideo ? (
             <VideoView
               player={epPlayer}
               resizeMode='contain'
@@ -422,7 +483,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
         </View>
 
         {/* ── Loading spinner ── */}
-        {isBuffering && videoUrl ? (
+        {isBuffering && hasRealVideo ? (
           <View style={styles.loadingWrap} pointerEvents="none">
             <LoadingSpinner />
           </View>
@@ -462,9 +523,9 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
           <View style={styles.bottomBar}>
             {/* Time + progress */}
             <View style={styles.timeRow}>
-              <Text style={styles.timeText}>{videoUrl ? fmt(currentTime) : formatTime(progress)}</Text>
+              <Text style={styles.timeText}>{hasRealVideo ? fmt(currentTime) : formatTime(progress)}</Text>
               <Text style={styles.timeSep}>/</Text>
-              <Text style={styles.timeDim}>{videoUrl ? fmt(duration) : content.duration}</Text>
+              <Text style={styles.timeDim}>{hasRealVideo ? fmt(duration) : content.duration}</Text>
             </View>
             <View
               style={styles.track}
@@ -491,7 +552,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
                     e.stopPropagation?.();
                     setIsMuted(v => {
                       const next = !v;
-                      if (videoUrl) epPlayer.muted = next;
+                      if (hasRealVideo) epPlayer.muted = next;
                       return next;
                     });
                   }}

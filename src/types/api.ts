@@ -317,7 +317,12 @@ export interface WatchProgress {
   currentTime: number;
   duration: number;
   progressPercent: number;
-  completed: boolean;
+  /**
+   * Whether the content (or its last-watched episode) was watched to completion.
+   * Optional: the real API omits this field for vertical-series responses.
+   * Treat as `false` (not completed) when absent.
+   */
+  completed?: boolean;
   lastWatchedAt: string;
   // Vertical-series only:
   lastEpisodeId?: string;

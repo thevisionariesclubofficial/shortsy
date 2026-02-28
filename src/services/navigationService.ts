@@ -6,6 +6,7 @@
  */
 import type { Content, Episode } from '../data/mockData';
 import type { AppScreen } from '../types/navigation';
+import type { WatchProgress } from '../types/api';
 
 /**
  * Resolves the first screen the user should see after the splash animation.
@@ -34,14 +35,30 @@ export function resolveContentScreen(
 }
 
 /**
- * Resolves the screen to navigate to when a "Continue Watching" card is tapped.
+ * Resolves the screen to navigate to when a "Continue Watching" card is tapped,
+ * taking saved watch progress into account.
  *
  * Rules:
- *  - Vertical series → Detail (user picks which episode to resume)
- *  - Short film → Player directly (already rented by definition)
+ *  - Short film  → Player directly (PlayerScreen auto-seeks to saved position on load)
+ *  - Vertical series with progress → Player at the last-watched episode
+ *  - Vertical series without progress → Player at Episode 1
+ *  - Vertical series with no episodeList → Detail (safety fallback)
  */
-export function resolveRentedContentScreen(content: Content): AppScreen {
-  if (content.type === 'vertical-series') return { type: 'detail', content };
+export function resolveRentedClickWithProgress(
+  content: Content,
+  progress: WatchProgress | null,
+): AppScreen {
+  if (content.type === 'vertical-series') {
+    const epList = content.episodeList;
+    if (!epList || epList.length === 0) {
+      return { type: 'detail', content };
+    }
+    const epNumber = progress?.lastEpisodeNumber ?? 1;
+    const safeEpIdx = Math.min(epNumber - 1, epList.length - 1);
+    const ep = epList[safeEpIdx];
+    return { type: 'player', content, videoUrl: ep.videoUrl, episodeNumber: epNumber };
+  }
+  // Short film: go straight to player; PlayerScreen will seekTo saved position on load
   return { type: 'player', content, videoUrl: content.videoUrl };
 }
 

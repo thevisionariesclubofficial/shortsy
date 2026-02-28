@@ -22,6 +22,8 @@ import {
   getContentMetadata,
   listContent,
 } from '../services/contentService';
+import { getWatchProgress } from '../services/playbackService';
+import type { WatchProgress } from '../types/api';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
@@ -189,6 +191,29 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
   const [hero,             setHero]             = useState<Content | null>(null);
   const [loading,          setLoading]          = useState(true);
   const [refreshing,       setRefreshing]       = useState(false);
+  // Watch progress for each rented item (contentId → WatchProgress)
+  const [progressMap,      setProgressMap]      = useState<Record<string, WatchProgress>>({});
+
+  // Load / refresh progress whenever the list of rented content changes
+  useEffect(() => {
+    if (rentedContent.length === 0) { setProgressMap({}); return; }
+    let cancelled = false;
+    Promise.all(
+      rentedContent.map(c =>
+        getWatchProgress(c.id)
+          .then(p => ({ id: c.id, progress: p }))
+          .catch(() => ({ id: c.id, progress: null })),
+      ),
+    ).then(results => {
+      if (cancelled) return;
+      const map: Record<string, WatchProgress> = {};
+      for (const { id, progress } of results) {
+        if (progress) map[id] = progress;
+      }
+      setProgressMap(map);
+    });
+    return () => { cancelled = true; };
+  }, [rentedContent]);
 
   const handleRefresh = useCallback(async () => {
     clearContentCache();
@@ -302,35 +327,61 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.continueRow}>
-              {rentedContent.map(content => (
-                <TouchableOpacity
-                  key={content.id}
-                  style={cwStyles.card}
-                  activeOpacity={0.8}
-                  onPress={() => onRentedClick(content)}>
-                  <Image
-                    source={{ uri: content.thumbnail }}
-                    style={cwStyles.thumb}
-                    resizeMode="cover"
-                  />
-                  {/* dark overlay */}
-                  <View style={cwStyles.overlay} />
-                  {/* series badge */}
-                  {content.type === 'vertical-series' && (
-                    <View style={cwStyles.badge}>
-                      <Text style={cwStyles.badgeText}>Series</Text>
+              {rentedContent.map(content => {
+                const prog = progressMap[content.id];
+                const pct  = prog ? Math.min(Math.max(prog.progressPercent, 0), 100) : 0;
+                let subtitle: string;
+                if (!prog) {
+                  subtitle = content.type === 'vertical-series'
+                    ? `${content.episodes} eps`
+                    : content.duration;
+                } else if (content.type === 'vertical-series') {
+                  const ep = prog.lastEpisodeNumber ?? 1;
+                  subtitle = `Ep ${ep} · ${Math.round(pct)}% watched`;
+                } else {
+                  subtitle = `${Math.round(pct)}% watched`;
+                }
+                return (
+                  <TouchableOpacity
+                    key={content.id}
+                    style={cwStyles.card}
+                    activeOpacity={0.8}
+                    onPress={() => onRentedClick(content)}>
+                    <Image
+                      source={{ uri: content.thumbnail }}
+                      style={cwStyles.thumb}
+                      resizeMode="cover"
+                    />
+                    {/* dark overlay */}
+                    <View style={cwStyles.overlay} />
+                    {/* Progress bar — shown whenever we have progress data */}
+                    {prog && pct > 0 && (
+                      <View style={cwStyles.progressTrack}>
+                        <LinearGradient
+                          colors={['#7c3aed', '#db2777']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={[cwStyles.progressFill, { width: `${pct}%` as any }]}
+                        />
+                      </View>
+                    )}
+                    {/* series badge */}
+                    {content.type === 'vertical-series' && (
+                      <View style={cwStyles.badge}>
+                        <Text style={cwStyles.badgeText}>Series</Text>
+                      </View>
+                    )}
+                    {/* play button */}
+                    <View style={cwStyles.playCircle}>
+                      <View style={cwStyles.playTriangle} />
                     </View>
-                  )}
-                  {/* play button */}
-                  <View style={cwStyles.playCircle}>
-                    <View style={cwStyles.playTriangle} />
-                  </View>
-                  <View style={cwStyles.info}>
-                    <Text style={cwStyles.title} numberOfLines={1}>{content.title}</Text>
-                    <Text style={cwStyles.sub}>{content.type === 'vertical-series' ? `${content.episodes} eps` : content.duration}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    <View style={cwStyles.info}>
+                      <Text style={cwStyles.title} numberOfLines={1}>{content.title}</Text>
+                      <Text style={cwStyles.sub}>{subtitle}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         )}
@@ -812,5 +863,17 @@ const cwStyles = StyleSheet.create({
   sub: {
     fontSize: 11,
     color: '#737373',
+  },
+  progressTrack: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  progressFill: {
+    height: 3,
+    borderRadius: 1.5,
   },
 });
