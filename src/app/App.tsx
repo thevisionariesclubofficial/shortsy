@@ -124,6 +124,7 @@ function App() {
               rentedContent={rentedContent}
               onContentClick={onContentClick}
               onHistoryClick={onHistoryClick}
+              navigate={navigate}
             />
           )}
           {showNav && (

@@ -40,6 +40,7 @@ import type {
 } from '../types/api';
 import { USE_MOCK, ApiClientError, apiClient, mockDelay, setAccessToken } from './apiClient';
 import { logger } from '../utils/logger';
+import { saveAuthTokens, saveAuthFlag, clearAuthStorage } from '../utils/storage';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Session store (module-level → survives component remounts)
@@ -88,6 +89,7 @@ export function getSession(): AuthSession | null {
 export function clearSession(): void {
   _session = null;
   setAccessToken(null);
+  clearAuthStorage();
   logger.info('AUTH', 'Session cleared');
 }
 
@@ -144,6 +146,8 @@ export async function signup(params: SignupRequest): Promise<SignupResponse> {
   const result = await apiClient.post<SignupResponse>('/auth/signup', { body: params });
   _session = { user: result.user, tokens: result.tokens };
   setAccessToken(result.tokens.accessToken);
+  await saveAuthTokens(result.tokens);
+  await saveAuthFlag(true);
   return result;
 }
 
@@ -196,6 +200,8 @@ export async function login(params: LoginRequest): Promise<LoginResponse> {
   const result = await apiClient.post<LoginResponse>('/auth/login', { body: params });
   _session = { user: result.user, tokens: result.tokens };
   setAccessToken(result.tokens.accessToken);
+  await saveAuthTokens(result.tokens);
+  await saveAuthFlag(true);
   return result;
 }
 

@@ -241,117 +241,105 @@ interface ProfilePageProps {
   rentedContent: Content[];
   onContentClick: (content: Content) => void;
   onHistoryClick: () => void;
+  navigate: (screen: any) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick }: ProfilePageProps) {
+export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, navigate }: ProfilePageProps) {
   const totalSpent = rentedContent.reduce((sum, c) => sum + c.price, 0);
-
   const [user, setUser] = useState<UserProfile | null>(null);
-
-  // Load user profile on mount
-  useEffect(() => {
-    getCurrentUser()
-      .then(setUser)
-      .catch(() => {});
-  }, []);
-
   const [showSettings, setShowSettings] = useState(false);
-
   const menuItems: Array<{ Icon: React.ComponentType; label: string; onPress?: () => void }> = [
     { Icon: HeartIcon,    label: 'My Favorites' },
     { Icon: ClockIcon,    label: 'Watch History', onPress: onHistoryClick },
     { Icon: SettingsIcon, label: 'Settings',      onPress: () => setShowSettings(true) },
   ];
-
+  useEffect(() => {
+    getCurrentUser()
+      .then(setUser)
+      .catch(() => {});
+  }, []);
   return (
     <>
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scroll}
-      showsVerticalScrollIndicator={false}>
-
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
-      </View>
-
-      {/* ── Avatar + name ── */}
-      <View style={styles.avatarRow}>
-        <LinearGradient
-          colors={['#a855f7', '#ec4899']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.avatarCircle}>
-          <UserIcon />
-        </LinearGradient>
-        <View style={styles.avatarInfo}>
-          <Text style={styles.userName}>{user?.displayName ?? 'Film Lover'}</Text>
-          <Text style={styles.userEmail}>{user?.email ?? 'filmfan@shortsy.app'}</Text>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}>
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile</Text>
         </View>
-      </View>
-
-      {/* ── Stats ── */}
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
-            {rentedContent.length}
-          </Text>
-          <Text style={styles.statLabel}>Rentals</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>₹{totalSpent}</Text>
-          <Text style={styles.statLabel}>Spent</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
-            {user?.stats?.totalWatchTimeMinutes ?? 0}m
-          </Text>
-          <Text style={styles.statLabel}>Watched</Text>
-        </View>
-      </View>
-
-      {/* ── Upgrade card ── */}
-      <View style={styles.upgradeWrap}>
-        <LinearGradient
-          colors={['#7c3aed', '#db2777']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.upgradeCard}>
-          {/* Decorative circle */}
-          <View style={styles.upgradeCircle} />
-          <View style={styles.upgradeContent}>
-            <View style={styles.upgradeTopRow}>
-              <CrownIcon />
-              <Text style={styles.upgradeBadge}>INDIEPLAY Plus</Text>
-            </View>
-            <Text style={styles.upgradeTitle}>Get unlimited access</Text>
-            <Text style={styles.upgradePrice}>₹199/month • Selected catalog</Text>
-            <TouchableOpacity style={styles.upgradeBtn} activeOpacity={0.8}>
-              <Text style={styles.upgradeBtnText}>Upgrade Now</Text>
-            </TouchableOpacity>
+        {/* ── Avatar + name ── */}
+        <View style={styles.avatarRow}>
+          <LinearGradient
+            colors={['#a855f7', '#ec4899']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.avatarCircle}>
+            <UserIcon />
+          </LinearGradient>
+          <View style={styles.avatarInfo}>
+            <Text style={styles.userName}>{user?.displayName ?? 'Film Lover'}</Text>
+            <Text style={styles.userEmail}>{user?.email ?? 'filmfan@shortsy.app'}</Text>
           </View>
-        </LinearGradient>
-      </View>
-
-      {/* ── Menu ── */}
-      <View style={styles.menuSection}>
-        {menuItems.map(({ Icon, label, onPress }) => (
-          <TouchableOpacity key={label} style={styles.menuItem} activeOpacity={0.7} onPress={onPress}>
-            <Icon />
-            <Text style={styles.menuLabel}>{label}</Text>
-            <View style={styles.menuChevron} />
+        </View>
+        {/* ── Stats ── */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>
+              {rentedContent.length}
+            </Text>
+            <Text style={styles.statLabel}>Rentals</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>₹{totalSpent}</Text>
+            <Text style={styles.statLabel}>Spent</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>
+              {user?.stats?.totalWatchTimeMinutes ?? 0}m
+            </Text>
+            <Text style={styles.statLabel}>Watched</Text>
+          </View>
+        </View>
+        {/* ── Upgrade card ── */}
+        <View style={styles.upgradeWrap}>
+          <LinearGradient
+            colors={['#7c3aed', '#db2777']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.upgradeCard}>
+            {/* Decorative circle */}
+            <View style={styles.upgradeCircle} />
+            <View style={styles.upgradeContent}>
+              <View style={styles.upgradeTopRow}>
+                <CrownIcon />
+                <Text style={styles.upgradeBadge}>INDIEPLAY Plus</Text>
+              </View>
+              <Text style={styles.upgradeTitle}>Get unlimited access</Text>
+              <Text style={styles.upgradePrice}>₹199/month • Selected catalog</Text>
+              <TouchableOpacity style={styles.upgradeBtn} activeOpacity={0.8}>
+                <Text style={styles.upgradeBtnText}>Upgrade Now</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </View>
+        {/* ── Menu ── */}
+        <View style={styles.menuSection}>
+          {menuItems.map(({ Icon, label, onPress }) => (
+            <TouchableOpacity key={label} style={styles.menuItem} activeOpacity={0.7} onPress={onPress}>
+              <Icon />
+              <Text style={styles.menuLabel}>{label}</Text>
+              <View style={styles.menuChevron} />
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={onLogout}>
+            <LogOutIcon />
+            <Text style={[styles.menuLabel, styles.menuDanger]}>Logout</Text>
           </TouchableOpacity>
-        ))}
-        <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={onLogout}>
-          <LogOutIcon />
-          <Text style={[styles.menuLabel, styles.menuDanger]}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-
-
-    </ScrollView>
-    <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} />
+        </View>
+      </ScrollView>
+      <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} />
     </>
   );
 }

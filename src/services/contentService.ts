@@ -1,3 +1,19 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// 3.x  Add Content (Upload)
+// POST /content
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Uploads new content to the database via POST /content.
+ * Requires authentication (Bearer token).
+ *
+ * @param payload Content fields (title, description, type, genre, language, mood, etc.)
+ * @returns Promise resolving to the created content object
+ */
+export async function addContent(payload: Record<string, any>): Promise<any> {
+  // You may want to type payload more strictly based on your API spec
+  return apiClient.post<any>('/content', { body: payload });
+}
 /**
  * contentService.ts
  *

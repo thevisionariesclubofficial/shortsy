@@ -22,7 +22,7 @@ import { logger } from '../utils/logger';
  */
 export const USE_MOCK = true;
 
-export const BASE_URL = 'https://api.shortsy.app/v1';
+export const BASE_URL = 'https://2tngsao13b.execute-api.ap-south-1.amazonaws.com/v1';
 
 /** Simulated network latency in milliseconds (mock mode only). */
 const MOCK_DELAY_MS = 300;

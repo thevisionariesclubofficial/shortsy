@@ -1,4 +1,26 @@
 PODS:
+  - AsyncStorage (3.0.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - BVLinearGradient (2.8.3):
     - React-Core
   - FBLazyVector (0.84.0)
@@ -1905,6 +1927,7 @@ PODS:
   - Yoga (0.0.0)
 
 DEPENDENCIES:
+  - "AsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - BVLinearGradient (from `../node_modules/react-native-linear-gradient`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -1985,6 +2008,8 @@ DEPENDENCIES:
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 EXTERNAL SOURCES:
+  AsyncStorage:
+    :path: "../node_modules/@react-native-async-storage/async-storage"
   BVLinearGradient:
     :path: "../node_modules/react-native-linear-gradient"
   FBLazyVector:
@@ -2142,6 +2167,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  AsyncStorage: 0a927dc82ea8eaa0350779b37d73b11d070ea677
   BVLinearGradient: 880f91a7854faff2df62518f0281afb1c60d49a3
   FBLazyVector: c12d2108050e27952983d565a232f6f7b1ad5e69
   hermes-engine: 7491ca01ed4523a8bac60810baa3002f84ac7de3
