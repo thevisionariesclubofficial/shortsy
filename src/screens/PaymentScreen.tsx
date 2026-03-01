@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -111,65 +110,18 @@ interface PaymentScreenProps {
   onSuccess: (rental: RentalRecord) => void;
 }
 
-// ─── Reusable field ───────────────────────────────────────────────────────────
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType = 'default',
-  maxLength,
-  hint,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  placeholder: string;
-  keyboardType?: 'default' | 'numeric' | 'email-address';
-  maxLength?: number;
-  hint?: string;
-}) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={fStyles.wrap}>
-      <Text style={fStyles.label}>{label}</Text>
-      <TextInput
-        style={[fStyles.input, focused && fStyles.inputFocused]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#525252"
-        keyboardType={keyboardType}
-        maxLength={maxLength}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        autoCorrect={false}
-      />
-      {hint && <Text style={fStyles.hint}>{hint}</Text>}
-    </View>
-  );
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps) {
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('upi');
-  const [upiId, setUpiId] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardName, setCardName] = useState('');
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [processing, setProcessing] = useState(false);
   const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
 
   const isValid = () => {
-    if (selectedMethod === 'upi') return upiId.trim().length > 0;
-    if (selectedMethod === 'card')
-      return cardNumber.length === 16 && cardExpiry.length === 5 && cardCvv.length === 3 && cardName.trim().length > 0;
-    return true; // wallet / netbanking: just pick one
+    return selectedMethod !== null;
   };
 
   const handlePay = async () => {
-    if (!isValid() || processing) return;
+    if (!isValid() || processing || !selectedMethod) return;
     setProcessing(true);
     try {
       // Step 1: Create payment order on the server
@@ -194,6 +146,16 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
       }
 
       // Step 2: Launch Razorpay modal
+      // Map our UI method names to Razorpay's expected method names
+      const razorpayMethodMap: Record<PaymentMethod, string> = {
+        'upi': 'upi',
+        'card': 'card',
+        'wallet': 'wallet',
+        'netbanking': 'netbanking',
+      };
+      
+      const selectedRazorpayMethod = razorpayMethodMap[selectedMethod];
+      
       const options = {
         description: `Rental for ${order.contentTitle || content.title}`,
         image: content.thumbnail,
@@ -208,6 +170,24 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
           name: '',
         },
         theme: { color: '#7c3aed' },
+        config: {
+          display: {
+            preferences: {
+              show_default_blocks: false,
+            },
+            sequence: [selectedRazorpayMethod],
+            blocks: {
+              [selectedRazorpayMethod]: {
+                name: selectedRazorpayMethod.charAt(0).toUpperCase() + selectedRazorpayMethod.slice(1),
+                instruments: [
+                  {
+                    method: selectedRazorpayMethod,
+                  },
+                ],
+              },
+            },
+          },
+        },
       };
 
       logger.info('PaymentScreen', 'Launching Razorpay modal', { options });
@@ -286,9 +266,6 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
     { key: 'wallet',     label: 'Wallet',       Icon: WalletIcon },
     { key: 'netbanking', label: 'Net Banking',  Icon: BankIcon },
   ];
-
-  const wallets    = ['Paytm', 'PhonePe', 'Mobikwik', 'Amazon Pay'];
-  const banks      = ['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank', 'Other Banks'];
 
   return (
     <KeyboardAvoidingView
@@ -399,85 +376,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
             })}
           </View>
 
-          {/* ── Form ── */}
-          <View style={styles.card}>
-            {selectedMethod === 'upi' && (
-              <Field
-                label="UPI ID"
-                value={upiId}
-                onChangeText={setUpiId}
-                placeholder="yourname@upi"
-                keyboardType="email-address"
-                hint="Enter your UPI ID (Google Pay, PhonePe, Paytm, etc.)"
-              />
-            )}
 
-            {selectedMethod === 'card' && (
-              <>
-                <Field
-                  label="Card Number"
-                  value={cardNumber}
-                  onChangeText={t => setCardNumber(t.replace(/\D/g, '').slice(0, 16))}
-                  placeholder="1234 5678 9012 3456"
-                  keyboardType="numeric"
-                  maxLength={16}
-                />
-                <Field
-                  label="Cardholder Name"
-                  value={cardName}
-                  onChangeText={setCardName}
-                  placeholder="John Doe"
-                />
-                <View style={styles.row2}>
-                  <View style={styles.flex}>
-                    <Field
-                      label="Expiry"
-                      value={cardExpiry}
-                      onChangeText={t => {
-                        const d = t.replace(/\D/g, '');
-                        setCardExpiry(d.length >= 2 ? d.slice(0, 2) + '/' + d.slice(2, 4) : d);
-                      }}
-                      placeholder="MM/YY"
-                      keyboardType="numeric"
-                      maxLength={5}
-                    />
-                  </View>
-                  <View style={styles.flex}>
-                    <Field
-                      label="CVV"
-                      value={cardCvv}
-                      onChangeText={t => setCardCvv(t.replace(/\D/g, '').slice(0, 3))}
-                      placeholder="123"
-                      keyboardType="numeric"
-                      maxLength={3}
-                    />
-                  </View>
-                </View>
-              </>
-            )}
-
-            {selectedMethod === 'wallet' && (
-              <>
-                <Text style={styles.subLabel}>Select Wallet Provider</Text>
-                {wallets.map(w => (
-                  <TouchableOpacity key={w} style={styles.listItem} activeOpacity={0.7}>
-                    <Text style={styles.listItemText}>{w}</Text>
-                  </TouchableOpacity>
-                ))}
-              </>
-            )}
-
-            {selectedMethod === 'netbanking' && (
-              <>
-                <Text style={styles.subLabel}>Select Your Bank</Text>
-                {banks.map(b => (
-                  <TouchableOpacity key={b} style={styles.listItem} activeOpacity={0.7}>
-                    <Text style={styles.listItemText}>{b}</Text>
-                  </TouchableOpacity>
-                ))}
-              </>
-            )}
-          </View>
 
           {/* ── Security badge ── */}
           <View style={styles.securityRow}>
@@ -629,11 +528,6 @@ const styles = StyleSheet.create({
   methodLabel:     { fontSize: 13, fontWeight: '500', color: '#737373' },
   methodLabelActive:{ color: '#a855f7' },
 
-  row2:    { flexDirection: 'row', gap: 12 },
-  subLabel:{ fontSize: 13, color: '#737373', marginBottom: 4 },
-  listItem:{ backgroundColor: '#1a1a1a', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16, marginBottom: 6 },
-  listItemText: { fontSize: 14, color: '#ffffff' },
-
   securityRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   securityText:{ fontSize: 12, color: '#525252' },
 
@@ -713,14 +607,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#737373',
   },
-});
-
-const fStyles = StyleSheet.create({
-  wrap:        { gap: 6 },
-  label:       { fontSize: 13, color: '#737373' },
-  input:       { height: 48, borderRadius: 10, backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a', paddingHorizontal: 14, fontSize: 15, color: '#ffffff' },
-  inputFocused:{ borderColor: '#7c3aed' },
-  hint:        { fontSize: 11, color: '#525252' },
 });
 
 const iconStyles = StyleSheet.create({
