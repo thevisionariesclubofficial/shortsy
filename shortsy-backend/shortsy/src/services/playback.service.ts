@@ -47,18 +47,18 @@ async function resolveUrl(
   return `${ENV.cdnBase}/signed/${key}?token=dev&expires=${Date.now() + ENV.streamExpiry * 1000}`;
 }
 
-export async function buildFilmStream(content: Content) {
+export async function buildFilmStream(content: Content, rentalExpiresAt: string) {
   const streamUrl = await resolveUrl(content.videoUrl, content.id, 'film.mp4');
   return {
     contentId:  content.id,
     type:       'short-film',
     streamUrl,
     trailerUrl: content.trailer ?? null,
-    expiresAt:  new Date(Date.now() + ENV.streamExpiry * 1000).toISOString(),
+    expiresAt:  rentalExpiresAt,
   };
 }
 
-export async function buildEpisodeStream(content: Content, episodeId: string) {
+export async function buildEpisodeStream(content: Content, episodeId: string, rentalExpiresAt: string) {
   const epList  = content.episodeList ?? [];
   const epIndex = epList.findIndex(e => e.id === episodeId);
   if (epIndex === -1) return null;
@@ -77,7 +77,7 @@ export async function buildEpisodeStream(content: Content, episodeId: string) {
     nextEpisode: next
       ? { episodeId: next.id, episodeNumber: epIndex + 2, title: next.title }
       : null,
-    expiresAt: new Date(Date.now() + ENV.streamExpiry * 1000).toISOString(),
+    expiresAt: rentalExpiresAt,
   };
 }
 

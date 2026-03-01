@@ -51,6 +51,7 @@ provider:
             - !Sub '${RentalsTable.Arn}/index/*'
             - !GetAtt ProgressTable.Arn
             - !GetAtt OrdersTable.Arn
+            - !Sub '${OrdersTable.Arn}/index/*'
         - Effect: Allow
           Action:
             - cognito-idp:AdminGetUser
@@ -86,11 +87,20 @@ custom:
 # ── Functions ─────────────────────────────────────────────────────────────────
 functions:
   orderCreate:
-        handler: src/handlers/order.createOrder
-        events:
-          - httpApi:
-              path: /v1/order
-              method: POST
+    handler: src/handlers/order.createOrder
+    events:
+      - httpApi:
+          path: /v1/order
+          method: POST
+
+  orderPaymentHistory:
+    handler: src/handlers/order.getPaymentHistory
+    events:
+      - httpApi:
+          path: /v1/order/history
+          method: GET
+          authorizer: { name: cognitoJwt }
+
   contentAdd:
     handler: src/handlers/content.add
     events:
@@ -362,8 +372,13 @@ resources:
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - { AttributeName: orderId, AttributeType: S }
+          - { AttributeName: userId,  AttributeType: S }
         KeySchema:
           - { AttributeName: orderId, KeyType: HASH }
+        GlobalSecondaryIndexes:
+          - IndexName: userId-index
+            KeySchema: [{ AttributeName: userId, KeyType: HASH }]
+            Projection: { ProjectionType: ALL }
         TimeToLiveSpecification:
           AttributeName: ttl
           Enabled: true

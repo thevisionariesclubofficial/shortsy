@@ -20,7 +20,7 @@ import { logger } from '../utils/logger';
  * Flip this to `false` to make all service calls hit the real REST API.
  * Can also be driven by an env var: process.env.USE_MOCK_API !== 'false'
  */
-export const USE_MOCK = true;
+export const USE_MOCK = false;
 
 export const BASE_URL = 'https://2tngsao13b.execute-api.ap-south-1.amazonaws.com/v1';
 
@@ -73,12 +73,17 @@ export function setAccessToken(token: string | null): void {
   _accessToken = token;
 }
 
+export function getAccessToken(): string | null {
+  return _accessToken;
+}
+
 // ─── Client ───────────────────────────────────────────────────────────────────
 
 async function request<T>(
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   path: string,
   options: RequestOptions = {},
+  isRetry: boolean = false,
 ): Promise<T> {
   const url = buildUrl(path, options.params);
 
@@ -113,6 +118,33 @@ async function request<T>(
       errorBody?.error?.message ?? response.statusText,
     );
     timer.fail({ status: response.status, code: err.code, message: err.message });
+    
+    // Handle 401 Unauthorized - attempt token refresh and retry once
+    if (response.status === 401 && !isRetry && path !== '/auth/refresh' && path !== '/auth/login' && path !== '/auth/signup') {
+      logger.info('API', '401 Unauthorized - attempting token refresh');
+      
+      try {
+        // Dynamically import to avoid circular dependency
+        const { getSession, refreshToken: refreshTokenFn } = await import('./authService');
+        const session = getSession();
+        
+        if (session?.tokens?.refreshToken) {
+          logger.info('API', 'Refreshing access token...');
+          const { tokens } = await refreshTokenFn({ refreshToken: session.tokens.refreshToken });
+          setAccessToken(tokens.accessToken);
+          
+          logger.info('API', 'Token refreshed successfully, retrying original request');
+          // Retry the original request with the new token
+          return request<T>(method, path, options, true);
+        } else {
+          logger.warn('API', 'No refresh token available, cannot refresh');
+        }
+      } catch (refreshError) {
+        logger.error('API', 'Token refresh failed', refreshError);
+        // If refresh fails, throw the original 401 error
+      }
+    }
+    
     throw err;
   }
 

@@ -14,6 +14,7 @@ export type AppScreen =
   | { type: 'browse' }
   | { type: 'profile' }
   | { type: 'history' }
+  | { type: 'paymentHistory' }
   | { type: 'detail';         content: Content }
   | { type: 'payment';        content: Content }
   | { type: 'paymentSuccess'; content: Content; rental: RentalRecord }
@@ -28,6 +29,7 @@ export const SCREENS_WITHOUT_NAV: ReadonlyArray<AppScreen['type']> = [
   'paymentSuccess',
   'search',
   'history',
+  'paymentHistory',
 ];
 
 /** Screens that do not require the user to be authenticated. */

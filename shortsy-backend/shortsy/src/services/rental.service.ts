@@ -3,6 +3,13 @@ import { createHmac } from 'crypto';
 import { v4 as uuid } from 'uuid';
 import { dynamo, TABLES, ENV } from '../config/aws';
 import type { Content } from './content.service';
+import { getContentById } from './content.service';
+
+// ── Configurable Rental Expiry (in hours) ─────────────────────────────────────
+const RENTAL_EXPIRY_HOURS: Record<string, number> = {
+  'short-film': 24,      // 1 day
+  'vertical-series': 72, // 3 days
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface RentalRecord {
@@ -167,8 +174,16 @@ export async function confirmRental(
     throw new RentalError(400, 'INVALID_SIGNATURE', 'Payment signature verification failed');
   }
 
-  const now           = new Date();
-  const expiresAt     = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48h rental window
+  // Fetch content to determine rental expiry duration
+  const content = await getContentById(order.contentId);
+  if (!content) {
+    throw new RentalError(404, 'CONTENT_NOT_FOUND', 'Content not found');
+  }
+
+  // Calculate expiry based on content type
+  const expiryHours = RENTAL_EXPIRY_HOURS[content.type] || 48; // Default to 48h if type not configured
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + expiryHours * 60 * 60 * 1000);
   const transactionId = `txn_${uuid().replace(/-/g, '').slice(0, 12)}`;
 
   const rental: RentalRecord = {
@@ -186,9 +201,14 @@ export async function confirmRental(
     dynamo.send(new UpdateCommand({
       TableName:                 TABLES.ORDERS,
       Key:                       { orderId },
-      UpdateExpression:          'SET #s = :s',
-      ExpressionAttributeNames:  { '#s': 'status' },
-      ExpressionAttributeValues: { ':s': 'paid' },
+      UpdateExpression:          'SET #s = :s, gatewayPaymentId = :paymentId, transactionId = :txnId, updatedAt = :updatedAt REMOVE #ttl',
+      ExpressionAttributeNames:  { '#s': 'status', '#ttl': 'ttl' },
+      ExpressionAttributeValues: { 
+        ':s': 'paid',
+        ':paymentId': gatewayPaymentId,
+        ':txnId': transactionId,
+        ':updatedAt': now.toISOString(),
+      },
     })),
   ]);
 

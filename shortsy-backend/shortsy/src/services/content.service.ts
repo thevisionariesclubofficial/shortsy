@@ -163,14 +163,18 @@ export async function getFeaturedContent(): Promise<{
 
   const hero = items[0]
     ? {
-        id:          items[0].id,
-        title:       items[0].title,
-        type:        items[0].type,
-        thumbnail:   items[0].thumbnail,
-        videoUrl:    items[0].trailer ?? null,
-        genre:       items[0].genre,
-        rating:      items[0].rating,
-        description: items[0].description,
+        id:             items[0].id,
+        title:          items[0].title,
+        type:           items[0].type,
+        thumbnail:      items[0].thumbnail,
+        videoUrl:       items[0].trailer ?? null,
+        genre:          items[0].genre,
+        language:       items[0].language,
+        duration:       items[0].duration,
+        price:          items[0].price,
+        rating:         items[0].rating,
+        description:    items[0].description,
+        festivalWinner: items[0].festivalWinner ?? false,
       }
     : null;
 

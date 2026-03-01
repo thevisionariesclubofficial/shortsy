@@ -14,6 +14,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { Content } from '../data/mockData';
 import { confirmPayment, initiateRental } from '../services/rentalService';
+import RazorpayCheckout from 'react-native-razorpay';
 import { logger } from '../utils/logger';
 import type { RentalRecord } from '../types/api';
 
@@ -158,6 +159,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
   const [cardCvv, setCardCvv] = useState('');
   const [cardName, setCardName] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
 
   const isValid = () => {
     if (selectedMethod === 'upi') return upiId.trim().length > 0;
@@ -171,17 +173,81 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
     setProcessing(true);
     try {
       // Step 1: Create payment order on the server
-      const order = await initiateRental({ contentId: content.id });
-      logger.info('PaymentScreen', 'Order created', { orderId: order.orderId, amount: order.amountINR });
+      const order = await initiateRental({
+        contentId: content.id,
+        amountINR: content.price,
+        currency: 'INR',
+      });
+      logger.info('PaymentScreen', 'Order created', { orderId: order.orderId, amount: order.amountINR ?? content.price });
 
-      // Step 2: Simulate payment gateway SDK processing (Razorpay / Stripe in production)
-      await new Promise<void>(resolve => setTimeout(resolve, 2000));
+      // Step 2: If mock mode, skip Razorpay and confirm payment directly
+      if (require('../services/apiClient').USE_MOCK) {
+        logger.info('PaymentScreen', 'Skipping Razorpay modal in mock mode');
+        const { rental } = await confirmPayment({
+          orderId: order.orderId,
+          gatewayPaymentId: 'mock_payment_id',
+          gatewaySignature: 'mock_signature',
+        });
+        setProcessing(false);
+        onSuccess?.(rental);
+        return;
+      }
+
+      // Step 2: Launch Razorpay modal
+      const options = {
+        description: `Rental for ${order.contentTitle || content.title}`,
+        image: content.thumbnail,
+        currency: order.currency ?? 'INR',
+        key: order.gatewayKey ?? 'rzp_test_SLajOeA4k89FaD',
+        amount: typeof order.amountINR === 'number' && !isNaN(order.amountINR) ? order.amountINR * 100 : content.price * 100,
+        order_id: order.gatewayOrderId || order.orderId,
+        name: 'Shortsy',
+        prefill: {
+          email: '', // Optionally fill from user profile
+          contact: '',
+          name: '',
+        },
+        theme: { color: '#7c3aed' },
+      };
+
+      logger.info('PaymentScreen', 'Launching Razorpay modal', { options });
+      Object.entries(options).forEach(([key, value]) => {
+        logger.info('PaymentScreen', `Razorpay option: ${key}`, { value });
+      });
+      
+      interface RazorpayResponse {
+        razorpay_payment_id: string;
+        razorpay_order_id: string;
+        razorpay_signature?: string;
+      }
+      
+      const razorpayRes = await new Promise<RazorpayResponse>((resolve, reject) => {
+        RazorpayCheckout.open(options)
+          .then((res: any) => {
+            logger.info('PaymentScreen', 'Razorpay modal success - FULL RESPONSE', { res });
+            logger.info('PaymentScreen', 'Razorpay payment_id', { value: res.razorpay_payment_id });
+            logger.info('PaymentScreen', 'Razorpay order_id', { value: res.razorpay_order_id });
+            logger.info('PaymentScreen', 'Razorpay signature', { value: res.razorpay_signature });
+            resolve(res);
+          })
+          .catch((err: any) => {
+            logger.error('PaymentScreen', 'Razorpay modal error', { err });
+            reject(err);
+          });
+      });
 
       // Step 3: Confirm payment with gateway response
+      // Use the original custom orderId from the backend, NOT the Razorpay order ID
+      logger.info('PaymentScreen', 'ConfirmPayment request', {
+        orderId: order.orderId,
+        gatewayPaymentId: razorpayRes.razorpay_payment_id,
+        gatewaySignature: razorpayRes.razorpay_signature ?? 'missing_signature',
+        gatewayOrderId: razorpayRes.razorpay_order_id,
+      });
       const { rental } = await confirmPayment({
         orderId: order.orderId,
-        gatewayPaymentId: `mock_pay_${Date.now()}`,
-        gatewaySignature: `mock_sig_${Date.now()}`,
+        gatewayPaymentId: razorpayRes.razorpay_payment_id,
+        gatewaySignature: razorpayRes.razorpay_signature ?? `mock_sig_${razorpayRes.razorpay_payment_id}`,
       });
       logger.info('PaymentScreen', 'Payment confirmed', {
         transactionId: rental.transactionId,
@@ -190,10 +256,9 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
 
       // Step 4: Notify parent — triggers addRented + navigate to paymentSuccess
       onSuccess(rental);
-    } catch (err: unknown) {
+    } catch (err: any) {
       // If the content is already rented, treat as success (idempotent)
-      const isAlreadyRented =
-        err instanceof Error && (err as { code?: string }).code === 'ALREADY_RENTED';
+      const isAlreadyRented = err?.code === 'ALREADY_RENTED';
       if (isAlreadyRented) {
         logger.warn('PaymentScreen', 'Content already rented — skipping gateway', { contentId: content.id });
         // Build a minimal stub rental for the success screen
@@ -208,6 +273,8 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
         onSuccess(stubRental);
       } else {
         logger.error('PaymentScreen', 'Payment failed', err);
+        const errorMessage = err?.description || err?.message || 'Payment failed. Please try again.';
+        setErrorModal({ visible: true, message: errorMessage });
         setProcessing(false);
       }
     }
@@ -449,6 +516,34 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* ── Error Modal ── */}
+      {errorModal.visible && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Payment Failed</Text>
+            <Text style={styles.modalMessage}>{errorModal.message}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setErrorModal({ visible: false, message: '' })}
+              activeOpacity={0.8}>
+              <LinearGradient
+                colors={['#7c3aed', '#db2777']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 12 }]}
+              />
+              <Text style={styles.modalButtonText}>Try Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={onBack}
+              activeOpacity={0.8}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -559,6 +654,65 @@ const styles = StyleSheet.create({
   payBtnDisabled: { opacity: 0.45 },
   payBtnInner:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   payBtnText:     { fontSize: 18, fontWeight: '700', color: '#ffffff', zIndex: 1 },
+
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    backgroundColor: '#111111',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: '#1e1e1e',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#a3a3a3',
+    lineHeight: 22,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  modalButton: {
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    zIndex: 1,
+  },
+  modalCancelButton: {
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#737373',
+  },
 });
 
 const fStyles = StyleSheet.create({

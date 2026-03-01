@@ -32,6 +32,7 @@ import type {
   ConfirmPaymentResponse,
   GetRentalsParams,
   GetRentalsResponse,
+  GetPaymentHistoryResponse,
   InitiateRentalRequest,
   InitiateRentalResponse,
   RentalRecord,
@@ -105,45 +106,68 @@ function rentalExpiresAt(contentId: string): string {
 export async function initiateRental(
   params: InitiateRentalRequest,
 ): Promise<InitiateRentalResponse> {
+  const timer = logger.startTimer('RENTAL', `initiateRental(${params.contentId})`);
   if (USE_MOCK) {
-    const timer = logger.startTimer('RENTAL', `initiateRental(${params.contentId})`);
     await mockDelay();
-
-    const existing = _rentalStore.get(params.contentId);
-    if (existing && new Date(existing.expiresAt) > new Date()) {
-      timer.fail({ code: 'ALREADY_RENTED' });
-      throw new ApiClientError(409, 'ALREADY_RENTED', 'User already has an active rental for this content');
-    }
-
     const content = mockContent.find(c => c.id === params.contentId);
     if (!content) {
       timer.fail({ code: 'CONTENT_NOT_FOUND' });
       throw new ApiClientError(404, 'CONTENT_NOT_FOUND', `No content found with id '${params.contentId}'`);
     }
-
-    const orderId = mockId('ord');
-    const orderExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
-
-    _pendingOrders.set(orderId, { contentId: params.contentId, amountINR: content.price });
-
-    const result: InitiateRentalResponse = {
+    // Bypass Razorpay, mark payment as successful
+    const orderId = mockId('order');
+    const orderExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    // Store mock pending order for confirmPayment
+    const amountINR = params.amountINR ?? content.price;
+    const currency = params.currency ?? 'INR';
+    _pendingOrders.set(orderId, { contentId: params.contentId, amountINR });
+    return {
       orderId,
       contentId: params.contentId,
       contentTitle: content.title,
-      amountINR: content.price,
-      currency: 'INR',
-      gatewayOrderId: mockId('rzp_order'),
-      gatewayKey: 'rzp_test_MOCK_KEY',
+      amountINR,
+      currency,
+      gatewayOrderId: orderId,
+      gatewayKey: 'rzp_test_SLajOeA4k89FaD',
       expiresAt: orderExpiresAt,
     };
-
-    timer.end({ orderId, amountINR: content.price, contentTitle: content.title });
-    return result;
+  } else {
+    // Real mode: create order via backend API, then proceed with Razorpay
+    // Requires Authorization token from logged in user
+    // Razorpay receipt must be <= 40 chars
+    let receiptBase = `rental_${params.contentId}`;
+    let timestamp = Date.now().toString();
+    let maxReceiptLength = 40;
+    let receipt = (receiptBase + '_' + timestamp).slice(0, maxReceiptLength);
+    const orderRequestBody = {
+      contentId: params.contentId,
+      amountINR: params.amountINR,
+      currency: 'INR',
+      receipt,
+    };
+    logger.info('RENTAL', 'Order API request body', orderRequestBody);
+    let orderRes;
+    try {
+      orderRes = await apiClient.post<{ orderId: string; gatewayOrderId: string; gatewayKey: string; expiresAt: string; contentTitle: string; amountINR: number }>(
+        '/order',
+        { body: orderRequestBody }
+      );
+      logger.info('RENTAL', 'Order API response', orderRes);
+    } catch (err) {
+      logger.error('RENTAL', 'Order API error', err);
+      throw err;
+    }
+    return {
+      orderId: orderRes.orderId,
+      contentId: params.contentId,
+      contentTitle: orderRes.contentTitle ?? '',
+      amountINR: orderRes.amountINR ?? params.amountINR,
+      currency: 'INR',
+      gatewayOrderId: orderRes.gatewayOrderId ?? orderRes.orderId,
+      gatewayKey: orderRes.gatewayKey ?? 'rzp_test_SLajOeA4k89FaD',
+      expiresAt: orderRes.expiresAt ?? new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    };
   }
-
-  return apiClient.post<InitiateRentalResponse>('/rentals/initiate', {
-    body: params,
-  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -295,4 +319,31 @@ export async function checkRentalStatus(
   }
 
   return apiClient.get<CheckRentalStatusResponse>(`/rentals/${contentId}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4.5  Get Payment History — GET /order/history
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetches all payment/order history for the current user.
+ * Returns a list of orders with payment details including status, amounts, and transaction IDs.
+ *
+ * In mock mode: returns an empty array (no mock implementation for payment history).
+ *
+ * @example
+ * const { orders } = await getPaymentHistory();
+ * // orders[0] → { orderId, amountINR, status, gatewayPaymentId, ... }
+ */
+export async function getPaymentHistory(): Promise<GetPaymentHistoryResponse> {
+  if (USE_MOCK) {
+    const timer = logger.startTimer('RENTAL', 'getPaymentHistory');
+    await mockDelay();
+    
+    // Mock: return empty history for now
+    timer.end({ count: 0 });
+    return { orders: [], count: 0 };
+  }
+
+  return apiClient.get<GetPaymentHistoryResponse>('/order/history');
 }

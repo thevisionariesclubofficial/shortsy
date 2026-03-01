@@ -5,7 +5,7 @@
  * This component is responsible only for mapping screen state → UI.
  */
 import React from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import { StatusBar, StyleSheet, View, Modal, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { RentalModal } from '../components/RentalModal';
@@ -18,6 +18,7 @@ import { HomePage } from '../screens/HomePage';
 import { LoginScreen } from '../screens/LoginScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { PaymentScreen } from '../screens/PaymentScreen';
+import { PaymentHistoryScreen } from '../screens/PaymentHistoryScreen';
 import { PaymentSuccessScreen } from '../screens/PaymentSuccessScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
 import { ProfilePage } from '../screens/ProfilePage';
@@ -32,6 +33,8 @@ function App() {
     screen,
     rentedContent,
     showRentalModal,
+    showExpiredModal,
+    expiredMessage,
     needsAuth,
     showNav,
     activeTab,
@@ -50,7 +53,10 @@ function App() {
     onTabChange,
     onRentalModalClose,
     onRentalModalConfirm,
+    onExpiredModalClose,
     onHistoryClick,
+    onPaymentHistoryClick,
+    onRefreshRentals,
   } = useAppState();
 
   // ── Auth guard ────────────────────────────────────────────────────────────
@@ -113,6 +119,7 @@ function App() {
               onSearchClick={() => navigate({ type: 'search' })}
               rentedContent={rentedContent}
               onRentedClick={onRentedClick}
+              onRefreshRentals={onRefreshRentals}
             />
           )}
           {screen.type === 'browse' && (
@@ -124,6 +131,7 @@ function App() {
               rentedContent={rentedContent}
               onContentClick={onContentClick}
               onHistoryClick={onHistoryClick}
+              onPaymentHistoryClick={onPaymentHistoryClick}
               navigate={navigate}
             />
           )}
@@ -147,6 +155,13 @@ function App() {
           rentedContent={rentedContent}
           onBack={() => navigate({ type: 'profile' })}
           onContentClick={onContentClick}
+        />
+      )}
+
+      {/* ── Payment History ── */}
+      {screen.type === 'paymentHistory' && (
+        <PaymentHistoryScreen
+          onBack={() => navigate({ type: 'profile' })}
         />
       )}
 
@@ -199,6 +214,25 @@ function App() {
           )}
         </View>
       )}
+
+      {/* ── Expired Rental Modal ── */}
+      <Modal
+        visible={showExpiredModal}
+        transparent
+        animationType="fade"
+        onRequestClose={onExpiredModalClose}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Rental Expired</Text>
+            <Text style={styles.modalMessage}>{expiredMessage}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={onExpiredModalClose}>
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaProvider>
   );
 }
@@ -207,6 +241,47 @@ const styles = StyleSheet.create({
   main: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#9ca3af',
+    lineHeight: 22,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: '#a855f7',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 

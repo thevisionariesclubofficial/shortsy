@@ -166,8 +166,12 @@ export interface FeaturedHero {
   /** Looping muted background video for the hero section on HomePage */
   videoUrl?: string;
   genre: string;
+  language: string;
+  duration: string;
+  price: number;
   rating: number;
   description: string;
+  festivalWinner?: boolean;
 }
 
 export interface GetFeaturedResponse {
@@ -202,6 +206,8 @@ export interface RentalRecord {
 
 export interface InitiateRentalRequest {
   contentId: string;
+  amountINR: number;
+  currency: 'INR';
 }
 
 export interface InitiateRentalResponse {
@@ -257,6 +263,25 @@ export interface GetRentalsResponse {
 export interface CheckRentalStatusResponse {
   isRented: boolean;
   rental: RentalRecord | null;
+}
+
+// ── 4.5 Payment History ──────────────────────────────────────────────────────
+
+export interface PaymentHistoryRecord {
+  orderId: string;
+  contentId: string;
+  amountINR: number;
+  gatewayOrderId: string;
+  gatewayPaymentId: string | null;
+  transactionId: string | null;
+  status: 'pending' | 'paid' | 'failed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetPaymentHistoryResponse {
+  orders: PaymentHistoryRecord[];
+  count: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
