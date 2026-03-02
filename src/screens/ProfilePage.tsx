@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Linking,
   Modal,
   ScrollView,
@@ -10,9 +11,9 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Content } from '../data/mockData';
-import { getCurrentUser } from '../services/profileService';
-import { getPaymentHistory } from '../services/rentalService';
-import type { UserProfile } from '../types/api';
+import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
+import { logger } from '../utils/logger';
+import type { UserProfile, PaymentHistoryRecord } from '../types/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function UserIcon() {
@@ -165,28 +166,28 @@ function XCloseIcon() {
 }
 
 // ─── SettingsModal ────────────────────────────────────────────────────────────
-function SettingsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClose: () => void; navigate: (screen: any) => void }) {
   const sections = [
     {
       title: 'Support',
       items: [
-        { Icon: HelpCircleIcon,  label: 'Help Center',    url: 'https://shortsy.app/help' },
-        { Icon: ChatLinesIcon,   label: 'FAQs',           url: 'https://shortsy.app/faqs' },
-        { Icon: EnvelopeSmIcon,  label: 'Contact Us',     url: 'https://shortsy.app/contact' },
+        { Icon: HelpCircleIcon,  label: 'Help Center',    screenType: 'helpCenter' },
+        { Icon: ChatLinesIcon,   label: 'FAQs',           screenType: 'faq' },
+        { Icon: EnvelopeSmIcon,  label: 'Contact Us',     screenType: 'contactUs' },
       ],
     },
     {
       title: 'Legal',
       items: [
-        { Icon: DocLinesIcon,    label: 'Terms & Conditions', url: 'https://shortsy.app/terms' },
-        { Icon: ShieldCheckIcon, label: 'Privacy Policy',     url: 'https://shortsy.app/privacy' },
-        { Icon: DocLinesIcon,    label: 'Cookie Policy',      url: 'https://shortsy.app/cookies' },
+        { Icon: DocLinesIcon,    label: 'Terms & Conditions', screenType: 'terms' },
+        { Icon: ShieldCheckIcon, label: 'Privacy Policy',     screenType: 'privacy' },
+        { Icon: DocLinesIcon,    label: 'Cookie Policy',      screenType: 'cookies' },
       ],
     },
     {
       title: 'About',
       items: [
-        { Icon: InfoCircleIcon, label: 'About Shortsy', url: 'https://shortsy.app/about' },
+        { Icon: InfoCircleIcon, label: 'About Shortsy', screenType: 'about' },
       ],
     },
   ];
@@ -219,14 +220,17 @@ function SettingsModal({ visible, onClose }: { visible: boolean; onClose: () => 
             <View key={section.title} style={modalStyles.section}>
               <Text style={modalStyles.sectionTitle}>{section.title}</Text>
               <View style={modalStyles.sectionCard}>
-                {section.items.map(({ Icon, label, url }, idx) => (
+                {section.items.map(({ Icon, label, screenType }, idx) => (
                   <TouchableOpacity
                     key={label}
                     style={[
                       modalStyles.item,
                       idx < section.items.length - 1 && modalStyles.itemBorder,
                     ]}
-                    onPress={() => Linking.openURL(url).catch(() => {})}
+                    onPress={() => {
+                      onClose();
+                      navigate({ type: screenType });
+                    }}
                     activeOpacity={0.7}>
                     <View style={modalStyles.itemIconWrap}>
                       <Icon />
@@ -258,14 +262,18 @@ interface ProfilePageProps {
   onHistoryClick: () => void;
   onPaymentHistoryClick: () => void;
   navigate: (screen: any) => void;
+  isPremium: boolean;
+  premiumSubscription: PremiumSubscription | null;
+  user: UserProfile | null;
+  paymentHistory: PaymentHistoryRecord[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, onPaymentHistoryClick, navigate }: ProfilePageProps) {
+export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, onPaymentHistoryClick, navigate, isPremium, premiumSubscription, user, paymentHistory }: ProfilePageProps) {
   const [totalSpent, setTotalSpent] = useState(0);
   const [contentWatched, setContentWatched] = useState(0);
-  const [user, setUser] = useState<UserProfile | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  
   const menuItems: Array<{ Icon: React.ComponentType; label: string; onPress?: () => void }> = [
     { Icon: HeartIcon,    label: 'My Favorites' },
     { Icon: ClockIcon,    label: 'Watch History', onPress: onHistoryClick },
@@ -274,26 +282,17 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
   ];
   
   useEffect(() => {
-    getCurrentUser()
-      .then(setUser)
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     // Calculate total spent and content watched from payment history (only paid orders)
-    getPaymentHistory()
-      .then(({ orders }) => {
-        const paidOrders = orders.filter(order => order.status === 'paid');
-        const total = paidOrders.reduce((sum, order) => sum + order.amountINR, 0);
-        setTotalSpent(total);
-        setContentWatched(paidOrders.length);
-      })
-      .catch(() => {
-        // Fallback to 0 if payment history fetch fails
-        setTotalSpent(0);
-        setContentWatched(0);
-      });
-  }, []);
+    const paidOrders = paymentHistory.filter(order => order.status === 'paid');
+    const total = paidOrders.reduce((sum, order) => sum + order.amountINR, 0);
+    setTotalSpent(total);
+    setContentWatched(paidOrders.length);
+  }, [paymentHistory]);
+
+  const handleUpgradePress = () => {
+    logger.info('ProfilePage', 'Upgrade button pressed, navigating to premium payment screen');
+    navigate({ type: 'premiumPayment' });
+  };
 
   return (
     <>
@@ -339,27 +338,64 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
           </View>
         </View>
         {/* ── Upgrade card ── */}
-        <View style={styles.upgradeWrap}>
-          <LinearGradient
-            colors={['#7c3aed', '#db2777']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.upgradeCard}>
-            {/* Decorative circle */}
-            <View style={styles.upgradeCircle} />
-            <View style={styles.upgradeContent}>
-              <View style={styles.upgradeTopRow}>
-                <CrownIcon />
-                <Text style={styles.upgradeBadge}>SHORTSY +</Text>
+        {!isPremium && (
+          <View style={styles.upgradeWrap}>
+            <LinearGradient
+              colors={['#7c3aed', '#db2777']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.upgradeCard}>
+              {/* Decorative circle */}
+              <View style={styles.upgradeCircle} />
+              <View style={styles.upgradeContent}>
+                <View style={styles.upgradeTopRow}>
+                  <CrownIcon />
+                  <Text style={styles.upgradeBadge}>SHORTSY +</Text>
+                </View>
+                <Text style={styles.upgradeTitle}>Get unlimited access</Text>
+                <Text style={styles.upgradePrice}>₹199/month • Selected catalog</Text>
+                <TouchableOpacity 
+                  style={styles.upgradeBtn} 
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    logger.info('ProfilePage', 'TouchableOpacity pressed');
+                    handleUpgradePress();
+                  }}>
+                  <Text style={styles.upgradeBtnText}>Upgrade Now</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.upgradeTitle}>Get unlimited access</Text>
-              <Text style={styles.upgradePrice}>₹199/month • Selected catalog</Text>
-              <TouchableOpacity style={styles.upgradeBtn} activeOpacity={0.8}>
-                <Text style={styles.upgradeBtnText}>Upgrade Now</Text>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        </View>
+            </LinearGradient>
+          </View>
+        )}
+        {isPremium && premiumSubscription && (
+          <View style={styles.upgradeWrap}>
+            <LinearGradient
+              colors={['#10b981', '#059669']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.upgradeCard}>
+              <View style={styles.upgradeCircle} />
+              <View style={styles.upgradeContent}>
+                <View style={styles.upgradeTopRow}>
+                  <CrownIcon />
+                  <Text style={styles.upgradeBadge}>PREMIUM ACTIVE</Text>
+                </View>
+                <Text style={styles.upgradeTitle}>You're a premium member!</Text>
+                <Text style={styles.upgradePrice}>Unlimited access to premium content</Text>
+                <View style={styles.premiumExpiryRow}>
+                  <Text style={styles.premiumExpiryLabel}>Valid until:</Text>
+                  <Text style={styles.premiumExpiryDate}>
+                    {new Date(premiumSubscription.expiresAt).toLocaleDateString('en-US', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
         {/* ── Menu ── */}
         <View style={styles.menuSection}>
           {menuItems.map(({ Icon, label, onPress }) => (
@@ -375,7 +411,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
           </TouchableOpacity>
         </View>
       </ScrollView>
-      <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} navigate={navigate} />
     </>
   );
 }
@@ -495,6 +531,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.75)',
     marginBottom: 16,
+  },
+  premiumExpiryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.2)',
+  },
+  premiumExpiryLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+  },
+  premiumExpiryDate: {
+    fontSize: 13,
+    color: '#ffffff',
+    fontWeight: '700',
   },
   upgradeBtn: {
     backgroundColor: '#ffffff',

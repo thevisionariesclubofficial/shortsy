@@ -72,6 +72,57 @@ export function clearRentalStore(): void {
   logger.info('RENTAL', 'Rental store cleared (logout)');
 }
 
+/**
+ * Adds a free rental for premium users when they start watching content.
+ * This allows premium content to appear in "Continue Watching" section.
+ * Calls the backend endpoint that creates rental records directly without payment.
+ *
+ * @example
+ * import { addPremiumRental } from '../services/rentalService';
+ * await addPremiumRental('content_123');
+ */
+export async function addPremiumRental(contentId: string): Promise<RentalRecord | null> {
+  const timer = logger.startTimer('RENTAL', `addPremiumRental(${contentId})`);
+  
+  try {
+    // Check if rental already exists
+    const { isRented, rental } = await checkRentalStatus(contentId);
+    if (isRented && rental) {
+      timer.end({ status: 'already_exists' });
+      return rental;
+    }
+
+    if (USE_MOCK) {
+      // Mock mode: Create rental directly
+      await mockDelay();
+      const rental: RentalRecord = {
+        contentId,
+        userId: 'mock_user_001',
+        rentedAt: new Date().toISOString(),
+        expiresAt: rentalExpiresAt(contentId),
+        amountPaid: 0,
+        transactionId: mockId('premium_txn'),
+      };
+      _rentalStore.set(contentId, rental);
+      timer.end({ contentId, status: 'created' });
+      return rental;
+    }
+
+    // Real mode: Call backend endpoint for premium rental
+    const response = await apiClient.post<{ rental: RentalRecord; message: string }>(
+      '/rentals/premium',
+      { body: { contentId } }
+    );
+
+    timer.end({ contentId, status: 'created' });
+    return response.rental;
+  } catch (error) {
+    timer.fail({ error });
+    logger.error('RENTAL', 'Failed to add premium rental', error);
+    return null;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Access duration helpers
 // ─────────────────────────────────────────────────────────────────────────────
