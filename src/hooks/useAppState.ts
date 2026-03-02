@@ -16,14 +16,17 @@ import {
 } from '../services/navigationService';
 import { clearRentalStore, getUserRentals } from '../services/rentalService';
 import { clearProgressStore, getWatchProgress, getStreamUrl, getEpisodeStreamUrl } from '../services/playbackService';
-import { clearProfileStore } from '../services/profileService';
+import type { WatchProgress } from '../types/api';
+import { clearProfileStore, getCurrentUser } from '../services/profileService';
+import { getPaymentHistory } from '../services/rentalService';
+import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
 import { getContentDetail } from '../services/contentService';
 import { getSession, logout as authLogout, restoreSession } from '../services/authService';
 import { setAccessToken } from '../services/apiClient';
 import { logger } from '../utils/logger';
 import type { AppScreen } from '../types/navigation';
 import { AUTH_EXEMPT_SCREENS, SCREENS_WITHOUT_NAV } from '../types/navigation';
-import type { RentalRecord } from '../types/api';
+import type { RentalRecord, UserProfile, PaymentHistoryRecord } from '../types/api';
 
 // ─── Public shape returned by this hook ───────────────────────────────────────
 export interface AppStateHook {
@@ -31,6 +34,11 @@ export interface AppStateHook {
   screen: AppScreen;
   isAuthenticated: boolean;
   rentedContent: Content[];
+  isPremium: boolean;
+  premiumSubscription: PremiumSubscription | null;
+  user: UserProfile | null;
+  paymentHistory: PaymentHistoryRecord[];
+  progressMap: Map<string, WatchProgress>;
   showRentalModal: boolean;
   showExpiredModal: boolean;
   expiredMessage: string;
@@ -42,6 +50,8 @@ export interface AppStateHook {
 
   // ── Helpers ──
   isRented: (c: Content) => boolean;
+  getProgress: (contentId: string) => WatchProgress | null;
+  updateProgress: (contentId: string, progress: WatchProgress) => void;
 
   // ── Navigation ──
   navigate: (screen: AppScreen) => void;
@@ -68,6 +78,10 @@ export interface AppStateHook {
   onHistoryClick: () => void;
   onPaymentHistoryClick: () => void;
   onRefreshRentals: () => Promise<void>;
+  onRefreshPremium: () => Promise<void>;
+  onRefreshProfile: () => Promise<void>;
+  onRefreshPaymentHistory: () => Promise<void>;
+  onRefreshProgress: () => Promise<void>;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -76,6 +90,11 @@ export function useAppState(): AppStateHook {
   const [isAuthenticated,  setIsAuthenticated]  = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const [rentedContent,    setRentedContent]    = useState<Content[]>([]);
+  const [isPremium,        setIsPremium]        = useState(false);
+  const [premiumSubscription, setPremiumSubscription] = useState<PremiumSubscription | null>(null);
+  const [user,             setUser]             = useState<UserProfile | null>(null);
+  const [paymentHistory,   setPaymentHistory]   = useState<PaymentHistoryRecord[]>([]);
+  const [progressMap,      setProgressMap]      = useState<Map<string, WatchProgress>>(new Map());
   const [showRentalModal,  setShowRentalModal]  = useState(false);
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   const [expiredMessage,   setExpiredMessage]   = useState('');
@@ -89,6 +108,19 @@ export function useAppState(): AppStateHook {
     (c: Content) => rentedContent.some(r => r.id === c.id),
     [rentedContent],
   );
+
+  const getProgress = useCallback(
+    (contentId: string) => progressMap.get(contentId) || null,
+    [progressMap],
+  );
+
+  const updateProgress = useCallback((contentId: string, progress: WatchProgress) => {
+    setProgressMap(prev => {
+      const newMap = new Map(prev);
+      newMap.set(contentId, progress);
+      return newMap;
+    });
+  }, []);
 
   const addRented = useCallback((c: Content) => {
     setRentedContent(prev =>
@@ -105,6 +137,83 @@ export function useAppState(): AppStateHook {
       logger.info('APP', `Refreshed ${rentals.length} active rental(s) from service`);
     }
   }, []);
+
+  // Refresh premium status from the API
+  const onRefreshPremium = useCallback(async () => {
+    const session = getSession();
+    if (session) {
+      try {
+        const status = await getPremiumStatus();
+        setIsPremium(status.isPremium);
+        setPremiumSubscription(status.subscription);
+        logger.info('APP', `Refreshed premium status: ${status.isPremium}`);
+      } catch (err) {
+        logger.error('APP', 'Failed to refresh premium status', err);
+        setIsPremium(false);
+        setPremiumSubscription(null);
+      }
+    }
+  }, []);
+
+  // Refresh user profile from the API
+  const onRefreshProfile = useCallback(async () => {
+    const session = getSession();
+    if (session) {
+      try {
+        const profile = await getCurrentUser();
+        setUser(profile);
+        logger.info('APP', `Refreshed user profile: ${profile.email}`);
+      } catch (err) {
+        logger.error('APP', 'Failed to refresh user profile', err);
+        setUser(null);
+      }
+    }
+  }, []);
+
+  // Refresh payment history from the API
+  const onRefreshPaymentHistory = useCallback(async () => {
+    const session = getSession();
+    if (session) {
+      try {
+        const { orders } = await getPaymentHistory();
+        setPaymentHistory(orders);
+        logger.info('APP', `Refreshed payment history: ${orders.length} orders`);
+      } catch (err) {
+        logger.error('APP', 'Failed to refresh payment history', err);
+        setPaymentHistory([]);
+      }
+    }
+  }, []);
+
+  // Refresh watch progress for all rented content
+  const onRefreshProgress = useCallback(async () => {
+    if (rentedContent.length === 0) {
+      setProgressMap(new Map());
+      return;
+    }
+
+    try {
+      const progressPromises = rentedContent.map(content =>
+        getWatchProgress(content.id)
+          .then(progress => ({ contentId: content.id, progress }))
+          .catch(() => ({ contentId: content.id, progress: null }))
+      );
+
+      const results = await Promise.all(progressPromises);
+      const newProgressMap = new Map<string, WatchProgress>();
+      
+      results.forEach(({ contentId, progress }) => {
+        if (progress) {
+          newProgressMap.set(contentId, progress);
+        }
+      });
+
+      setProgressMap(newProgressMap);
+      logger.info('APP', `Refreshed progress for ${newProgressMap.size}/${rentedContent.length} rented content`);
+    } catch (err) {
+      logger.error('APP', 'Failed to refresh progress', err);
+    }
+  }, [rentedContent]);
 
   // Restore session from AsyncStorage on app initialization
   useEffect(() => {
@@ -137,14 +246,69 @@ export function useAppState(): AppStateHook {
     if (isAuthenticated && !isRestoringSession) {
       const session = getSession();
       if (session) {
+        // Fetch rentals
         getUserRentals({ active: true })
-          .then(({ rentals }) => {
+          .then(async ({ rentals }) => {
             if (rentals.length > 0) {
               setRentedContent(rentals.map(r => r.content));
               logger.info('APP', `Loaded ${rentals.length} active rental(s) from service`);
+              
+              // Fetch progress for all rented content
+              const progressPromises = rentals.map(rental =>
+                getWatchProgress(rental.content.id)
+                  .then(progress => ({ contentId: rental.content.id, progress }))
+                  .catch(() => ({ contentId: rental.content.id, progress: null }))
+              );
+
+              const results = await Promise.all(progressPromises);
+              const newProgressMap = new Map<string, WatchProgress>();
+              
+              results.forEach(({ contentId, progress }) => {
+                if (progress) {
+                  newProgressMap.set(contentId, progress);
+                }
+              });
+
+              setProgressMap(newProgressMap);
+              logger.info('APP', `Loaded progress for ${newProgressMap.size}/${rentals.length} rented content`);
             }
           })
           .catch(err => logger.error('APP', 'Failed to load rentals', err));
+        
+        // Fetch premium status
+        getPremiumStatus()
+          .then(status => {
+            setIsPremium(status.isPremium);
+            setPremiumSubscription(status.subscription);
+            logger.info('APP', `Loaded premium status: ${status.isPremium}`);
+          })
+          .catch(err => {
+            logger.error('APP', 'Failed to load premium status', err);
+            setIsPremium(false);
+            setPremiumSubscription(null);
+          });
+        
+        // Fetch user profile
+        getCurrentUser()
+          .then(profile => {
+            setUser(profile);
+            logger.info('APP', `Loaded user profile: ${profile.email}`);
+          })
+          .catch(err => {
+            logger.error('APP', 'Failed to load user profile', err);
+            setUser(null);
+          });
+        
+        // Fetch payment history
+        getPaymentHistory()
+          .then(({ orders }) => {
+            setPaymentHistory(orders);
+            logger.info('APP', `Loaded payment history: ${orders.length} orders`);
+          })
+          .catch(err => {
+            logger.error('APP', 'Failed to load payment history', err);
+            setPaymentHistory([]);
+          });
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,6 +346,11 @@ export function useAppState(): AppStateHook {
     clearProfileStore();
     setIsAuthenticated(false);
     setRentedContent([]);
+    setIsPremium(false);
+    setPremiumSubscription(null);
+    setUser(null);
+    setPaymentHistory([]);
+    setProgressMap(new Map());
     navigate({ type: 'login' });
   }, [navigate]);
 
@@ -214,8 +383,8 @@ export function useAppState(): AppStateHook {
           fullContent = detailResponse.content;
         }
         
-        // First, fetch saved progress to determine which episode for vertical series
-        const progress = await getWatchProgress(fullContent.id).catch(() => null);
+        // First, get saved progress from cache to determine which episode for vertical series
+        const progress = progressMap.get(fullContent.id) || null;
         
         // Check if the stream URL is still valid
         logger.info('APP', `Checking stream URL for rented content: ${fullContent.id}, type: ${fullContent.type}`);
@@ -273,7 +442,7 @@ export function useAppState(): AppStateHook {
         }
       }
     },
-    [navigate],
+    [navigate, progressMap],
   );
 
   const onRent = useCallback(
@@ -357,6 +526,11 @@ export function useAppState(): AppStateHook {
     screen,
     isAuthenticated,
     rentedContent,
+    isPremium,
+    premiumSubscription,
+    user,
+    paymentHistory,
+    progressMap,
     showRentalModal,
     showExpiredModal,
     expiredMessage,
@@ -364,6 +538,8 @@ export function useAppState(): AppStateHook {
     showNav,
     activeTab,
     isRented,
+    getProgress,
+    updateProgress,
     navigate,
     onSplashComplete,
     onOnboardingComplete,
@@ -382,5 +558,9 @@ export function useAppState(): AppStateHook {
     onHistoryClick,
     onPaymentHistoryClick,
     onRefreshRentals,
+    onRefreshPremium,
+    onRefreshProfile,
+    onRefreshPaymentHistory,
+    onRefreshProgress,
   };
 }

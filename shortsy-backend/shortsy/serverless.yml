@@ -15,6 +15,7 @@ provider:
     RENTALS_TABLE:        ${self:service}-rentals-${self:provider.stage}
     PROGRESS_TABLE:       ${self:service}-progress-${self:provider.stage}
     ORDERS_TABLE:         ${self:service}-orders-${self:provider.stage}
+    PREMIUMS_TABLE:       ${self:service}-premiums-${self:provider.stage}
     USER_POOL_ID:         !Ref CognitoUserPool
     USER_POOL_CLIENT_ID:  !Ref CognitoUserPoolClient
     CDN_BASE:             ${env:CDN_BASE, 'https://cdn.shortsy.app'}
@@ -52,6 +53,8 @@ provider:
             - !GetAtt ProgressTable.Arn
             - !GetAtt OrdersTable.Arn
             - !Sub '${OrdersTable.Arn}/index/*'
+            - !GetAtt PremiumsTable.Arn
+            - !Sub '${PremiumsTable.Arn}/index/*'
         - Effect: Allow
           Action:
             - cognito-idp:AdminGetUser
@@ -270,6 +273,31 @@ functions:
           method: DELETE
           authorizer: { name: cognitoJwt }
 
+  # ── Premium (protected) ────────────────────────────────────────────────────
+  premiumInitiate:
+    handler: src/handlers/premium.initiate
+    events:
+      - httpApi:
+          path: /v1/premium/initiate
+          method: POST
+          authorizer: { name: cognitoJwt }
+
+  premiumConfirm:
+    handler: src/handlers/premium.confirm
+    events:
+      - httpApi:
+          path: /v1/premium/confirm
+          method: POST
+          authorizer: { name: cognitoJwt }
+
+  premiumStatus:
+    handler: src/handlers/premium.status
+    events:
+      - httpApi:
+          path: /v1/premium/status
+          method: GET
+          authorizer: { name: cognitoJwt }
+
 # ── AWS Resources (CloudFormation) ────────────────────────────────────────────
 resources:
   Resources:
@@ -378,6 +406,26 @@ resources:
         GlobalSecondaryIndexes:
           - IndexName: userId-index
             KeySchema: [{ AttributeName: userId, KeyType: HASH }]
+            Projection: { ProjectionType: ALL }
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+
+    PremiumsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.PREMIUMS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - { AttributeName: userId,  AttributeType: S }
+          - { AttributeName: subscriptionId, AttributeType: S }
+          - { AttributeName: orderId, AttributeType: S }
+        KeySchema:
+          - { AttributeName: userId, KeyType: HASH }
+          - { AttributeName: subscriptionId, KeyType: RANGE }
+        GlobalSecondaryIndexes:
+          - IndexName: OrderIdIndex
+            KeySchema: [{ AttributeName: orderId, KeyType: HASH }]
             Projection: { ProjectionType: ALL }
         TimeToLiveSpecification:
           AttributeName: ttl

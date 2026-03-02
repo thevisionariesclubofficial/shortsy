@@ -10,9 +10,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { RentalModal } from '../components/RentalModal';
 import { useAppState } from '../hooks/useAppState';
+import { AboutScreen } from '../screens/AboutScreen';
 import { BrowsePage } from '../screens/BrowsePage';
+import { ContactUsScreen } from '../screens/ContactUsScreen';
 import { ContentDetailScreen } from '../screens/ContentDetailScreen';
+import { CookiePolicyScreen } from '../screens/CookiePolicyScreen';
+import { FAQScreen } from '../screens/FAQScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
+import { HelpCenterScreen } from '../screens/HelpCenterScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomePage } from '../screens/HomePage';
 import { LoginScreen } from '../screens/LoginScreen';
@@ -21,10 +26,13 @@ import { PaymentScreen } from '../screens/PaymentScreen';
 import { PaymentHistoryScreen } from '../screens/PaymentHistoryScreen';
 import { PaymentSuccessScreen } from '../screens/PaymentSuccessScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
+import { PremiumPaymentScreen } from '../screens/PremiumPaymentScreen';
+import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
 import { ProfilePage } from '../screens/ProfilePage';
 import { SearchScreen } from '../screens/SearchScreen';
 import { SignupScreen } from '../screens/SignupScreen';
 import { SplashScreen } from '../screens/SplashScreen';
+import { TermsScreen } from '../screens/TermsScreen';
 import { WelcomeChoice } from '../screens/WelcomeChoice';
 import { resolveWatchNowScreen } from '../services/navigationService';
 
@@ -32,6 +40,11 @@ function App() {
   const {
     screen,
     rentedContent,
+    isPremium,
+    premiumSubscription,
+    user,
+    paymentHistory,
+    progressMap,
     showRentalModal,
     showExpiredModal,
     expiredMessage,
@@ -39,6 +52,8 @@ function App() {
     showNav,
     activeTab,
     isRented,
+    getProgress,
+    updateProgress,
     navigate,
     onSplashComplete,
     onOnboardingComplete,
@@ -57,6 +72,7 @@ function App() {
     onHistoryClick,
     onPaymentHistoryClick,
     onRefreshRentals,
+    onRefreshPremium,
   } = useAppState();
 
   // ── Auth guard ────────────────────────────────────────────────────────────
@@ -118,6 +134,7 @@ function App() {
               onContentClick={onContentClick}
               onSearchClick={() => navigate({ type: 'search' })}
               rentedContent={rentedContent}
+              progressMap={progressMap}
               onRentedClick={onRentedClick}
               onRefreshRentals={onRefreshRentals}
             />
@@ -133,6 +150,10 @@ function App() {
               onHistoryClick={onHistoryClick}
               onPaymentHistoryClick={onPaymentHistoryClick}
               navigate={navigate}
+              isPremium={isPremium}
+              premiumSubscription={premiumSubscription}
+              user={user}
+              paymentHistory={paymentHistory}
             />
           )}
           {showNav && (
@@ -162,6 +183,19 @@ function App() {
       {screen.type === 'paymentHistory' && (
         <PaymentHistoryScreen
           onBack={() => navigate({ type: 'profile' })}
+        />
+      )}
+
+      {/* ── Premium Payment ── */}
+      {screen.type === 'premiumPayment' && (
+        <PremiumPaymentScreen
+          onBack={() => navigate({ type: 'profile' })}
+          onSuccess={async () => {
+            await onRefreshPremium();
+            navigate({ type: 'profile' });
+          }}
+          userEmail={undefined}
+          userName={undefined}
         />
       )}
 
@@ -204,6 +238,8 @@ function App() {
             onBack={() => navigate({ type: 'home' })}
             videoUrl={screen.videoUrl}
             episodeNumber={screen.episodeNumber}
+            updateProgress={updateProgress}
+            getProgress={getProgress}
           />
           {showRentalModal && (
             <RentalModal
@@ -213,6 +249,41 @@ function App() {
             />
           )}
         </View>
+      )}
+
+      {/* ── Help & Support Screens ── */}
+      {screen.type === 'helpCenter' && (
+        <HelpCenterScreen
+          onBack={() => navigate({ type: 'profile' })}
+          onNavigateToFAQ={() => navigate({ type: 'faq' })}
+          onNavigateToContact={() => navigate({ type: 'contactUs' })}
+        />
+      )}
+
+      {screen.type === 'faq' && (
+        <FAQScreen onBack={() => navigate({ type: 'helpCenter' })} />
+      )}
+
+      {screen.type === 'contactUs' && (
+        <ContactUsScreen onBack={() => navigate({ type: 'helpCenter' })} />
+      )}
+
+      {/* ── Legal Screens ── */}
+      {screen.type === 'terms' && (
+        <TermsScreen onBack={() => navigate({ type: 'profile' })} />
+      )}
+
+      {screen.type === 'privacy' && (
+        <PrivacyPolicyScreen onBack={() => navigate({ type: 'profile' })} />
+      )}
+
+      {screen.type === 'cookies' && (
+        <CookiePolicyScreen onBack={() => navigate({ type: 'profile' })} />
+      )}
+
+      {/* ── About Screen ── */}
+      {screen.type === 'about' && (
+        <AboutScreen onBack={() => navigate({ type: 'profile' })} />
       )}
 
       {/* ── Expired Rental Modal ── */}

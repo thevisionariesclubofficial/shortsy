@@ -104,10 +104,12 @@ interface PlayerScreenProps {
   onBack: () => void;
   videoUrl?: string;
   episodeNumber?: number;
+  updateProgress: (contentId: string, progress: WatchProgress) => void;
+  getProgress: (contentId: string) => WatchProgress | null;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: PlayerScreenProps) {
+export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateProgress, getProgress }: PlayerScreenProps) {
   // true when the player has (or will fetch) a real video file.
   // In real API mode, content.videoUrl / ep.videoUrl are null — signed URLs must be
   // fetched via getStreamUrl / getEpisodeStreamUrl. hasRealVideo = true in that case too,
@@ -134,6 +136,46 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
   const durationRef     = useRef(0);   // mirrors duration state
   const lastSaveRef     = useRef(0);   // Date.now() of last progress save (10s throttle)
   const hasRestored     = useRef(false); // true once we've attempted to restore progress
+
+  // ── Helper: Save progress to backend and update local cache ──────────────────
+  const saveAndUpdateProgress = async (req: SaveProgressRequest) => {
+    try {
+      const response = await saveWatchProgress(content.id, req);
+      if (response.saved) {
+        // Calculate progress data to match what the backend would return
+        const progressPercent = req.duration > 0
+          ? Math.round((req.currentTime / req.duration) * 1000) / 10
+          : 0;
+        
+        const existing = getProgress(content.id);
+        const completedEpisodes = existing?.completedEpisodes ?? [];
+        
+        // Track completed episodes for vertical-series
+        if (content.type === 'vertical-series' && req.episodeId && req.completed) {
+          if (!completedEpisodes.includes(req.episodeId)) {
+            completedEpisodes.push(req.episodeId);
+          }
+        }
+
+        const progressData: WatchProgress = {
+          contentId: content.id,
+          type: content.type,
+          currentTime: req.currentTime,
+          duration: req.duration,
+          progressPercent,
+          completed: req.completed,
+          lastWatchedAt: new Date().toISOString(),
+          ...(req.episodeId && { lastEpisodeId: req.episodeId }),
+          ...(req.episodeNumber && { lastEpisodeNumber: req.episodeNumber }),
+          completedEpisodes,
+        };
+        
+        updateProgress(content.id, progressData);
+      }
+    } catch (error) {
+      // Silently fail - progress saving is not critical
+    }
+  };
 
   const isShortFilm = content.type === 'short-film';
   const { width, height } = useWindowDimensions();
@@ -227,7 +269,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
         const ep = content.episodeList?.[currentEpRef.current - 1];
         if (ep) { req.episodeId = ep.id; req.episodeNumber = currentEpRef.current; }
       }
-      saveWatchProgress(content.id, req).catch(() => {});
+      saveAndUpdateProgress(req);
     }
     onBack();
   };
@@ -257,7 +299,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
           episodeId: ep.id,
           episodeNumber: currentEpRef.current,
         };
-        saveWatchProgress(content.id, req).catch(() => {});
+        saveAndUpdateProgress(req);
       }
     }
     currentEpRef.current = epIndex;
@@ -394,7 +436,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
           const ep = content.episodeList?.[currentEpRef.current - 1];
           if (ep) { req.episodeId = ep.id; req.episodeNumber = currentEpRef.current; }
         }
-        saveWatchProgress(content.id, req).catch(() => {});
+        saveAndUpdateProgress(req);
       }
     });
 
@@ -419,7 +461,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
           const ep = content.episodeList?.[currentEpRef.current - 1];
           if (ep) { req.episodeId = ep.id; req.episodeNumber = currentEpRef.current; }
         }
-        saveWatchProgress(content.id, req).catch(() => {});
+        saveAndUpdateProgress(req);
       }
       const epList = content.episodeList;
       const nextEp = currentEpRef.current + 1;

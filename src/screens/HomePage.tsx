@@ -22,7 +22,6 @@ import {
   getContentMetadata,
   listContent,
 } from '../services/contentService';
-import { getWatchProgress } from '../services/playbackService';
 import type { WatchProgress, FeaturedHero } from '../types/api';
 
 const { width, height } = Dimensions.get('window');
@@ -178,11 +177,12 @@ interface HomePageProps {
   onContentClick: (content: Content) => void;
   onSearchClick: () => void;
   rentedContent?: Content[];
+  progressMap?: Map<string, WatchProgress>;
   onRentedClick: (content: Content) => void;
   onRefreshRentals?: () => Promise<void>;
 }
 
-export function HomePage({ onContentClick, onSearchClick, rentedContent = [], onRentedClick, onRefreshRentals }: HomePageProps) {
+export function HomePage({ onContentClick, onSearchClick, rentedContent = [], progressMap = new Map(), onRentedClick, onRefreshRentals }: HomePageProps) {
   // ── Service-fetched state ─────────────────────────────────────────────────
   const [allContent,       setAllContent]       = useState<Content[]>([]);
   const [featuredContent,  setFeaturedContent]  = useState<Content[]>([]);
@@ -192,29 +192,15 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
   const [hero,             setHero]             = useState<FeaturedHero | null>(null);
   const [loading,          setLoading]          = useState(true);
   const [refreshing,       setRefreshing]       = useState(false);
-  // Watch progress for each rented item (contentId → WatchProgress)
-  const [progressMap,      setProgressMap]      = useState<Record<string, WatchProgress>>({});
-
-  // Load / refresh progress whenever the list of rented content changes
-  useEffect(() => {
-    if (rentedContent.length === 0) { setProgressMap({}); return; }
-    let cancelled = false;
-    Promise.all(
-      rentedContent.map(c =>
-        getWatchProgress(c.id)
-          .then(p => ({ id: c.id, progress: p }))
-          .catch(() => ({ id: c.id, progress: null })),
-      ),
-    ).then(results => {
-      if (cancelled) return;
-      const map: Record<string, WatchProgress> = {};
-      for (const { id, progress } of results) {
-        if (progress) map[id] = progress;
-      }
-      setProgressMap(map);
+  
+  // Convert Map to Record for ContentCard compatibility
+  const progressRecord = React.useMemo(() => {
+    const record: Record<string, WatchProgress> = {};
+    progressMap.forEach((progress, id) => {
+      record[id] = progress;
     });
-    return () => { cancelled = true; };
-  }, [rentedContent]);
+    return record;
+  }, [progressMap]);
 
   const handleRefresh = useCallback(async () => {
     clearContentCache();
@@ -346,7 +332,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.continueRow}>
               {rentedContent.map(content => {
-                const prog = progressMap[content.id];
+                const prog = progressRecord[content.id];
                 const pct  = prog ? Math.min(Math.max(prog.progressPercent, 0), 100) : 0;
                 let subtitle: string;
                 if (!prog) {

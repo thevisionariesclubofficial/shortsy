@@ -15,6 +15,14 @@ export type AppScreen =
   | { type: 'profile' }
   | { type: 'history' }
   | { type: 'paymentHistory' }
+  | { type: 'premiumPayment' }
+  | { type: 'helpCenter' }
+  | { type: 'faq' }
+  | { type: 'contactUs' }
+  | { type: 'terms' }
+  | { type: 'privacy' }
+  | { type: 'cookies' }
+  | { type: 'about' }
   | { type: 'detail';         content: Content }
   | { type: 'payment';        content: Content }
   | { type: 'paymentSuccess'; content: Content; rental: RentalRecord }
@@ -27,9 +35,17 @@ export const SCREENS_WITHOUT_NAV: ReadonlyArray<AppScreen['type']> = [
   'detail',
   'payment',
   'paymentSuccess',
+  'premiumPayment',
   'search',
   'history',
   'paymentHistory',
+  'helpCenter',
+  'faq',
+  'contactUs',
+  'terms',
+  'privacy',
+  'cookies',
+  'about',
 ];
 
 /** Screens that do not require the user to be authenticated. */
