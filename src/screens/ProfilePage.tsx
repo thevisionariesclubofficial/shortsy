@@ -350,7 +350,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
             <View style={styles.upgradeContent}>
               <View style={styles.upgradeTopRow}>
                 <CrownIcon />
-                <Text style={styles.upgradeBadge}>INDIEPLAY Plus</Text>
+                <Text style={styles.upgradeBadge}>SHORTSY +</Text>
               </View>
               <Text style={styles.upgradeTitle}>Get unlimited access</Text>
               <Text style={styles.upgradePrice}>₹199/month • Selected catalog</Text>
