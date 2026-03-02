@@ -104,12 +104,20 @@ export const logout: APIGatewayProxyHandlerV2WithJWTAuthorizer = async (event) =
 
   const authHeader = event.headers?.['authorization'] ?? event.headers?.['Authorization'] ?? '';
   const accessToken = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (!accessToken) return apiError(401, 'UNAUTHORIZED', 'Missing Authorization header', rid);
+  
+  // If no access token, just return success (logout is idempotent)
+  if (!accessToken) {
+    console.log(`[auth:logout] No access token provided, returning success (rid=${rid})`);
+    return noContent();
+  }
 
   try {
     await cognito.logout(accessToken);
     return noContent();
   } catch (err) {
-    return handleCognitoErr(err, rid);
+    // Even if Cognito logout fails (expired token, etc.), return success
+    // because the client is clearing local state anyway
+    console.log(`[auth:logout] Cognito logout failed but returning success (rid=${rid})`, err);
+    return noContent();
   }
 };

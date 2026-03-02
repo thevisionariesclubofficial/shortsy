@@ -19,8 +19,8 @@ provider:
     USER_POOL_CLIENT_ID:  !Ref CognitoUserPoolClient
     CDN_BASE:             ${env:CDN_BASE, 'https://cdn.shortsy.app'}
     S3_MEDIA_BUCKET:      ${self:service}-media-${self:provider.stage}
-    RAZORPAY_KEY_ID:      ${env:RAZORPAY_KEY_ID, ''}
-    RAZORPAY_KEY_SECRET:  ${env:RAZORPAY_KEY_SECRET, ''}
+    RAZORPAY_KEY_ID:      ${env:RAZORPAY_KEY_ID, 'rzp_test_SLajOeA4k89FaD'}
+    RAZORPAY_KEY_SECRET:  ${env:RAZORPAY_KEY_SECRET, 'KFg2xasu5pQ8P8qWphrruzAb'}
     STREAM_EXPIRY_SECONDS: '3600'
 
   httpApi:
@@ -51,6 +51,7 @@ provider:
             - !Sub '${RentalsTable.Arn}/index/*'
             - !GetAtt ProgressTable.Arn
             - !GetAtt OrdersTable.Arn
+            - !Sub '${OrdersTable.Arn}/index/*'
         - Effect: Allow
           Action:
             - cognito-idp:AdminGetUser
@@ -85,6 +86,21 @@ custom:
 
 # ── Functions ─────────────────────────────────────────────────────────────────
 functions:
+  orderCreate:
+    handler: src/handlers/order.createOrder
+    events:
+      - httpApi:
+          path: /v1/order
+          method: POST
+
+  orderPaymentHistory:
+    handler: src/handlers/order.getPaymentHistory
+    events:
+      - httpApi:
+          path: /v1/order/history
+          method: GET
+          authorizer: { name: cognitoJwt }
+
   contentAdd:
     handler: src/handlers/content.add
     events:
@@ -356,8 +372,13 @@ resources:
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - { AttributeName: orderId, AttributeType: S }
+          - { AttributeName: userId,  AttributeType: S }
         KeySchema:
           - { AttributeName: orderId, KeyType: HASH }
+        GlobalSecondaryIndexes:
+          - IndexName: userId-index
+            KeySchema: [{ AttributeName: userId, KeyType: HASH }]
+            Projection: { ProjectionType: ALL }
         TimeToLiveSpecification:
           AttributeName: ttl
           Enabled: true

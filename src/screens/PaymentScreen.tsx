@@ -7,13 +7,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Content } from '../data/mockData';
 import { confirmPayment, initiateRental } from '../services/rentalService';
+import RazorpayCheckout from 'react-native-razorpay';
 import { logger } from '../utils/logger';
 import type { RentalRecord } from '../types/api';
 
@@ -110,78 +110,124 @@ interface PaymentScreenProps {
   onSuccess: (rental: RentalRecord) => void;
 }
 
-// ─── Reusable field ───────────────────────────────────────────────────────────
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType = 'default',
-  maxLength,
-  hint,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  placeholder: string;
-  keyboardType?: 'default' | 'numeric' | 'email-address';
-  maxLength?: number;
-  hint?: string;
-}) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={fStyles.wrap}>
-      <Text style={fStyles.label}>{label}</Text>
-      <TextInput
-        style={[fStyles.input, focused && fStyles.inputFocused]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#525252"
-        keyboardType={keyboardType}
-        maxLength={maxLength}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        autoCorrect={false}
-      />
-      {hint && <Text style={fStyles.hint}>{hint}</Text>}
-    </View>
-  );
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps) {
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('upi');
-  const [upiId, setUpiId] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardName, setCardName] = useState('');
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
 
   const isValid = () => {
-    if (selectedMethod === 'upi') return upiId.trim().length > 0;
-    if (selectedMethod === 'card')
-      return cardNumber.length === 16 && cardExpiry.length === 5 && cardCvv.length === 3 && cardName.trim().length > 0;
-    return true; // wallet / netbanking: just pick one
+    return selectedMethod !== null;
   };
 
   const handlePay = async () => {
-    if (!isValid() || processing) return;
+    if (!isValid() || processing || !selectedMethod) return;
     setProcessing(true);
     try {
       // Step 1: Create payment order on the server
-      const order = await initiateRental({ contentId: content.id });
-      logger.info('PaymentScreen', 'Order created', { orderId: order.orderId, amount: order.amountINR });
+      const order = await initiateRental({
+        contentId: content.id,
+        amountINR: content.price,
+        currency: 'INR',
+      });
+      logger.info('PaymentScreen', 'Order created', { orderId: order.orderId, amount: order.amountINR ?? content.price });
 
-      // Step 2: Simulate payment gateway SDK processing (Razorpay / Stripe in production)
-      await new Promise<void>(resolve => setTimeout(resolve, 2000));
+      // Step 2: If mock mode, skip Razorpay and confirm payment directly
+      if (require('../services/apiClient').USE_MOCK) {
+        logger.info('PaymentScreen', 'Skipping Razorpay modal in mock mode');
+        const { rental } = await confirmPayment({
+          orderId: order.orderId,
+          gatewayPaymentId: 'mock_payment_id',
+          gatewaySignature: 'mock_signature',
+        });
+        setProcessing(false);
+        onSuccess?.(rental);
+        return;
+      }
+
+      // Step 2: Launch Razorpay modal
+      // Map our UI method names to Razorpay's expected method names
+      const razorpayMethodMap: Record<PaymentMethod, string> = {
+        'upi': 'upi',
+        'card': 'card',
+        'wallet': 'wallet',
+        'netbanking': 'netbanking',
+      };
+      
+      const selectedRazorpayMethod = razorpayMethodMap[selectedMethod];
+      
+      const options = {
+        description: `Rental for ${order.contentTitle || content.title}`,
+        image: content.thumbnail,
+        currency: order.currency ?? 'INR',
+        key: order.gatewayKey ?? 'rzp_test_SLajOeA4k89FaD',
+        amount: typeof order.amountINR === 'number' && !isNaN(order.amountINR) ? order.amountINR * 100 : content.price * 100,
+        order_id: order.gatewayOrderId || order.orderId,
+        name: 'Shortsy',
+        prefill: {
+          email: '', // Optionally fill from user profile
+          contact: '',
+          name: '',
+        },
+        theme: { color: '#7c3aed' },
+        config: {
+          display: {
+            preferences: {
+              show_default_blocks: false,
+            },
+            sequence: [selectedRazorpayMethod],
+            blocks: {
+              [selectedRazorpayMethod]: {
+                name: selectedRazorpayMethod.charAt(0).toUpperCase() + selectedRazorpayMethod.slice(1),
+                instruments: [
+                  {
+                    method: selectedRazorpayMethod,
+                  },
+                ],
+              },
+            },
+          },
+        },
+      };
+
+      logger.info('PaymentScreen', 'Launching Razorpay modal', { options });
+      Object.entries(options).forEach(([key, value]) => {
+        logger.info('PaymentScreen', `Razorpay option: ${key}`, { value });
+      });
+      
+      interface RazorpayResponse {
+        razorpay_payment_id: string;
+        razorpay_order_id: string;
+        razorpay_signature?: string;
+      }
+      
+      const razorpayRes = await new Promise<RazorpayResponse>((resolve, reject) => {
+        RazorpayCheckout.open(options)
+          .then((res: any) => {
+            logger.info('PaymentScreen', 'Razorpay modal success - FULL RESPONSE', { res });
+            logger.info('PaymentScreen', 'Razorpay payment_id', { value: res.razorpay_payment_id });
+            logger.info('PaymentScreen', 'Razorpay order_id', { value: res.razorpay_order_id });
+            logger.info('PaymentScreen', 'Razorpay signature', { value: res.razorpay_signature });
+            resolve(res);
+          })
+          .catch((err: any) => {
+            logger.error('PaymentScreen', 'Razorpay modal error', { err });
+            reject(err);
+          });
+      });
 
       // Step 3: Confirm payment with gateway response
+      // Use the original custom orderId from the backend, NOT the Razorpay order ID
+      logger.info('PaymentScreen', 'ConfirmPayment request', {
+        orderId: order.orderId,
+        gatewayPaymentId: razorpayRes.razorpay_payment_id,
+        gatewaySignature: razorpayRes.razorpay_signature ?? 'missing_signature',
+        gatewayOrderId: razorpayRes.razorpay_order_id,
+      });
       const { rental } = await confirmPayment({
         orderId: order.orderId,
-        gatewayPaymentId: `mock_pay_${Date.now()}`,
-        gatewaySignature: `mock_sig_${Date.now()}`,
+        gatewayPaymentId: razorpayRes.razorpay_payment_id,
+        gatewaySignature: razorpayRes.razorpay_signature ?? `mock_sig_${razorpayRes.razorpay_payment_id}`,
       });
       logger.info('PaymentScreen', 'Payment confirmed', {
         transactionId: rental.transactionId,
@@ -190,10 +236,9 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
 
       // Step 4: Notify parent — triggers addRented + navigate to paymentSuccess
       onSuccess(rental);
-    } catch (err: unknown) {
+    } catch (err: any) {
       // If the content is already rented, treat as success (idempotent)
-      const isAlreadyRented =
-        err instanceof Error && (err as { code?: string }).code === 'ALREADY_RENTED';
+      const isAlreadyRented = err?.code === 'ALREADY_RENTED';
       if (isAlreadyRented) {
         logger.warn('PaymentScreen', 'Content already rented — skipping gateway', { contentId: content.id });
         // Build a minimal stub rental for the success screen
@@ -208,6 +253,8 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
         onSuccess(stubRental);
       } else {
         logger.error('PaymentScreen', 'Payment failed', err);
+        const errorMessage = err?.description || err?.message || 'Payment failed. Please try again.';
+        setErrorModal({ visible: true, message: errorMessage });
         setProcessing(false);
       }
     }
@@ -219,9 +266,6 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
     { key: 'wallet',     label: 'Wallet',       Icon: WalletIcon },
     { key: 'netbanking', label: 'Net Banking',  Icon: BankIcon },
   ];
-
-  const wallets    = ['Paytm', 'PhonePe', 'Mobikwik', 'Amazon Pay'];
-  const banks      = ['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank', 'Other Banks'];
 
   return (
     <KeyboardAvoidingView
@@ -332,85 +376,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
             })}
           </View>
 
-          {/* ── Form ── */}
-          <View style={styles.card}>
-            {selectedMethod === 'upi' && (
-              <Field
-                label="UPI ID"
-                value={upiId}
-                onChangeText={setUpiId}
-                placeholder="yourname@upi"
-                keyboardType="email-address"
-                hint="Enter your UPI ID (Google Pay, PhonePe, Paytm, etc.)"
-              />
-            )}
 
-            {selectedMethod === 'card' && (
-              <>
-                <Field
-                  label="Card Number"
-                  value={cardNumber}
-                  onChangeText={t => setCardNumber(t.replace(/\D/g, '').slice(0, 16))}
-                  placeholder="1234 5678 9012 3456"
-                  keyboardType="numeric"
-                  maxLength={16}
-                />
-                <Field
-                  label="Cardholder Name"
-                  value={cardName}
-                  onChangeText={setCardName}
-                  placeholder="John Doe"
-                />
-                <View style={styles.row2}>
-                  <View style={styles.flex}>
-                    <Field
-                      label="Expiry"
-                      value={cardExpiry}
-                      onChangeText={t => {
-                        const d = t.replace(/\D/g, '');
-                        setCardExpiry(d.length >= 2 ? d.slice(0, 2) + '/' + d.slice(2, 4) : d);
-                      }}
-                      placeholder="MM/YY"
-                      keyboardType="numeric"
-                      maxLength={5}
-                    />
-                  </View>
-                  <View style={styles.flex}>
-                    <Field
-                      label="CVV"
-                      value={cardCvv}
-                      onChangeText={t => setCardCvv(t.replace(/\D/g, '').slice(0, 3))}
-                      placeholder="123"
-                      keyboardType="numeric"
-                      maxLength={3}
-                    />
-                  </View>
-                </View>
-              </>
-            )}
-
-            {selectedMethod === 'wallet' && (
-              <>
-                <Text style={styles.subLabel}>Select Wallet Provider</Text>
-                {wallets.map(w => (
-                  <TouchableOpacity key={w} style={styles.listItem} activeOpacity={0.7}>
-                    <Text style={styles.listItemText}>{w}</Text>
-                  </TouchableOpacity>
-                ))}
-              </>
-            )}
-
-            {selectedMethod === 'netbanking' && (
-              <>
-                <Text style={styles.subLabel}>Select Your Bank</Text>
-                {banks.map(b => (
-                  <TouchableOpacity key={b} style={styles.listItem} activeOpacity={0.7}>
-                    <Text style={styles.listItemText}>{b}</Text>
-                  </TouchableOpacity>
-                ))}
-              </>
-            )}
-          </View>
 
           {/* ── Security badge ── */}
           <View style={styles.securityRow}>
@@ -449,6 +415,34 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* ── Error Modal ── */}
+      {errorModal.visible && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Payment Failed</Text>
+            <Text style={styles.modalMessage}>{errorModal.message}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setErrorModal({ visible: false, message: '' })}
+              activeOpacity={0.8}>
+              <LinearGradient
+                colors={['#7c3aed', '#db2777']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 12 }]}
+              />
+              <Text style={styles.modalButtonText}>Try Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={onBack}
+              activeOpacity={0.8}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -534,11 +528,6 @@ const styles = StyleSheet.create({
   methodLabel:     { fontSize: 13, fontWeight: '500', color: '#737373' },
   methodLabelActive:{ color: '#a855f7' },
 
-  row2:    { flexDirection: 'row', gap: 12 },
-  subLabel:{ fontSize: 13, color: '#737373', marginBottom: 4 },
-  listItem:{ backgroundColor: '#1a1a1a', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16, marginBottom: 6 },
-  listItemText: { fontSize: 14, color: '#ffffff' },
-
   securityRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   securityText:{ fontSize: 12, color: '#525252' },
 
@@ -559,14 +548,65 @@ const styles = StyleSheet.create({
   payBtnDisabled: { opacity: 0.45 },
   payBtnInner:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   payBtnText:     { fontSize: 18, fontWeight: '700', color: '#ffffff', zIndex: 1 },
-});
 
-const fStyles = StyleSheet.create({
-  wrap:        { gap: 6 },
-  label:       { fontSize: 13, color: '#737373' },
-  input:       { height: 48, borderRadius: 10, backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a', paddingHorizontal: 14, fontSize: 15, color: '#ffffff' },
-  inputFocused:{ borderColor: '#7c3aed' },
-  hint:        { fontSize: 11, color: '#525252' },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    backgroundColor: '#111111',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: '#1e1e1e',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#a3a3a3',
+    lineHeight: 22,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  modalButton: {
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    zIndex: 1,
+  },
+  modalCancelButton: {
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#737373',
+  },
 });
 
 const iconStyles = StyleSheet.create({

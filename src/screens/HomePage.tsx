@@ -23,7 +23,7 @@ import {
   listContent,
 } from '../services/contentService';
 import { getWatchProgress } from '../services/playbackService';
-import type { WatchProgress } from '../types/api';
+import type { WatchProgress, FeaturedHero } from '../types/api';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
@@ -119,7 +119,7 @@ function HeroCard({
   onPress,
   player,
 }: {
-  hero: Content;
+  hero: FeaturedHero;
   onPress: () => void;
   player: ReturnType<typeof useVideoPlayer>;
 }) {
@@ -179,16 +179,17 @@ interface HomePageProps {
   onSearchClick: () => void;
   rentedContent?: Content[];
   onRentedClick: (content: Content) => void;
+  onRefreshRentals?: () => Promise<void>;
 }
 
-export function HomePage({ onContentClick, onSearchClick, rentedContent = [], onRentedClick }: HomePageProps) {
+export function HomePage({ onContentClick, onSearchClick, rentedContent = [], onRentedClick, onRefreshRentals }: HomePageProps) {
   // ── Service-fetched state ─────────────────────────────────────────────────
   const [allContent,       setAllContent]       = useState<Content[]>([]);
   const [featuredContent,  setFeaturedContent]  = useState<Content[]>([]);
   const [festivalWinners,  setFestivalWinners]  = useState<Content[]>([]);
   const [verticalSeries,   setVerticalSeries]   = useState<Content[]>([]);
   const [moodList,         setMoodList]         = useState<{ id: string; name: string; emoji: string }[]>([]);
-  const [hero,             setHero]             = useState<Content | null>(null);
+  const [hero,             setHero]             = useState<FeaturedHero | null>(null);
   const [loading,          setLoading]          = useState(true);
   const [refreshing,       setRefreshing]       = useState(false);
   // Watch progress for each rented item (contentId → WatchProgress)
@@ -219,24 +220,29 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
     clearContentCache();
     setRefreshing(true);
     try {
+      // Also fetch user rentals if callback is provided
+      if (onRefreshRentals) {
+        await onRefreshRentals();
+      }
+      
       const [featuredRes, metaRes, allRes] = await Promise.all([
         getFeaturedContent(),
         getContentMetadata(),
         listContent(),
       ]);
-      setHero(featuredRes.featured[0] ?? null);
+      setHero(featuredRes.hero);
       setFeaturedContent(featuredRes.featured);
       setMoodList(metaRes.moods);
       const all = allRes.data;
       setAllContent(all);
-      setFestivalWinners(all.filter(c => c.festivalWinner));
-      setVerticalSeries(all.filter(c => c.type === 'vertical-series'));
+      setFestivalWinners(all.filter((c: Content) => c.festivalWinner));
+      setVerticalSeries(all.filter((c: Content) => c.type === 'vertical-series'));
     } catch (err) {
       console.error('[HomePage] Pull-to-refresh failed:', err);
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [onRefreshRentals]);
 
   useEffect(() => {
     async function fetchHomeData() {
@@ -248,7 +254,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
           listContent(),
         ]);
 
-        setHero(featuredRes.featured[0] ?? null);
+        setHero(featuredRes.hero);
         setFeaturedContent(featuredRes.featured);
         setMoodList(metaRes.moods);
 
@@ -313,7 +319,19 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], on
 
         {/* ── Hero ── */}
         {hero && (
-          <HeroCard hero={hero} onPress={() => onContentClick(hero)} player={player} />
+          <HeroCard 
+            hero={hero} 
+            onPress={() => onContentClick({ 
+              ...hero, 
+              director: '', 
+              mood: '', 
+              views: 0,
+              episodes: undefined,
+              episodeList: undefined,
+              trailer: hero.videoUrl,
+            })} 
+            player={player} 
+          />
         )}
 
         {/* ── Continue Watching ── */}

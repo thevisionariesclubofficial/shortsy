@@ -23,9 +23,11 @@ async function requireContent(id: string, rid: string) {
 }
 
 async function requireRental(userId: string, contentId: string, rid: string) {
-  const active = await rentalService.isRented(userId, contentId);
-  if (!active) return { ok: false, err: apiError(403, 'NOT_RENTED', 'No active rental found for this content', rid) };
-  return { ok: true, err: null };
+  const rental = await rentalService.getRental(userId, contentId);
+  if (!rental || new Date(rental.expiresAt) < new Date()) {
+    return { rental: null, err: apiError(403, 'NOT_RENTED', 'No active rental found for this content', rid) };
+  }
+  return { rental, err: null };
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -45,10 +47,10 @@ export const streamFilm: APIGatewayProxyHandlerV2WithJWTAuthorizer = async (even
       return apiError(400, 'VALIDATION_ERROR', 'Use /episodes/:episodeId/stream for vertical-series', rid);
     }
 
-    const { err: re } = await requireRental(user.id, id, rid);
-    if (re) return re;
+    const { rental, err: re } = await requireRental(user.id, id, rid);
+    if (re || !rental) return re!;
 
-    return ok(await playbackService.buildFilmStream(content));
+    return ok(await playbackService.buildFilmStream(content, rental.expiresAt));
   } catch (err) {
     console.error('[playback.streamFilm]', err);
     return apiError(500, 'INTERNAL_ERROR', 'Failed to generate stream URL', rid);
@@ -67,10 +69,10 @@ export const streamEpisode: APIGatewayProxyHandlerV2WithJWTAuthorizer = async (e
     const { content, err: ce } = await requireContent(id, rid);
     if (ce || !content) return ce!;
 
-    const { err: re } = await requireRental(user.id, id, rid);
-    if (re) return re;
+    const { rental, err: re } = await requireRental(user.id, id, rid);
+    if (re || !rental) return re!;
 
-    const stream = await playbackService.buildEpisodeStream(content, episodeId);
+    const stream = await playbackService.buildEpisodeStream(content, episodeId, rental.expiresAt);
     if (!stream) return apiError(404, 'EPISODE_NOT_FOUND', `Episode '${episodeId}' not found in content '${id}'`, rid);
 
     return ok(stream);

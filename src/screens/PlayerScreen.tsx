@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  BackHandler,
   GestureResponderEvent,
   Image,
   ScrollView,
@@ -117,7 +118,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
   const [progress,  setProgress]  = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [currentEp, setCurrentEp] = useState(episodeNumber ?? 1);
-  const [isBuffering, setIsBuffering] = useState(hasRealVideo); // true while video / signed URL loads
+  const [isBuffering, setIsBuffering] = useState<boolean>(hasRealVideo); // true while video / signed URL loads
   // Real video tracking (only used when videoUrl is provided)
   const [duration,    setDuration]    = useState(0);   // total seconds
   const [currentTime, setCurrentTime] = useState(0);   // elapsed seconds
@@ -139,6 +140,25 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
   const isLandscape = width > height;
 
   // ── Control visibility ──────────────────────────────────────────────────────
+  const toggleControls = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    
+    if (showControls) {
+      // Hide controls
+      Animated.timing(controlsOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() =>
+        setShowControls(false),
+      );
+    } else {
+      // Show controls
+      setShowControls(true);
+      Animated.timing(controlsOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+      // Auto-hide after 3 seconds if playing
+      if (isPlaying) {
+        scheduleHide();
+      }
+    }
+  };
+
   const showControlsNow = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     setShowControls(true);
@@ -211,6 +231,16 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
     }
     onBack();
   };
+
+  // Handle Android hardware back button
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true; // Prevent default behavior (app exit)
+    });
+
+    return () => backHandler.remove();
+  }, [hasRealVideo, content]);
 
   // ── Switch episode from sidebar ─────────────────────────────────────────────
   const switchEpisode = async (epIndex: number) => {
@@ -454,43 +484,49 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <TouchableWithoutFeedback onPress={showControlsNow}>
-      <View style={styles.container}>
-        {/* ── Video area ── */}
-        <View style={styles.videoArea}>
-          {hasRealVideo ? (
-            <VideoView
-              player={epPlayer}
-              resizeMode='contain'
-              style={StyleSheet.absoluteFill}
-              controls={false}
+    <View style={styles.container}>
+      {/* ── Video area ── */}
+      <View style={styles.videoArea}>
+        {hasRealVideo ? (
+          <VideoView
+            player={epPlayer}
+            resizeMode='contain'
+            style={StyleSheet.absoluteFill}
+            controls={false}
+          />
+        ) : (
+          <>
+            <Image
+              source={{ uri: content.thumbnail }}
+              style={styles.bgBlur}
+              blurRadius={18}
             />
-          ) : (
-            <>
-              <Image
-                source={{ uri: content.thumbnail }}
-                style={styles.bgBlur}
-                blurRadius={18}
-              />
-              <View style={styles.bgDim} />
-              <Image
-                source={{ uri: content.thumbnail }}
-                style={styles.mainImage}
-                resizeMode="contain"
-              />
-            </>
-          )}
+            <View style={styles.bgDim} />
+            <Image
+              source={{ uri: content.thumbnail }}
+              style={styles.mainImage}
+              resizeMode="contain"
+            />
+          </>
+        )}
+      </View>
+
+      {/* ── Loading spinner ── */}
+      {isBuffering && hasRealVideo ? (
+        <View style={styles.loadingWrap} pointerEvents="none">
+          <LoadingSpinner />
         </View>
+      ) : null}
 
-        {/* ── Loading spinner ── */}
-        {isBuffering && hasRealVideo ? (
-          <View style={styles.loadingWrap} pointerEvents="none">
-            <LoadingSpinner />
-          </View>
-        ) : null}
+      {/* ── Tap overlay to toggle controls ── */}
+      <TouchableOpacity 
+        style={styles.tapOverlay}
+        activeOpacity={1}
+        onPress={toggleControls}
+      />
 
-        {/* ── Controls overlay ── */}
-        <Animated.View style={[styles.overlay, { opacity: controlsOpacity }]} pointerEvents={showControls ? 'box-none' : 'none'}>
+      {/* ── Controls overlay ── */}
+      <Animated.View style={[styles.overlay, styles.controlsLayer, { opacity: controlsOpacity }]} pointerEvents={showControls ? 'box-none' : 'none'}>
 
           {/* Top bar */}
           <View style={styles.topBar}>
@@ -563,7 +599,6 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
               </View>
             </View>
           </View>
-        </Animated.View>
 
         {/* ── Episodes sidebar (vertical-series only) ── */}
         {content.type === 'vertical-series' && content.episodeList && content.episodeList.length > 0 && showControls && (
@@ -584,8 +619,8 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber }: Playe
             </ScrollView>
           </View>
         )}
-      </View>
-    </TouchableWithoutFeedback>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -605,9 +640,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
 
+  tapOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+  },
+
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
+  },
+
+  controlsLayer: {
+    zIndex: 20,
   },
 
   // Top bar

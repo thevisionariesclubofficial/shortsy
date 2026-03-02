@@ -15,9 +15,10 @@ import {
   resolveRentedClickWithProgress,
 } from '../services/navigationService';
 import { clearRentalStore, getUserRentals } from '../services/rentalService';
-import { clearProgressStore, getWatchProgress } from '../services/playbackService';
+import { clearProgressStore, getWatchProgress, getStreamUrl, getEpisodeStreamUrl } from '../services/playbackService';
 import { clearProfileStore } from '../services/profileService';
-import { getSession, logout as authLogout } from '../services/authService';
+import { getContentDetail } from '../services/contentService';
+import { getSession, logout as authLogout, restoreSession } from '../services/authService';
 import { setAccessToken } from '../services/apiClient';
 import { logger } from '../utils/logger';
 import type { AppScreen } from '../types/navigation';
@@ -31,6 +32,8 @@ export interface AppStateHook {
   isAuthenticated: boolean;
   rentedContent: Content[];
   showRentalModal: boolean;
+  showExpiredModal: boolean;
+  expiredMessage: string;
   /** True when the current screen requires auth but the user is not logged in. */
   needsAuth: boolean;
   /** True when the bottom nav bar should be visible. */
@@ -61,7 +64,10 @@ export interface AppStateHook {
   onTabChange: (tab: BottomTab) => void;
   onRentalModalClose: () => void;
   onRentalModalConfirm: (content: Content) => void;
+  onExpiredModalClose: () => void;
   onHistoryClick: () => void;
+  onPaymentHistoryClick: () => void;
+  onRefreshRentals: () => Promise<void>;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -71,6 +77,9 @@ export function useAppState(): AppStateHook {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const [rentedContent,    setRentedContent]    = useState<Content[]>([]);
   const [showRentalModal,  setShowRentalModal]  = useState(false);
+  const [showExpiredModal, setShowExpiredModal] = useState(false);
+  const [expiredMessage,   setExpiredMessage]   = useState('');
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
 
   // ── Core navigation ─────────────────────────────────────────────────────────
   const navigate = useCallback((next: AppScreen) => setScreen(next), []);
@@ -87,30 +96,65 @@ export function useAppState(): AppStateHook {
     );
   }, []);
 
-  // Load any active rentals from the service on first mount.
-  // In mock mode this is empty on app start; with a real API it will
-  // restore the user's active rentals after a cold launch.
-  useEffect(() => {
+  // Refresh rentals from the API
+  const onRefreshRentals = useCallback(async () => {
     const session = getSession();
     if (session) {
-      getUserRentals({ active: true })
-        .then(({ rentals }) => {
-          if (rentals.length > 0) {
-            setRentedContent(rentals.map(r => r.content));
-            logger.info('APP', `Loaded ${rentals.length} active rental(s) from service`);
-          }
-        })
-        .catch(err => logger.error('APP', 'Failed to load rentals on mount', err));
-    } else {
-      logger.info('APP', 'Skipped rentals fetch: not authenticated');
+      const { rentals } = await getUserRentals({ active: true });
+      setRentedContent(rentals.map(r => r.content));
+      logger.info('APP', `Refreshed ${rentals.length} active rental(s) from service`);
+    }
+  }, []);
+
+  // Restore session from AsyncStorage on app initialization
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const restored = await restoreSession();
+      if (restored) {
+        setIsAuthenticated(true);
+        logger.info('APP', 'Authentication restored from storage');
+      }
+      setIsRestoringSession(false);
+    };
+    
+    initializeAuth();
+  }, []);
+
+  // Navigate from splash once session is restored and splash animation completes
+  useEffect(() => {
+    if (!isRestoringSession && screen.type === 'splash') {
+      // Give splash screen a moment to finish its animation before navigating
+      const timer = setTimeout(() => {
+        navigate(resolvePostSplashScreen(isAuthenticated, hasSeenOnboarding));
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isRestoringSession, screen.type, isAuthenticated, hasSeenOnboarding, navigate]);
+
+  // Load any active rentals from the service after authentication.
+  // This triggers both on app start (if session is restored) and after login/signup.
+  useEffect(() => {
+    if (isAuthenticated && !isRestoringSession) {
+      const session = getSession();
+      if (session) {
+        getUserRentals({ active: true })
+          .then(({ rentals }) => {
+            if (rentals.length > 0) {
+              setRentedContent(rentals.map(r => r.content));
+              logger.info('APP', `Loaded ${rentals.length} active rental(s) from service`);
+            }
+          })
+          .catch(err => logger.error('APP', 'Failed to load rentals', err));
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAuthenticated, isRestoringSession]);
 
   // ── Auth handlers ───────────────────────────────────────────────────────────
   const onSplashComplete = useCallback(() => {
-    navigate(resolvePostSplashScreen(isAuthenticated, hasSeenOnboarding));
-  }, [isAuthenticated, hasSeenOnboarding, navigate]);
+    // Trigger navigation once splash animation completes
+    // The navigation itself is handled by the useEffect above
+  }, []);
 
   const onOnboardingComplete = useCallback(() => {
     setHasSeenOnboarding(true);
@@ -161,10 +205,73 @@ export function useAppState(): AppStateHook {
 
   const onRentedClick = useCallback(
     async (content: Content) => {
-      // Fetch saved progress so we can resume at exactly the right episode/position.
-      // getWatchProgress is fast (in-memory in mock mode); errors are silently swallowed.
-      const progress = await getWatchProgress(content.id).catch(() => null);
-      navigate(resolveRentedClickWithProgress(content, progress));
+      try {
+        // For vertical series, ensure we have episodeList - fetch full details if missing
+        let fullContent = content;
+        if (content.type === 'vertical-series' && (!content.episodeList || content.episodeList.length === 0)) {
+          logger.info('APP', `Fetching full content details for vertical series ${content.id}`);
+          const detailResponse = await getContentDetail(content.id);
+          fullContent = detailResponse.content;
+        }
+        
+        // First, fetch saved progress to determine which episode for vertical series
+        const progress = await getWatchProgress(fullContent.id).catch(() => null);
+        
+        // Check if the stream URL is still valid
+        logger.info('APP', `Checking stream URL for rented content: ${fullContent.id}, type: ${fullContent.type}`);
+        
+        let streamData;
+        if (fullContent.type === 'vertical-series') {
+          // For vertical series, get the episode to check
+          const epList = fullContent.episodeList;
+          if (!epList || epList.length === 0) {
+            logger.error('APP', `Vertical series ${fullContent.id} has no episodes in episodeList`, { 
+              hasEpisodeList: !!epList, 
+              episodeCount: epList?.length ?? 0 
+            });
+            navigate({ type: 'detail', content: fullContent });
+            return;
+          }
+          const epNumber = progress?.lastEpisodeNumber ?? 1;
+          const safeEpIdx = Math.min(epNumber - 1, epList.length - 1);
+          const ep = epList[safeEpIdx];
+          
+          logger.info('APP', `Checking episode stream for ${fullContent.id}, episode: ${ep.id}`);
+          // Check episode stream URL
+          streamData = await getEpisodeStreamUrl(fullContent.id, ep.id);
+        } else {
+          // For short films, use the film stream endpoint
+          logger.info('APP', `Checking film stream for ${fullContent.id}`);
+          streamData = await getStreamUrl(fullContent.id);
+        }
+        
+        // Check if the stream has expired
+        const expiresAt = new Date(streamData.expiresAt);
+        const now = new Date();
+        
+        if (expiresAt <= now) {
+          logger.warn('APP', `Stream expired for content ${fullContent.id}`, { expiresAt: streamData.expiresAt });
+          setExpiredMessage('Your rental has expired. Please rent this content again to continue watching.');
+          setShowExpiredModal(true);
+          return;
+        }
+        
+        // Stream is valid, navigate to player
+        logger.info('APP', `Stream valid for content ${fullContent.id}, navigating to player`);
+        navigate(resolveRentedClickWithProgress(fullContent, progress));
+      } catch (error) {
+        logger.error('APP', 'Failed to check stream URL', error);
+        // If we get a 403 or rental error, show expired message
+        if ((error as any)?.status === 403 || (error as any)?.code === 'NOT_RENTED') {
+          setExpiredMessage('Your rental has expired or is no longer active. Please rent this content again.');
+          setShowExpiredModal(true);
+        } else {
+          // For other errors, still try to navigate (fallback behavior)
+          logger.warn('APP', 'Stream check failed, attempting to navigate anyway');
+          const progress = await getWatchProgress(content.id).catch(() => null);
+          navigate(resolveRentedClickWithProgress(content, progress));
+        }
+      }
     },
     [navigate],
   );
@@ -206,6 +313,16 @@ export function useAppState(): AppStateHook {
     [],
   );
 
+  const onExpiredModalClose = useCallback(
+    async () => {
+      setShowExpiredModal(false);
+      setExpiredMessage('');
+      // Refresh rentals to update the list after expiry
+      await onRefreshRentals();
+    },
+    [onRefreshRentals],
+  );
+
   const onRentalModalConfirm = useCallback(
     (content: Content) => {
       addRented(content);
@@ -216,6 +333,11 @@ export function useAppState(): AppStateHook {
 
   const onHistoryClick = useCallback(
     () => navigate({ type: 'history' }),
+    [navigate],
+  );
+
+  const onPaymentHistoryClick = useCallback(
+    () => navigate({ type: 'paymentHistory' }),
     [navigate],
   );
 
@@ -236,6 +358,8 @@ export function useAppState(): AppStateHook {
     isAuthenticated,
     rentedContent,
     showRentalModal,
+    showExpiredModal,
+    expiredMessage,
     needsAuth,
     showNav,
     activeTab,
@@ -254,6 +378,9 @@ export function useAppState(): AppStateHook {
     onTabChange,
     onRentalModalClose,
     onRentalModalConfirm,
+    onExpiredModalClose,
     onHistoryClick,
+    onPaymentHistoryClick,
+    onRefreshRentals,
   };
 }

@@ -11,6 +11,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { Content } from '../data/mockData';
 import { getCurrentUser } from '../services/profileService';
+import { getPaymentHistory } from '../services/rentalService';
 import type { UserProfile } from '../types/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -77,6 +78,20 @@ function CrownIcon() {
       <View style={[iconStyles.crownSpike, iconStyles.crownSpikeL]} />
       <View style={[iconStyles.crownSpike, iconStyles.crownSpikeC]} />
       <View style={[iconStyles.crownSpike, iconStyles.crownSpikeR]} />
+    </View>
+  );
+}
+
+function ReceiptIcon() {
+  return (
+    <View style={iconStyles.receiptWrap}>
+      <View style={iconStyles.receiptBody} />
+      <View style={iconStyles.receiptLine1} />
+      <View style={iconStyles.receiptLine2} />
+      <View style={iconStyles.receiptLine3} />
+      <View style={iconStyles.receiptNotch1} />
+      <View style={iconStyles.receiptNotch2} />
+      <View style={iconStyles.receiptNotch3} />
     </View>
   );
 }
@@ -241,24 +256,45 @@ interface ProfilePageProps {
   rentedContent: Content[];
   onContentClick: (content: Content) => void;
   onHistoryClick: () => void;
+  onPaymentHistoryClick: () => void;
   navigate: (screen: any) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, navigate }: ProfilePageProps) {
-  const totalSpent = rentedContent.reduce((sum, c) => sum + c.price, 0);
+export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, onPaymentHistoryClick, navigate }: ProfilePageProps) {
+  const [totalSpent, setTotalSpent] = useState(0);
+  const [contentWatched, setContentWatched] = useState(0);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const menuItems: Array<{ Icon: React.ComponentType; label: string; onPress?: () => void }> = [
     { Icon: HeartIcon,    label: 'My Favorites' },
     { Icon: ClockIcon,    label: 'Watch History', onPress: onHistoryClick },
+    { Icon: ReceiptIcon,  label: 'Payment History', onPress: onPaymentHistoryClick },
     { Icon: SettingsIcon, label: 'Settings',      onPress: () => setShowSettings(true) },
   ];
+  
   useEffect(() => {
     getCurrentUser()
       .then(setUser)
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    // Calculate total spent and content watched from payment history (only paid orders)
+    getPaymentHistory()
+      .then(({ orders }) => {
+        const paidOrders = orders.filter(order => order.status === 'paid');
+        const total = paidOrders.reduce((sum, order) => sum + order.amountINR, 0);
+        setTotalSpent(total);
+        setContentWatched(paidOrders.length);
+      })
+      .catch(() => {
+        // Fallback to 0 if payment history fetch fails
+        setTotalSpent(0);
+        setContentWatched(0);
+      });
+  }, []);
+
   return (
     <>
       <ScrollView
@@ -297,7 +333,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              {user?.stats?.totalWatchTimeMinutes ?? 0}m
+              {contentWatched}
             </Text>
             <Text style={styles.statLabel}>Watched</Text>
           </View>
@@ -314,7 +350,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
             <View style={styles.upgradeContent}>
               <View style={styles.upgradeTopRow}>
                 <CrownIcon />
-                <Text style={styles.upgradeBadge}>INDIEPLAY Plus</Text>
+                <Text style={styles.upgradeBadge}>SHORTSY +</Text>
               </View>
               <Text style={styles.upgradeTitle}>Get unlimited access</Text>
               <Text style={styles.upgradePrice}>₹199/month • Selected catalog</Text>
@@ -541,6 +577,16 @@ const iconStyles = StyleSheet.create({
   crownSpikeL: { left: 1, transform: [{ rotate: '-20deg' }] },
   crownSpikeC: { left: 8, height: 12, bottom: 6 },
   crownSpikeR: { right: 1, transform: [{ rotate: '20deg' }] },
+
+  // Receipt
+  receiptWrap: { width: 18, height: 22, alignItems: 'center', position: 'relative' },
+  receiptBody: { width: 18, height: 20, backgroundColor: '#a3a3a3', borderRadius: 2, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  receiptLine1: { position: 'absolute', top: 4, width: 12, height: 1.5, backgroundColor: '#000', borderRadius: 1 },
+  receiptLine2: { position: 'absolute', top: 8, width: 10, height: 1.5, backgroundColor: '#000', borderRadius: 1 },
+  receiptLine3: { position: 'absolute', top: 12, width: 8, height: 1.5, backgroundColor: '#000', borderRadius: 1 },
+  receiptNotch1: { position: 'absolute', bottom: 0, left: 2, width: 3, height: 3, backgroundColor: '#000', borderTopLeftRadius: 3, borderTopRightRadius: 3 },
+  receiptNotch2: { position: 'absolute', bottom: 0, left: 7.5, width: 3, height: 3, backgroundColor: '#000', borderTopLeftRadius: 3, borderTopRightRadius: 3 },
+  receiptNotch3: { position: 'absolute', bottom: 0, right: 2, width: 3, height: 3, backgroundColor: '#000', borderTopLeftRadius: 3, borderTopRightRadius: 3 },
 });
 
 const modalStyles = StyleSheet.create({

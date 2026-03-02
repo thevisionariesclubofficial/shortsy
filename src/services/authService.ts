@@ -40,7 +40,7 @@ import type {
 } from '../types/api';
 import { USE_MOCK, ApiClientError, apiClient, mockDelay, setAccessToken } from './apiClient';
 import { logger } from '../utils/logger';
-import { saveAuthTokens, saveAuthFlag, clearAuthStorage } from '../utils/storage';
+import { saveAuthTokens, saveAuthUser, saveAuthFlag, clearAuthStorage, getAuthTokens, getAuthUser } from '../utils/storage';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Session store (module-level → survives component remounts)
@@ -79,6 +79,30 @@ function mockTokens(): AuthTokens {
  */
 export function getSession(): AuthSession | null {
   return _session;
+}
+
+/**
+ * Restores the session from AsyncStorage if it exists.
+ * Should be called on app initialization to restore the user's login state.
+ * Returns true if session was restored, false otherwise.
+ */
+export async function restoreSession(): Promise<boolean> {
+  try {
+    const [user, tokens] = await Promise.all([getAuthUser(), getAuthTokens()]);
+    
+    if (user && tokens) {
+      _session = { user, tokens };
+      setAccessToken(tokens.accessToken);
+      logger.info('AUTH', `Session restored for user: ${user.email}`);
+      return true;
+    }
+    
+    logger.info('AUTH', 'No saved session found');
+    return false;
+  } catch (error) {
+    logger.error('AUTH', 'Failed to restore session', error);
+    return false;
+  }
 }
 
 /**
@@ -138,6 +162,9 @@ export async function signup(params: SignupRequest): Promise<SignupResponse> {
     const tokens = mockTokens();
     _session = { user, tokens };
     setAccessToken(tokens.accessToken);
+    await saveAuthTokens(tokens);
+    await saveAuthUser(user);
+    await saveAuthFlag(true);
 
     timer.end({ userId: user.id, email: user.email });
     return { user, tokens };
@@ -147,6 +174,7 @@ export async function signup(params: SignupRequest): Promise<SignupResponse> {
   _session = { user: result.user, tokens: result.tokens };
   setAccessToken(result.tokens.accessToken);
   await saveAuthTokens(result.tokens);
+  await saveAuthUser(result.user);
   await saveAuthFlag(true);
   return result;
 }
@@ -192,6 +220,9 @@ export async function login(params: LoginRequest): Promise<LoginResponse> {
     const tokens = mockTokens();
     _session = { user, tokens };
     setAccessToken(tokens.accessToken);
+    await saveAuthTokens(tokens);
+    await saveAuthUser(user);
+    await saveAuthFlag(true);
 
     timer.end({ userId: user.id, email: user.email });
     return { user, tokens };
@@ -201,6 +232,7 @@ export async function login(params: LoginRequest): Promise<LoginResponse> {
   _session = { user: result.user, tokens: result.tokens };
   setAccessToken(result.tokens.accessToken);
   await saveAuthTokens(result.tokens);
+  await saveAuthUser(result.user);
   await saveAuthFlag(true);
   return result;
 }
@@ -276,6 +308,9 @@ export async function refreshToken(
     _session = { ..._session, tokens: result.tokens };
   }
   setAccessToken(result.tokens.accessToken);
+  await saveAuthTokens(result.tokens);
+  await saveAuthUser(_session?.user || result.tokens);
+  logger.info('AUTH', 'Token refreshed and saved to storage');
   return result;
 }
 

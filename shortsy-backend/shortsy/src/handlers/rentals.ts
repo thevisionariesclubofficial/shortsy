@@ -78,11 +78,31 @@ export const list: APIGatewayProxyHandlerV2WithJWTAuthorizer = async (event) => 
     const enriched = await Promise.all(
       rentals.map(async (rental) => {
         const content = await contentService.getContentById(rental.contentId);
+        const enrichedContent = content
+          ? { 
+              id: content.id, 
+              title: content.title, 
+              type: content.type, 
+              thumbnail: content.thumbnail, 
+              duration: content.duration, 
+              genre: content.genre,
+              episodeList: content.episodeList,
+              episodes: content.episodes,
+            }
+          : null;
+        
+        // Log for debugging vertical series
+        if (content?.type === 'vertical-series') {
+          console.log(`[rentals.list] Vertical series ${content.id}:`, {
+            hasEpisodeList: !!content.episodeList,
+            episodeCount: content.episodeList?.length ?? 0,
+            episodes: content.episodes,
+          });
+        }
+        
         return {
           ...rental,
-          content: content
-            ? { id: content.id, title: content.title, type: content.type, thumbnail: content.thumbnail, duration: content.duration, genre: content.genre }
-            : null,
+          content: enrichedContent,
         };
       }),
     );

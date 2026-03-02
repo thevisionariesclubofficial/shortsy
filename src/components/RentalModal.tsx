@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import RazorpayCheckout from 'react-native-razorpay';
 import { Content } from '../data/mockData';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -84,6 +85,7 @@ export function RentalModal({ content, onClose, onConfirm }: RentalModalProps) {
   const [selected,   setSelected]   = useState<PayMethod>('upi');
   const [processing, setProcessing] = useState(false);
   const [success,    setSuccess]    = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Slide-up animation
   const translateY = useRef(new Animated.Value(400)).current;
@@ -125,6 +127,7 @@ export function RentalModal({ content, onClose, onConfirm }: RentalModalProps) {
   return (
     <View style={styles.backdrop}>
       <TouchableWithoutFeedback onPress={onClose}>
+      setError(null);
         <View style={StyleSheet.absoluteFill} />
       </TouchableWithoutFeedback>
 
@@ -195,6 +198,9 @@ export function RentalModal({ content, onClose, onConfirm }: RentalModalProps) {
             ? 'You will get full season access for 7 days'
             : 'You will get 48-hour viewing access'}
         </Text>
+        {error && (
+          <Text style={[styles.note, { color: '#ef4444' }]}>{error}</Text>
+        )}
       </Animated.View>
     </View>
   );
