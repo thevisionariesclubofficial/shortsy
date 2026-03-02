@@ -125,6 +125,7 @@ interface ContentDetailScreenProps {
   onRent: (content: Content) => void;
   onWatchNow: () => void;
   isRented: boolean;
+  isPremium: boolean;
   onEpisodePlay: (ep: Episode, episodeNumber: number) => void;
 }
 
@@ -175,6 +176,7 @@ export function ContentDetailScreen({
   onRent,
   onWatchNow,
   isRented,
+  isPremium,
   onEpisodePlay,
 }: ContentDetailScreenProps) {
   const [liked, setLiked] = useState(false);
@@ -183,13 +185,19 @@ export function ContentDetailScreen({
 
   // Start from the prop value (instant, no flicker), then verify against the
   // service layer so ground truth is always from the backend (real or mock).
-  const [rentalActive, setRentalActive] = useState(isRented);
+  // Premium users have access to all content regardless of rental status
+  const [rentalActive, setRentalActive] = useState(isRented || isPremium);
 
   useEffect(() => {
+    // If user has premium, they always have access
+    if (isPremium) {
+      setRentalActive(true);
+      return;
+    }
     checkRentalStatus(content.id)
       .then(({ isRented: active }) => setRentalActive(active))
       .catch(() => { /* silently fallback to prop value */ });
-  }, [content.id]);
+  }, [content.id, isPremium]);
   const [bg1, bg2, bg3] = GENRE_BG[content.genre] ?? GENRE_BG.default;
 
   // Gate: mount TrailerPlayer only after the navigation push animation finishes

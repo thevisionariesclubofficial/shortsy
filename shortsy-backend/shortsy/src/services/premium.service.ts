@@ -135,11 +135,14 @@ export async function confirmPremiumSubscription(params: {
     expiresAt: expiresAt.toISOString(),
   };
 
+  // Create item without ttl attribute - this ensures active subscriptions won't be auto-deleted
+  const itemToStore: any = { ...updatedSubscription };
+  delete itemToStore.ttl; // Remove TTL for active subscriptions
+
   await docClient.send(
     new PutCommand({
       TableName: ENV.premiumsTableName,
-      Item: updatedSubscription,
-      // Remove TTL for active subscriptions
+      Item: itemToStore,
       ConditionExpression: 'attribute_exists(orderId)',
     })
   );

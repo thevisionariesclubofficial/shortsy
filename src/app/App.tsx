@@ -54,6 +54,7 @@ function App() {
     isRented,
     getProgress,
     updateProgress,
+    onPremiumWatch,
     navigate,
     onSplashComplete,
     onOnboardingComplete,
@@ -206,7 +207,14 @@ function App() {
           onBack={() => navigate({ type: 'home' })}
           onRent={onRent}
           isRented={isRented(screen.content)}
-          onWatchNow={() => navigate({ type: 'player', content: screen.content, videoUrl: screen.content.videoUrl })}
+          isPremium={isPremium}
+          onWatchNow={() => {
+            // If premium user watching non-rented content, add it to rentals first
+            if (isPremium && !isRented(screen.content)) {
+              onPremiumWatch(screen.content);
+            }
+            navigate(resolveWatchNowScreen(screen.content));
+          }}
           onEpisodePlay={(ep, epNum) => onEpisodePlay(ep, screen.content, epNum)}
         />
       )}

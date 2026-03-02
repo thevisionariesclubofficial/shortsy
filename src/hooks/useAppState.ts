@@ -14,7 +14,7 @@ import {
   resolvePostSplashScreen,
   resolveRentedClickWithProgress,
 } from '../services/navigationService';
-import { clearRentalStore, getUserRentals } from '../services/rentalService';
+import { clearRentalStore, getUserRentals, addPremiumRental } from '../services/rentalService';
 import { clearProgressStore, getWatchProgress, getStreamUrl, getEpisodeStreamUrl } from '../services/playbackService';
 import type { WatchProgress } from '../types/api';
 import { clearProfileStore, getCurrentUser } from '../services/profileService';
@@ -52,6 +52,7 @@ export interface AppStateHook {
   isRented: (c: Content) => boolean;
   getProgress: (contentId: string) => WatchProgress | null;
   updateProgress: (contentId: string, progress: WatchProgress) => void;
+  onPremiumWatch: (content: Content) => Promise<void>;
 
   // ── Navigation ──
   navigate: (screen: AppScreen) => void;
@@ -127,6 +128,22 @@ export function useAppState(): AppStateHook {
       prev.find(r => r.id === c.id) ? prev : [...prev, c],
     );
   }, []);
+
+  const onPremiumWatch = useCallback(async (content: Content) => {
+    // Add free rental for premium users so content appears in Continue Watching
+    const alreadyRented = rentedContent.some(r => r.id === content.id);
+    if (!alreadyRented) {
+      try {
+        await addPremiumRental(content.id);
+        // Refresh rentals to include the new premium rental
+        const { rentals } = await getUserRentals({ active: true });
+        setRentedContent(rentals.map(r => r.content));
+        logger.info('APP_STATE', 'Added premium rental and refreshed rentals');
+      } catch (error) {
+        logger.error('APP_STATE', 'Failed to add premium rental', error);
+      }
+    }
+  }, [rentedContent]);
 
   // Refresh rentals from the API
   const onRefreshRentals = useCallback(async () => {
@@ -540,6 +557,7 @@ export function useAppState(): AppStateHook {
     isRented,
     getProgress,
     updateProgress,
+    onPremiumWatch,
     navigate,
     onSplashComplete,
     onOnboardingComplete,

@@ -215,6 +215,14 @@ functions:
           method: GET
           authorizer: { name: cognitoJwt }
 
+  rentalAddPremium:
+    handler: src/handlers/rentals.addPremiumRental
+    events:
+      - httpApi:
+          path: /v1/rentals/premium
+          method: POST
+          authorizer: { name: cognitoJwt }
+
   # ── Playback (protected) ───────────────────────────────────────────────────
   streamFilm:
     handler: src/handlers/playback.streamFilm

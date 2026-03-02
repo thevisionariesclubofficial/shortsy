@@ -214,3 +214,47 @@ export async function confirmRental(
 
   return rental;
 }
+
+/**
+ * Create a rental directly for premium users (no payment required)
+ * Used when premium subscribers start watching content
+ * Rental expiry is set to match the premium subscription expiry date
+ */
+export async function createPremiumRental(
+  userId: string,
+  contentId: string,
+  subscriptionExpiresAt: string,
+): Promise<RentalRecord> {
+  // Check if rental already exists
+  const existing = await getRental(userId, contentId);
+  if (existing && existing.status === 'active' && new Date(existing.expiresAt) > new Date()) {
+    return existing;
+  }
+
+  // Fetch content to verify it exists
+  const content = await getContentById(contentId);
+  if (!content) {
+    throw new RentalError(404, 'CONTENT_NOT_FOUND', 'Content not found');
+  }
+
+  // Use subscription expiry date for rental expiry
+  const now = new Date();
+  const transactionId = `premium_${uuid().replace(/-/g, '').slice(0, 12)}`;
+
+  const rental: RentalRecord = {
+    userId,
+    contentId,
+    rentedAt: now.toISOString(),
+    expiresAt: subscriptionExpiresAt, // Match premium subscription expiry
+    amountPaid: 0, // Premium users don't pay per rental
+    transactionId,
+    status: 'active',
+  };
+
+  await dynamo.send(new PutCommand({ 
+    TableName: TABLES.RENTALS, 
+    Item: rental 
+  }));
+
+  return rental;
+}

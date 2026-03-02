@@ -2,6 +2,7 @@ import type { APIGatewayProxyHandlerV2WithJWTAuthorizer } from 'aws-lambda';
 import { z } from 'zod';
 import * as rentalService from '../services/rental.service';
 import * as contentService from '../services/content.service';
+import * as premiumService from '../services/premium.service';
 import { ok, created, apiError } from '../utils/response';
 import { getUser, parseBody, reqId } from '../utils/lambda';
 
@@ -134,5 +135,31 @@ export const getStatus: APIGatewayProxyHandlerV2WithJWTAuthorizer = async (event
   } catch (err) {
     console.error('[rentals.getStatus]', err);
     return apiError(500, 'INTERNAL_ERROR', 'Failed to get rental status', rid);
+  }
+};
+
+/** POST /v1/rentals/premium - Add rental for premium users (no payment) */
+export const addPremiumRental: APIGatewayProxyHandlerV2WithJWTAuthorizer = async (event) => {
+  const rid = reqId(event);
+  const user = getUser(event);
+  const parsed = z.object({ contentId: z.string().min(1) }).safeParse(parseBody(event));
+  if (!parsed.success) return apiError(422, 'VALIDATION_ERROR', parsed.error.errors[0].message, rid);
+
+  try {
+    // Verify user has active premium subscription
+    const subscription = await premiumService.getUserPremiumSubscription(user.id);
+    if (!subscription || subscription.status !== 'active') {
+      return apiError(403, 'PREMIUM_REQUIRED', 'Active premium subscription required', rid);
+    }
+
+    // Create rental directly without payment, using subscription expiry date
+    const rental = await rentalService.createPremiumRental(
+      user.id,
+      parsed.data.contentId,
+      subscription.expiresAt
+    );
+    return created({ rental, message: 'Content added to your rentals' });
+  } catch (err) {
+    return handleErr(err, rid);
   }
 };
