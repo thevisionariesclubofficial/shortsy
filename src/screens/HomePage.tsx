@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   Image,
   Platform,
@@ -112,24 +113,201 @@ function SectionHeader({
   );
 }
 
+// ─── Shimmer effect ───────────────────────────────────────────────────────────
+function ShimmerPlaceholder({ width, height, borderRadius = 0 }: { width: number | '100%'; height: number; borderRadius?: number }) {
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [shimmerAnim]);
+
+  const opacity = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          width: width === '100%' ? '100%' : width,
+          height,
+          borderRadius,
+          backgroundColor: '#262626',
+        },
+        { opacity },
+      ]}
+    />
+  );
+}
+
+// ─── Continue Watching Card ──────────────────────────────────────────────────
+const CW_WIDTH = width * 0.52;
+
+function ContinueWatchingCard({
+  content,
+  prog,
+  pct,
+  subtitle,
+  onPress,
+}: {
+  content: Content;
+  prog: WatchProgress | undefined;
+  pct: number;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  return (
+    <TouchableOpacity
+      style={cwStyles.card}
+      activeOpacity={0.8}
+      onPress={onPress}>
+      {/* Shimmer placeholder */}
+      {!imageLoaded && (
+        <View style={[cwStyles.thumb, { position: 'absolute' }]}>
+          <ShimmerPlaceholder width="100%" height={CW_WIDTH * 0.62} borderRadius={0} />
+        </View>
+      )}
+      
+      {/* Thumbnail image */}
+      <Image
+        source={{ 
+          uri: content.thumbnail,
+          cache: 'force-cache',
+        }}
+        style={cwStyles.thumb}
+        resizeMode="cover"
+        onLoad={() => setImageLoaded(true)}
+      />
+      
+      {/* dark overlay */}
+      <View style={cwStyles.overlay} />
+      
+      {/* Progress bar — shown whenever we have progress data */}
+      {prog && pct > 0 && (
+        <View style={cwStyles.progressTrack}>
+          <LinearGradient
+            colors={['#7c3aed', '#db2777']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[cwStyles.progressFill, { width: `${pct}%` as any }]}
+          />
+        </View>
+      )}
+      
+      {/* series badge */}
+      {content.type === 'vertical-series' && (
+        <View style={cwStyles.badge}>
+          <Text style={cwStyles.badgeText}>Series</Text>
+        </View>
+      )}
+      
+      {/* play button */}
+      <View style={cwStyles.playCircle}>
+        <View style={cwStyles.playTriangle} />
+      </View>
+      
+      <View style={cwStyles.info}>
+        <Text style={cwStyles.title} numberOfLines={1}>{content.title}</Text>
+        <Text style={cwStyles.sub}>{subtitle}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 // ─── Hero card ────────────────────────────────────────────────────────────────
 function HeroCard({
   hero,
   onPress,
   player,
+  rentedContent,
+  progressRecord,
+  onWatchNow,
 }: {
   hero: FeaturedHero;
   onPress: () => void;
   player: ReturnType<typeof useVideoPlayer>;
+  rentedContent: Content[];
+  progressRecord: Record<string, WatchProgress>;
+  onWatchNow: () => void;
 }) {
+  const [showVideo, setShowVideo] = useState(false);
+  const [imageOpacity] = useState(new Animated.Value(1));
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Find matching rented content to get complete content object with progress
+  const rentedHeroContent = rentedContent.find(c => c.id === hero.id);
+  const isRented = !!rentedHeroContent;
+
+  // Preload image on mount
+  useEffect(() => {
+    if (hero.thumbnail) {
+      Image.prefetch(hero.thumbnail)
+        .then(() => setImageLoaded(true))
+        .catch(() => setImageLoaded(true)); // Still set to true to avoid blocking
+    }
+  }, [hero.thumbnail]);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    
+    // Wait 2 seconds after mount to transition from thumbnail to video
+    timeoutId = setTimeout(() => {
+      // Fade out thumbnail image
+      Animated.timing(imageOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowVideo(true);
+      });
+    }, 2000);
+
+    // Cleanup
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [imageOpacity]);
+
   return (
     <View style={[styles.hero, { height: HERO_HEIGHT }]}>
       {/* Video background */}
       <VideoView
-      resizeMode='cover'
+        resizeMode='cover'
         player={player}
         style={StyleSheet.absoluteFill}
       />
+
+      {/* Thumbnail image overlay - visible until video is ready */}
+      {!showVideo && (
+        <Animated.Image
+          source={{ 
+            uri: hero.thumbnail,
+            cache: 'force-cache',
+          }}
+          style={[
+            StyleSheet.absoluteFill,
+            { opacity: imageLoaded ? imageOpacity : 0 },
+          ]}
+          resizeMode="cover"
+          onLoad={() => setImageLoaded(true)}
+        />
+      )}
 
       {/* Fade-to-black overlay at bottom */}
       <LinearGradient
@@ -164,9 +342,15 @@ function HeroCard({
           <Text style={heroStyles.metaDot}>•</Text>
           <Text style={heroStyles.metaText}>{hero.language}</Text>
         </View>
-        <TouchableOpacity onPress={onPress} style={heroStyles.rentBtn} activeOpacity={0.85}>
-          <Text style={heroStyles.rentBtnText}>Rent for ₹{hero.price}</Text>
-        </TouchableOpacity>
+        {isRented ? (
+          <TouchableOpacity onPress={onWatchNow} style={heroStyles.watchBtn} activeOpacity={0.85}>
+            <Text style={heroStyles.watchBtnText}>▶ Watch Now</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={onPress} style={heroStyles.rentBtn} activeOpacity={0.85}>
+            <Text style={heroStyles.rentBtnText}>Rent for ₹{hero.price}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -180,15 +364,16 @@ interface HomePageProps {
   progressMap?: Map<string, WatchProgress>;
   onRentedClick: (content: Content) => void;
   onRefreshRentals?: () => Promise<void>;
+  onGenreClick: (genre: { id: string; name: string; emoji: string }) => void;
 }
 
-export function HomePage({ onContentClick, onSearchClick, rentedContent = [], progressMap = new Map(), onRentedClick, onRefreshRentals }: HomePageProps) {
+export function HomePage({ onContentClick, onSearchClick, rentedContent = [], progressMap = new Map(), onRentedClick, onRefreshRentals, onGenreClick }: HomePageProps) {
   // ── Service-fetched state ─────────────────────────────────────────────────
   const [allContent,       setAllContent]       = useState<Content[]>([]);
   const [featuredContent,  setFeaturedContent]  = useState<Content[]>([]);
   const [festivalWinners,  setFestivalWinners]  = useState<Content[]>([]);
   const [verticalSeries,   setVerticalSeries]   = useState<Content[]>([]);
-  const [moodList,         setMoodList]         = useState<{ id: string; name: string; emoji: string }[]>([]);
+  const [genreList,        setGenreList]        = useState<{ id: string; name: string; emoji: string }[]>([]);
   const [hero,             setHero]             = useState<FeaturedHero | null>(null);
   const [loading,          setLoading]          = useState(true);
   const [refreshing,       setRefreshing]       = useState(false);
@@ -218,7 +403,25 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
       ]);
       setHero(featuredRes.hero);
       setFeaturedContent(featuredRes.featured);
-      setMoodList(metaRes.moods);
+      // Transform genres array to objects with emoji (excluding 'All')
+      const genreIcons: Record<string, string> = {
+        'Drama': '🎭',
+        'Thriller': '🔪',
+        'Romance': '❤️',
+        'Comedy': '😂',
+        'Documentary': '🎥',
+        'Experimental': '🧪',
+        'Family': '👨‍👩‍👧‍👦',
+      };
+      setGenreList(
+        metaRes.genres
+          .filter((g: string) => g !== 'All')
+          .map((g: string) => ({
+            id: g.toLowerCase().replace(/\s+/g, '-'),
+            name: g,
+            emoji: genreIcons[g] || '🎬',
+          }))
+      );
       const all = allRes.data;
       setAllContent(all);
       setFestivalWinners(all.filter((c: Content) => c.festivalWinner));
@@ -242,7 +445,25 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
 
         setHero(featuredRes.hero);
         setFeaturedContent(featuredRes.featured);
-        setMoodList(metaRes.moods);
+        // Transform genres array to objects with emoji (excluding 'All')
+        const genreIcons: Record<string, string> = {
+          'Drama': '🎭',
+          'Thriller': '🔪',
+          'Romance': '❤️',
+          'Comedy': '😂',
+          'Documentary': '🎥',
+          'Experimental': '🧪',
+          'Family': '👨‍👩‍👧‍👦',
+        };
+        setGenreList(
+          metaRes.genres
+            .filter((g: string) => g !== 'All')
+            .map((g: string) => ({
+              id: g.toLowerCase().replace(/\s+/g, '-'),
+              name: g,
+              emoji: genreIcons[g] || '🎬',
+            }))
+        );
 
         const all = allRes.data;
         setAllContent(all);
@@ -260,12 +481,13 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
   // Use a placeholder video initially, will be replaced when hero loads
   const placeholderVideo = 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3';
   const videoSource = hero?.videoUrl || placeholderVideo;
+  
   const player = useVideoPlayer(videoSource, p => {
     p.loop = false;
     p.muted = true;
     p.play();
   });
-
+  
   const handleScroll = (e: { nativeEvent: { contentOffset: { y: number } } }) => {
     const scrollY = e.nativeEvent.contentOffset.y;
     // Hero is visible when scrollY is less than its height
@@ -309,6 +531,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         {/* ── Hero ── */}
         {hero && (
           <HeroCard 
+            key={hero.id}
             hero={hero} 
             onPress={() => onContentClick({ 
               ...hero, 
@@ -319,7 +542,16 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
               episodeList: undefined,
               trailer: hero.videoUrl,
             })} 
-            player={player} 
+            player={player}
+            rentedContent={rentedContent}
+            progressRecord={progressRecord}
+            onWatchNow={() => {
+              // Find the actual rented content to preserve all properties and progress
+              const rentedHeroContent = rentedContent.find(c => c.id === hero.id);
+              if (rentedHeroContent) {
+                onRentedClick(rentedHeroContent);
+              }
+            }}
           />
         )}
 
@@ -349,66 +581,36 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
                   subtitle = `${Math.round(pct)}% watched`;
                 }
                 return (
-                  <TouchableOpacity
+                  <ContinueWatchingCard
                     key={content.id}
-                    style={cwStyles.card}
-                    activeOpacity={0.8}
-                    onPress={() => onRentedClick(content)}>
-                    <Image
-                      source={{ uri: content.thumbnail }}
-                      style={cwStyles.thumb}
-                      resizeMode="cover"
-                    />
-                    {/* dark overlay */}
-                    <View style={cwStyles.overlay} />
-                    {/* Progress bar — shown whenever we have progress data */}
-                    {prog && pct > 0 && (
-                      <View style={cwStyles.progressTrack}>
-                        <LinearGradient
-                          colors={['#7c3aed', '#db2777']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={[cwStyles.progressFill, { width: `${pct}%` as any }]}
-                        />
-                      </View>
-                    )}
-                    {/* series badge */}
-                    {content.type === 'vertical-series' && (
-                      <View style={cwStyles.badge}>
-                        <Text style={cwStyles.badgeText}>Series</Text>
-                      </View>
-                    )}
-                    {/* play button */}
-                    <View style={cwStyles.playCircle}>
-                      <View style={cwStyles.playTriangle} />
-                    </View>
-                    <View style={cwStyles.info}>
-                      <Text style={cwStyles.title} numberOfLines={1}>{content.title}</Text>
-                      <Text style={cwStyles.sub}>{subtitle}</Text>
-                    </View>
-                  </TouchableOpacity>
+                    content={content}
+                    prog={prog}
+                    pct={pct}
+                    subtitle={subtitle}
+                    onPress={() => onRentedClick(content)}
+                  />
                 );
               })}
             </ScrollView>
           </View>
         )}
 
-        {/* ── Mood Discovery ── */}
+        {/* ── Genre Discovery ── */}
         <View style={styles.section}>
           <SectionHeader
             Icon={<SparklesIcon />}
-            title="Discover by Mood"
+            title="Discover by Genre"
           />
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.moodRow}>
-            {moodList.map(mood => (
+            {genreList.map(genre => (
               <MoodCard
-                key={mood.id}
-                name={mood.name}
-                emoji={mood.emoji}
-                onClick={() => {}}
+                key={genre.id}
+                name={genre.name}
+                emoji={genre.emoji}
+                onClick={() => onGenreClick(genre)}
               />
             ))}
           </ScrollView>
@@ -662,6 +864,19 @@ const heroStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  watchBtn: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#a855f7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  watchBtnText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
 });
 
 // ─── Icon styles ──────────────────────────────────────────────────────────────
@@ -803,7 +1018,6 @@ const iconStyles = StyleSheet.create({
 });
 
 // ─── Continue Watching card styles ────────────────────────────────────────────
-const CW_WIDTH = width * 0.52;
 const cwStyles = StyleSheet.create({
   card: {
     width: CW_WIDTH,

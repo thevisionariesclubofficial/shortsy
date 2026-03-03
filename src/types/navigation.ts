@@ -16,6 +16,7 @@ export type AppScreen =
   | { type: 'history' }
   | { type: 'paymentHistory' }
   | { type: 'premiumPayment' }
+  | { type: 'genreDetail';    genre: { id: string; name: string; emoji: string } }
   | { type: 'helpCenter' }
   | { type: 'faq' }
   | { type: 'contactUs' }
@@ -37,6 +38,7 @@ export const SCREENS_WITHOUT_NAV: ReadonlyArray<AppScreen['type']> = [
   'paymentSuccess',
   'premiumPayment',
   'search',
+  'genreDetail',
   'history',
   'paymentHistory',
   'helpCenter',

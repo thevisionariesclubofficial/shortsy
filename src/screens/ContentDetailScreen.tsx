@@ -35,9 +35,8 @@ const GENRE_BG: Record<string, [string, string, string]> = {
 function ArrowLeftIcon() {
   return (
     <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={[iconStyles.arrowTip, iconStyles.arrowTipUp]} />
-      <View style={[iconStyles.arrowTip, iconStyles.arrowTipDown]} />
+      <View style={iconStyles.chevronTop} />
+      <View style={iconStyles.chevronBottom} />
     </View>
   );
 }
@@ -46,9 +45,9 @@ function HeartIcon({ filled }: { filled: boolean }) {
   const c = filled ? '#ef4444' : '#ffffff';
   return (
     <View style={iconStyles.heartWrap}>
-      <View style={[iconStyles.heartLeft, { backgroundColor: c }]} />
-      <View style={[iconStyles.heartRight, { backgroundColor: c }]} />
-      <View style={[iconStyles.heartBottom, { backgroundColor: c }]} />
+      <View style={[iconStyles.heartLeftCircle, { backgroundColor: c }]} />
+      <View style={[iconStyles.heartRightCircle, { backgroundColor: c }]} />
+      <View style={[iconStyles.heartBottomPoint, { backgroundColor: c }]} />
     </View>
   );
 }
@@ -56,11 +55,14 @@ function HeartIcon({ filled }: { filled: boolean }) {
 function ShareIcon() {
   return (
     <View style={iconStyles.shareWrap}>
-      <View style={iconStyles.shareDotTop} />
-      <View style={iconStyles.shareDotBL} />
-      <View style={iconStyles.shareDotBR} />
-      <View style={iconStyles.shareLine1} />
-      <View style={iconStyles.shareLine2} />
+      {/* Box/Container */}
+      <View style={iconStyles.shareBox} />
+      {/* Arrow stem */}
+      <View style={iconStyles.shareArrowStem} />
+      {/* Arrow head - left */}
+      <View style={iconStyles.shareArrowLeft} />
+      {/* Arrow head - right */}
+      <View style={iconStyles.shareArrowRight} />
     </View>
   );
 }
@@ -524,26 +526,23 @@ const styles = StyleSheet.create({
 });
 
 const iconStyles = StyleSheet.create({
-  // ArrowLeft
-  arrowWrap:    { width: 20, height: 20, justifyContent: 'center' },
-  arrowStem:    { position: 'absolute', left: 4, right: 2, height: 2, backgroundColor: '#ffffff', borderRadius: 1 },
-  arrowTip:     { position: 'absolute', left: 4, width: 8, height: 2, backgroundColor: '#ffffff', borderRadius: 1 },
-  arrowTipUp:   { transform: [{ rotate: '45deg' }], top: 5 },
-  arrowTipDown: { transform: [{ rotate: '-45deg' }], bottom: 5 },
+  // ArrowLeft (Chevron)
+  arrowWrap:     { width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
+  chevronTop:    { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, top: 6, transform: [{ rotate: '-45deg' }] },
+  chevronBottom: { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, bottom: 6, transform: [{ rotate: '45deg' }] },
 
   // Heart
-  heartWrap:   { width: 20, height: 18, alignItems: 'center' },
-  heartLeft:   { position: 'absolute', left: 1, top: 1, width: 9, height: 9, borderRadius: 4.5 },
-  heartRight:  { position: 'absolute', right: 1, top: 1, width: 9, height: 9, borderRadius: 4.5 },
-  heartBottom: { position: 'absolute', bottom: 0, width: 13, height: 13, transform: [{ rotate: '45deg' }] },
+  heartWrap:        { width: 20, height: 18, alignItems: 'center', justifyContent: 'center' },
+  heartLeftCircle:  { position: 'absolute', left: 3, top: 3, width: 7, height: 7, borderRadius: 3.5 },
+  heartRightCircle: { position: 'absolute', right: 3, top: 3, width: 7, height: 7, borderRadius: 3.5 },
+  heartBottomPoint: { position: 'absolute', bottom: 5, width: 8, height: 8, transform: [{ rotate: '45deg' }] },
 
   // Share
-  shareWrap:  { width: 20, height: 18 },
-  shareDotTop:{ position: 'absolute', top: 0, right: 2, width: 6, height: 6, borderRadius: 3, backgroundColor: '#ffffff' },
-  shareDotBL: { position: 'absolute', bottom: 0, left: 0, width: 6, height: 6, borderRadius: 3, backgroundColor: '#ffffff' },
-  shareDotBR: { position: 'absolute', bottom: 0, right: 2, width: 6, height: 6, borderRadius: 3, backgroundColor: '#ffffff' },
-  shareLine1: { position: 'absolute', width: 14, height: 1.5, backgroundColor: '#ffffff', top: 4, left: 2, transform: [{ rotate: '-35deg' }] },
-  shareLine2: { position: 'absolute', width: 14, height: 1.5, backgroundColor: '#ffffff', bottom: 4, left: 2, transform: [{ rotate: '35deg' }] },
+  shareWrap:       { width: 18, height: 18, alignItems: 'center', justifyContent: 'center' },
+  shareBox:        { position: 'absolute', bottom: 1, width: 12, height: 8, borderWidth: 2, borderColor: '#ffffff', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+  shareArrowStem:  { position: 'absolute', top: 1, width: 2, height: 10, backgroundColor: '#ffffff', borderRadius: 1 },
+  shareArrowLeft:  { position: 'absolute', top: 3, left: 6, width: 5, height: 2, backgroundColor: '#ffffff', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  shareArrowRight: { position: 'absolute', top: 3, right: 6, width: 5, height: 2, backgroundColor: '#ffffff', borderRadius: 1, transform: [{ rotate: '45deg' }] },
 
   // Star
   starWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },

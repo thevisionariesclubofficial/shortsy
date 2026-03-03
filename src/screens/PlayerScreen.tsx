@@ -12,12 +12,13 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import Orientation from 'react-native-orientation-locker';
 import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Content } from '../data/mockData';
 import { getWatchProgress, saveWatchProgress, getStreamUrl, getEpisodeStreamUrl } from '../services/playbackService';
 import { USE_MOCK } from '../services/apiClient';
 import { logger } from '../utils/logger';
-import type { SaveProgressRequest } from '../types/api';
+import type { SaveProgressRequest, WatchProgress } from '../types/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function ArrowLeftIcon() {
@@ -181,6 +182,64 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
+  // Debug logs to help diagnose orientation/playback issues
+  useEffect(() => {
+    logger.info('PLAYER', 'PlayerScreen mounted', {
+      contentId: content.id,
+      contentType: content.type,
+      videoUrl: !!videoUrl,
+      episodeNumber,
+      isShortFilm,
+    });
+    logger.info('PLAYER', 'Window dimensions', { width, height, isLandscape });
+    return () => logger.info('PLAYER', 'PlayerScreen unmounted', { contentId: content.id });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Lock orientation to landscape for short films while this component is mounted
+  useEffect(() => {
+    if (isShortFilm) {
+      logger.info('PLAYER', 'Locking orientation to landscape for short film', { contentId: content.id });
+      // prefer explicit left lock which can be more reliable on some devices
+      try {
+        Orientation.lockToLandscapeLeft();
+      } catch (err) {
+        // fallback
+        Orientation.lockToLandscape();
+      }
+
+      // Log orientation probe results (helpful for diagnosing simulator/device locks)
+      try {
+        const initial = Orientation.getInitialOrientation && Orientation.getInitialOrientation();
+        if (initial) logger.info('PLAYER', 'Orientation initial', { initial });
+      } catch (e) {}
+
+      try {
+        if (Orientation.getDeviceOrientation) {
+          Orientation.getDeviceOrientation((o: any) => logger.info('PLAYER', 'Device orientation (callback)', { orientation: o }));
+        } else if (Orientation.getOrientation) {
+          Orientation.getOrientation((o: any) => logger.info('PLAYER', 'Orientation (callback)', { orientation: o }));
+        }
+      } catch (e) {}
+      // Re-check after a brief delay to see if native rotated
+      setTimeout(() => {
+        try {
+          if (Orientation.getDeviceOrientation) {
+            Orientation.getDeviceOrientation((o: any) => logger.info('PLAYER', 'Device orientation (delayed)', { orientation: o }));
+          } else if (Orientation.getOrientation) {
+            Orientation.getOrientation((o: any) => logger.info('PLAYER', 'Orientation (delayed)', { orientation: o }));
+          }
+        } catch (e) {}
+      }, 500);
+    }
+    return () => {
+      if (isShortFilm) {
+        logger.info('PLAYER', 'Restoring orientation to portrait after short film', { contentId: content.id });
+        Orientation.lockToPortrait();
+      }
+    };
+  }, [isShortFilm]);
+
   // ── Control visibility ──────────────────────────────────────────────────────
   const toggleControls = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -271,6 +330,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
       }
       saveAndUpdateProgress(req);
     }
+    if (isShortFilm) Orientation.lockToPortrait();
     onBack();
   };
 
@@ -385,6 +445,8 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
       setCurrentTime(t);
       setIsBuffering(false);
 
+      logger.info('PLAYER', 'onLoad event', { contentId: content.id, duration: dur, currentTime: t, autoPlayOnLoad: autoPlayOnLoad.current });
+
       if (autoPlayOnLoad.current) {
         // Episode switch — just play, don't restore progress
         autoPlayOnLoad.current = false;
@@ -423,6 +485,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
       const t = data.currentTime ?? 0;
       currentTimeRef.current = t;
       setCurrentTime(t);
+      logger.info('PLAYER', 'onProgress', { contentId: content.id, currentTime: t, duration: durationRef.current });
       // Throttled auto-save every 10 seconds
       const now = Date.now();
       if (now - lastSaveRef.current >= 10_000 && t > 0 && durationRef.current > 0) {
@@ -441,16 +504,21 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
     });
 
     const stateSub = epPlayer.addEventListener('onPlaybackStateChange', (data: any) => {
-      setIsPlaying(data.isPlaying ?? false);
+      const playing = data.isPlaying ?? false;
+      setIsPlaying(playing);
+      logger.info('PLAYER', 'playbackStateChange', { contentId: content.id, isPlaying: playing });
     });
 
     const bufferSub = epPlayer.addEventListener('onBuffer', (buffering: any) => {
       // onBuffer passes a boolean directly in v7
-      setIsBuffering(typeof buffering === 'boolean' ? buffering : buffering?.isBuffering ?? false);
+      const buf = typeof buffering === 'boolean' ? buffering : buffering?.isBuffering ?? false;
+      setIsBuffering(buf);
+      logger.info('PLAYER', 'onBuffer', { contentId: content.id, buffering: buf });
     });
 
     // When video ends: save completed progress then advance or reset
     const endSub = epPlayer.addEventListener('onEnd', () => {
+      logger.info('PLAYER', 'onEnd', { contentId: content.id });
       if (durationRef.current > 0) {
         const req: SaveProgressRequest = {
           currentTime: durationRef.current,

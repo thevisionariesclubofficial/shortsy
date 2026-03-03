@@ -54,8 +54,10 @@ export function resolveRentedClickWithProgress(
       return { type: 'detail', content };
     }
     const epNumber = progress?.lastEpisodeNumber ?? 1;
-    const safeEpIdx = Math.min(epNumber - 1, epList.length - 1);
+    const rawIdx = epNumber - 1;
+    const safeEpIdx = Math.max(0, Math.min(rawIdx, epList.length - 1));
     const ep = epList[safeEpIdx];
+    if (!ep) return { type: 'detail', content };
     return { type: 'player', content, videoUrl: ep.videoUrl, episodeNumber: epNumber };
   }
   // Short film: go straight to player; PlayerScreen will seekTo saved position on load

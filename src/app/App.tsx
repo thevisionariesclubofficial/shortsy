@@ -17,6 +17,7 @@ import { ContentDetailScreen } from '../screens/ContentDetailScreen';
 import { CookiePolicyScreen } from '../screens/CookiePolicyScreen';
 import { FAQScreen } from '../screens/FAQScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
+import { GenreDetailScreen } from '../screens/GenreDetailScreen';
 import { HelpCenterScreen } from '../screens/HelpCenterScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomePage } from '../screens/HomePage';
@@ -74,6 +75,7 @@ function App() {
     onPaymentHistoryClick,
     onRefreshRentals,
     onRefreshPremium,
+    onRefreshPaymentHistory,
   } = useAppState();
 
   // ── Auth guard ────────────────────────────────────────────────────────────
@@ -138,6 +140,7 @@ function App() {
               progressMap={progressMap}
               onRentedClick={onRentedClick}
               onRefreshRentals={onRefreshRentals}
+              onGenreClick={(genre) => navigate({ type: 'genreDetail', genre })}
             />
           )}
           {screen.type === 'browse' && (
@@ -171,6 +174,15 @@ function App() {
         />
       )}
 
+      {/* ── Genre Detail ── */}
+      {screen.type === 'genreDetail' && (
+        <GenreDetailScreen
+          genre={screen.genre}
+          onBack={() => navigate({ type: 'home' })}
+          onContentClick={onContentClick}
+        />
+      )}
+
       {/* ── History ── */}
       {screen.type === 'history' && (
         <HistoryScreen
@@ -184,6 +196,8 @@ function App() {
       {screen.type === 'paymentHistory' && (
         <PaymentHistoryScreen
           onBack={() => navigate({ type: 'profile' })}
+          paymentHistory={paymentHistory}
+          onRefreshPaymentHistory={onRefreshPaymentHistory}
         />
       )}
 

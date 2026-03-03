@@ -392,12 +392,19 @@ export function useAppState(): AppStateHook {
   const onRentedClick = useCallback(
     async (content: Content) => {
       try {
-        // For vertical series, ensure we have episodeList - fetch full details if missing
+        // Fetch full content details to ensure all fields (director, etc.) are populated
         let fullContent = content;
         if (content.type === 'vertical-series' && (!content.episodeList || content.episodeList.length === 0)) {
           logger.info('APP', `Fetching full content details for vertical series ${content.id}`);
           const detailResponse = await getContentDetail(content.id);
           fullContent = detailResponse.content;
+          logger.info('APP', 'Fetched fullContent for vertical-series', { id: fullContent.id, type: fullContent.type, episodeCount: fullContent.episodeList?.length ?? 0 });
+        } else if (!content.director || !content.description) {
+          // Fetch full details if key fields are missing (director, description, etc.)
+          logger.info('APP', `Fetching full content details for ${content.id}`);
+          const detailResponse = await getContentDetail(content.id);
+          fullContent = detailResponse.content;
+          logger.info('APP', 'Fetched fullContent for content', { id: fullContent.id, type: fullContent.type, episodeCount: fullContent.episodeList?.length ?? 0 });
         }
         
         // First, get saved progress from cache to determine which episode for vertical series
@@ -418,13 +425,42 @@ export function useAppState(): AppStateHook {
             navigate({ type: 'detail', content: fullContent });
             return;
           }
+            // Log the episode list and progress to aid debugging of continue-watch crashes
+            try {
+              logger.info('APP', 'Vertical-series continue-watch debug', {
+                contentId: fullContent.id,
+                episodeCount: epList.length,
+                episodeIdsSample: epList.slice(0, 5).map(e => e.id),
+                progress: progress || null,
+              });
+            } catch (logErr) {
+              logger.error('APP', 'Failed to log epList debug info', logErr);
+            }
           const epNumber = progress?.lastEpisodeNumber ?? 1;
-          const safeEpIdx = Math.min(epNumber - 1, epList.length - 1);
+          const rawIdx = epNumber - 1;
+          const safeEpIdx = Math.max(0, Math.min(rawIdx, epList.length - 1));
           const ep = epList[safeEpIdx];
-          
-          logger.info('APP', `Checking episode stream for ${fullContent.id}, episode: ${ep.id}`);
-          // Check episode stream URL
-          streamData = await getEpisodeStreamUrl(fullContent.id, ep.id);
+
+          if (!ep) {
+            logger.error('APP', `Failed to resolve episode for continue-watch`, {
+              contentId: fullContent.id,
+              requestedEpisodeNumber: epNumber,
+              safeEpIdx,
+              episodeCount: epList.length,
+            });
+            navigate({ type: 'detail', content: fullContent });
+            return;
+          }
+
+          if (ep) {
+            logger.info('APP', `Checking episode stream for ${fullContent.id}, episode: ${ep.id}`);
+            // Check episode stream URL
+            streamData = await getEpisodeStreamUrl(fullContent.id, ep.id);
+          } else {
+            logger.error('APP', `No episode resolved for series ${fullContent.id} — aborting stream check`, { safeEpIdx, episodeCount: epList.length });
+            navigate({ type: 'detail', content: fullContent });
+            return;
+          }
         } else {
           // For short films, use the film stream endpoint
           logger.info('APP', `Checking film stream for ${fullContent.id}`);
@@ -474,11 +510,15 @@ export function useAppState(): AppStateHook {
   );
 
   const onPaymentSuccess = useCallback(
-    (content: Content, rental: RentalRecord) => {
+    async (content: Content, rental: RentalRecord) => {
       addRented(content);
+      // Refresh payment history to update "Spent" amount in profile
+      await onRefreshPaymentHistory().catch(err => 
+        logger.error('APP', 'Failed to refresh payment history after payment', err)
+      );
       navigate({ type: 'paymentSuccess', content, rental });
     },
-    [addRented, navigate],
+    [addRented, navigate, onRefreshPaymentHistory],
   );
 
   // ── UI handlers ─────────────────────────────────────────────────────────────

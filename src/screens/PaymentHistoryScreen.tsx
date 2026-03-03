@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getPaymentHistory } from '../services/rentalService';
 import type { PaymentHistoryRecord } from '../types/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -49,24 +49,23 @@ function XCircleIcon() {
 // ─── Component ────────────────────────────────────────────────────────────────
 interface PaymentHistoryScreenProps {
   onBack: () => void;
+  paymentHistory: PaymentHistoryRecord[];
+  onRefreshPaymentHistory: () => Promise<void>;
 }
 
-export function PaymentHistoryScreen({ onBack }: PaymentHistoryScreenProps) {
-  const [orders, setOrders] = useState<PaymentHistoryRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentHistory }: PaymentHistoryScreenProps) {
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    getPaymentHistory()
-      .then(({ orders }) => {
-        setOrders(orders);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || 'Failed to load payment history');
-        setLoading(false);
-      });
-  }, []);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await onRefreshPaymentHistory();
+    } catch (err) {
+      console.error('Failed to refresh payment history:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -120,49 +119,41 @@ export function PaymentHistoryScreen({ onBack }: PaymentHistoryScreenProps) {
       </View>
 
       {/* Content */}
-      {loading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#a855f7" />
-          <Text style={styles.loadingText}>Loading payment history...</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => {
-              setLoading(true);
-              setError(null);
-              getPaymentHistory()
-                .then(({ orders }) => {
-                  setOrders(orders);
-                  setLoading(false);
-                })
-                .catch((err) => {
-                  setError(err.message || 'Failed to load payment history');
-                  setLoading(false);
-                });
-            }}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : orders.length === 0 ? (
-        <View style={styles.centerContent}>
+      {paymentHistory.length === 0 ? (
+        <ScrollView
+          contentContainerStyle={styles.centerContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#a855f7"
+              colors={['#a855f7']}
+            />
+          }>
           <Text style={styles.emptyText}>No payment history yet</Text>
           <Text style={styles.emptySubtext}>
             Your rental transactions will appear here
           </Text>
-        </View>
+          <Text style={styles.pullToRefreshHint}>Pull down to refresh</Text>
+        </ScrollView>
       ) : (
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#a855f7"
+              colors={['#a855f7']}
+            />
+          }>
           <Text style={styles.countText}>
-            {orders.length} {orders.length === 1 ? 'transaction' : 'transactions'}
+            {paymentHistory.length} {paymentHistory.length === 1 ? 'transaction' : 'transactions'}
           </Text>
 
-          {orders.map((order) => (
+          {paymentHistory.map((order) => (
             <View key={order.orderId} style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={styles.statusBadge}>
@@ -301,6 +292,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9ca3af',
     textAlign: 'center',
+  },
+  pullToRefreshHint: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 12,
+    fontStyle: 'italic',
   },
   scrollView: {
     flex: 1,
