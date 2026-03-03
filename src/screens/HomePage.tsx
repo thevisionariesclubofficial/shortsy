@@ -257,9 +257,12 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
     fetchHomeData();
   }, []);
 
-  const background = 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3';
-  const player = useVideoPlayer(background, p => {
+  // Use a placeholder video initially, will be replaced when hero loads
+  const placeholderVideo = 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3';
+  const videoSource = hero?.videoUrl || placeholderVideo;
+  const player = useVideoPlayer(videoSource, p => {
     p.loop = false;
+    p.muted = true;
     p.play();
   });
 
