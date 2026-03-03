@@ -33,10 +33,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   }
 
   func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-    // Default: allow all orientations except upside down.
-    // If `react-native-orientation-locker` is installed and linked, we can
-    // later re-introduce a dynamic lookup here to defer to its runtime mask.
-    return .allButUpsideDown
+    // Delegate to ObjC helper which calls Orientation.getOrientation() from
+    // react-native-orientation-locker so JS can lock orientation per-screen.
+    return OrientationGetSupportedMask()
   }
 }
 
