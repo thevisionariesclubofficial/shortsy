@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,45 +13,143 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import RazorpayCheckout from 'react-native-razorpay';
-import { initiatePremiumSubscription, confirmPremiumSubscription } from '../services/premiumService';
+import {
+  confirmPremiumSubscription,
+  initiatePremiumSubscription,
+} from '../services/premiumService';
 import { logger } from '../utils/logger';
 import type { PremiumSubscription } from '../services/premiumService';
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function ArrowLeftIcon() {
+const { width } = Dimensions.get('window');
+
+// ─── Hero ─────────────────────────────────────────────────────────────────────
+function HeroSection() {
+  const glow = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow, { toValue: 1, duration: 1800, useNativeDriver: true }),
+        Animated.timing(glow, { toValue: 0.5, duration: 1800, useNativeDriver: true }),
+      ]),
+    ).start();
+  }, [glow]);
+
   return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={[iconStyles.arrowTip, iconStyles.arrowTipUp]} />
-      <View style={[iconStyles.arrowTip, iconStyles.arrowTipDown]} />
+    <LinearGradient
+      colors={['#1e0a3c', '#7c3aed', '#c026d3']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.hero}>
+      <Animated.View style={[styles.heroOrb, { opacity: glow }]} />
+
+      <View style={styles.heroIconWrap}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.08)']}
+          style={styles.heroIconBg}>
+          <Ionicons name="diamond" size={30} color="#fde047" />
+        </LinearGradient>
+      </View>
+
+      <Text style={styles.heroLabel}>SHORTSY +</Text>
+      <Text style={styles.heroTagline}>Creator-owned cinema, unlimited.</Text>
+
+      <View style={styles.heroPill}>
+        <Ionicons name="star" size={11} color="#fde047" />
+        <Text style={styles.heroPillText}>Most Popular Plan</Text>
+      </View>
+    </LinearGradient>
+  );
+}
+
+// ─── Price card ───────────────────────────────────────────────────────────────
+function PriceCard() {
+  return (
+    <View style={styles.priceCard}>
+      <View style={styles.priceLabelRow}>
+        <Text style={styles.priceLabel}>Monthly Plan</Text>
+        <View style={styles.bestValueTag}>
+          <Text style={styles.bestValueText}>BEST VALUE</Text>
+        </View>
+      </View>
+
+      <View style={styles.priceAmountRow}>
+        <Text style={styles.priceCurrency}>₹</Text>
+        <Text style={styles.priceAmount}>199</Text>
+        <View style={styles.pricePeriodStack}>
+          <Text style={styles.pricePer}>per</Text>
+          <Text style={styles.pricePeriod}>month</Text>
+        </View>
+      </View>
+
+      <View style={styles.priceDivider} />
+
+      <View style={styles.priceInfoRow}>
+        <Ionicons name="checkmark-circle" size={14} color="#22c55e" />
+        <Text style={styles.priceInfoText}>
+          Activates immediately · Valid for 30 days
+        </Text>
+      </View>
     </View>
   );
 }
 
-function CheckCircleIcon() {
+// ─── Benefits ─────────────────────────────────────────────────────────────────
+const BENEFITS: { icon: string; label: string }[] = [
+  { icon: 'infinite-outline',       label: 'Unlimited premium content'      },
+  { icon: 'film-outline',           label: 'Exclusive short films & series' },
+  { icon: 'notifications-outline',  label: 'Early access to new releases'   },
+  { icon: 'ban-outline',            label: 'Ad-free viewing experience'     },
+  { icon: 'cloud-download-outline', label: 'Download for offline viewing'   },
+  { icon: 'play-circle-outline',    label: 'HD quality streaming'           },
+];
+
+function BenefitsList() {
   return (
-    <View style={iconStyles.checkOuter}>
-      <View style={iconStyles.checkLeft} />
-      <View style={iconStyles.checkRight} />
+    <View style={styles.benefitsCard}>
+      <View style={styles.benefitsHeader}>
+        <View style={styles.benefitAccent} />
+        <Text style={styles.benefitsTitle}>What's included</Text>
+      </View>
+      <View style={styles.benefitsGrid}>
+        {BENEFITS.map(({ icon, label }) => (
+          <View key={label} style={styles.benefitRow}>
+            <View style={styles.benefitIconBox}>
+              <Ionicons name={icon as any} size={18} color="#a855f7" />
+            </View>
+            <Text style={styles.benefitText}>{label}</Text>
+            <Ionicons name="checkmark" size={14} color="#22c55e" />
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
 
-function CrownIcon({ size = 28 }: { size?: number }) {
-  return (
-    <View style={[iconStyles.crownWrap, { width: size, height: size }]}>
-      <View style={[iconStyles.crownBase, { width: size * 0.8, height: size * 0.4 }]} />
-      <View style={[iconStyles.crownSpike, iconStyles.crownSpikeL, { width: size * 0.15, height: size * 0.4 }]} />
-      <View style={[iconStyles.crownSpike, iconStyles.crownSpikeC, { width: size * 0.15, height: size * 0.5 }]} />
-      <View style={[iconStyles.crownSpike, iconStyles.crownSpikeR, { width: size * 0.15, height: size * 0.4 }]} />
-    </View>
-  );
-}
+// ─── Trust badges ─────────────────────────────────────────────────────────────
+const TRUST: { icon: string; label: string }[] = [
+  { icon: 'shield-checkmark-outline', label: 'Secure\nPayment' },
+  { icon: 'flash-outline',            label: 'Instant\nAccess' },
+  { icon: 'close-circle-outline',     label: 'Cancel\nAnytime' },
+];
 
-function Spinner() {
+function TrustRow() {
   return (
-    <View style={iconStyles.spinner} />
+    <View style={styles.trustRow}>
+      {TRUST.map(({ icon, label }, i) => (
+        <React.Fragment key={label}>
+          <View style={styles.trustItem}>
+            <View style={styles.trustIconBox}>
+              <Ionicons name={icon as any} size={18} color="#6b7280" />
+            </View>
+            <Text style={styles.trustLabel}>{label}</Text>
+          </View>
+          {i < TRUST.length - 1 && <View style={styles.trustSep} />}
+        </React.Fragment>
+      ))}
+    </View>
   );
 }
 
@@ -58,33 +161,28 @@ interface PremiumPaymentScreenProps {
   userName?: string;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export function PremiumPaymentScreen({ onBack, onSuccess, userEmail, userName }: PremiumPaymentScreenProps) {
+// ─── Screen ───────────────────────────────────────────────────────────────────
+export function PremiumPaymentScreen({
+  onBack,
+  onSuccess,
+  userEmail,
+  userName,
+}: PremiumPaymentScreenProps) {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     logger.info('PremiumPaymentScreen', 'Component mounted', { userEmail, userName });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const benefits = [
-    'Unlimited access to premium content',
-    'Watch exclusive short films',
-    'Early access to new releases',
-    'Ad-free viewing experience',
-    'Download for offline viewing',
-    'HD quality streaming',
-  ];
 
   const handlePayNow = async () => {
     if (processing) return;
     setProcessing(true);
 
     try {
-      // Step 1: Create premium order
       const order = await initiatePremiumSubscription();
       logger.info('PremiumPaymentScreen', 'Premium order created', { orderId: order.orderId });
 
-      // Step 2: Launch Razorpay
       const options = {
         description: 'Shortsy Premium - Unlimited Access',
         image: 'https://cdn.shortsy.app/logo.png',
@@ -93,11 +191,7 @@ export function PremiumPaymentScreen({ onBack, onSuccess, userEmail, userName }:
         amount: order.amountINR * 100,
         order_id: order.gatewayOrderId,
         name: 'Shortsy Premium',
-        prefill: {
-          email: userEmail || '',
-          contact: '',
-          name: userName || '',
-        },
+        prefill: { email: userEmail || '', contact: '', name: userName || '' },
         theme: { color: '#7c3aed' },
       };
 
@@ -110,14 +204,13 @@ export function PremiumPaymentScreen({ onBack, onSuccess, userEmail, userName }:
       }
 
       const razorpayRes = await new Promise<RazorpayResponse>((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Payment timeout'));
-        }, 60000);
-
+        const timeoutId = setTimeout(() => reject(new Error('Payment timeout')), 60000);
         RazorpayCheckout.open(options)
           .then((res: any) => {
             clearTimeout(timeoutId);
-            logger.info('PremiumPaymentScreen', 'Razorpay success', { paymentId: res.razorpay_payment_id });
+            logger.info('PremiumPaymentScreen', 'Razorpay success', {
+              paymentId: res.razorpay_payment_id,
+            });
             resolve(res);
           })
           .catch((err: any) => {
@@ -127,123 +220,104 @@ export function PremiumPaymentScreen({ onBack, onSuccess, userEmail, userName }:
           });
       });
 
-      // Step 3: Confirm payment
       const { subscription } = await confirmPremiumSubscription({
         orderId: order.orderId,
         gatewayPaymentId: razorpayRes.razorpay_payment_id,
         gatewaySignature: razorpayRes.razorpay_signature || '',
       });
 
-      logger.info('PremiumPaymentScreen', 'Premium confirmed', { subscriptionId: subscription.subscriptionId });
+      logger.info('PremiumPaymentScreen', 'Premium confirmed', {
+        subscriptionId: subscription.subscriptionId,
+      });
       setProcessing(false);
-      
+
       Alert.alert(
         'Welcome to Premium! 🎉',
         'You now have unlimited access to all premium content for 30 days.',
-        [{ 
-          text: 'Start Watching', 
-          style: 'default',
-          onPress: () => onSuccess(subscription)
-        }]
+        [{ text: 'Start Watching', onPress: () => onSuccess(subscription) }],
       );
     } catch (err: any) {
       logger.error('PremiumPaymentScreen', 'Payment failed', err);
       setProcessing(false);
-      
-      const errorMessage = err?.description || err?.message || 'Payment failed. Please try again.';
-      Alert.alert('Payment Failed', errorMessage, [{ text: 'OK', style: 'default' }]);
+      Alert.alert(
+        'Payment Failed',
+        err?.description || err?.message || 'Payment failed. Please try again.',
+        [{ text: 'OK' }],
+      );
     }
   };
 
   return (
     <View style={styles.container}>
       {/* ── Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
-          <ArrowLeftIcon />
-        </TouchableOpacity>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>Premium Subscription</Text>
-          <Text style={styles.headerSub}>Unlock unlimited access</Text>
-        </View>
-      </View>
+      <SafeAreaView edges={['top']} style={styles.safeHeader}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.backBtn}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="chevron-back" size={22} color="#ffffff" />
+          </TouchableOpacity>
 
+          <Text style={styles.headerTitle}>Go Premium</Text>
+
+          {/* Spacer mirrors backBtn to keep title centred */}
+          <View style={styles.backBtn} />
+        </View>
+      </SafeAreaView>
+
+      {/* ── Scrollable content ── */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        
-        {/* ── Premium Badge ── */}
-        <View style={styles.badgeWrap}>
-          <LinearGradient
-            colors={['#7c3aed', '#db2777']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.badgeGradient}>
-            <CrownIcon size={48} />
-            <Text style={styles.badgeTitle}>SHORTSY PREMIUM</Text>
-            <Text style={styles.badgeSubtitle}>Premium Membership</Text>
-          </LinearGradient>
-        </View>
-
-        {/* ── Price Card ── */}
-        <View style={styles.priceCard}>
-          <Text style={styles.priceLabel}>Subscription Price</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceAmount}>₹199</Text>
-            <Text style={styles.pricePeriod}>/month</Text>
-          </View>
-          <Text style={styles.priceNote}>Valid for 30 days from activation</Text>
-        </View>
-
-        {/* ── Benefits ── */}
-        <View style={styles.benefitsCard}>
-          <Text style={styles.benefitsTitle}>What's Included</Text>
-          {benefits.map((benefit, index) => (
-            <View key={index} style={styles.benefitItem}>
-              <CheckCircleIcon />
-              <Text style={styles.benefitText}>{benefit}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* ── Info Note ── */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
-            Your subscription will be active immediately after successful payment. 
-            You can cancel anytime from your account settings.
-          </Text>
-        </View>
-
-        <View style={{ height: 100 }} />
+        <HeroSection />
+        <PriceCard />
+        <BenefitsList />
+        <TrustRow />
+        {/* Spacer so content clears the fixed CTA */}
+        <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* ── Pay Button ── */}
+      {/* ── Sticky pay button ── */}
       <View style={styles.ctaWrap}>
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.95)', '#000000']}
+          colors={['transparent', 'rgba(0,0,0,0.92)', '#000000']}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
+
         <TouchableOpacity
           onPress={handlePayNow}
           activeOpacity={processing ? 1 : 0.85}
-          style={[styles.payBtn, processing && styles.payBtnDisabled]}>
+          disabled={processing}
+          style={styles.payBtn}>
           <LinearGradient
             colors={['#7c3aed', '#db2777']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={[StyleSheet.absoluteFill, { borderRadius: 14 }]}
+            style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
           />
-          {processing ? (
-            <View style={styles.payBtnInner}>
-              <Spinner />
-              <Text style={styles.payBtnText}>Processing Payment...</Text>
-            </View>
-          ) : (
-            <Text style={styles.payBtnText}>Pay ₹199 Now</Text>
-          )}
+          <View style={styles.payBtnInner}>
+            {processing ? (
+              <>
+                <ActivityIndicator size="small" color="#ffffff" />
+                <Text style={styles.payBtnText}>Processing…</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="lock-closed" size={15} color="rgba(255,255,255,0.75)" />
+                <Text style={styles.payBtnText}>Subscribe · ₹199 / month</Text>
+              </>
+            )}
+          </View>
         </TouchableOpacity>
+
+        <View style={styles.ctaFooter}>
+          <Ionicons name="shield-checkmark-outline" size={12} color="#3f3f46" />
+          <Text style={styles.ctaFooterText}>Secured by Razorpay · Cancel anytime</Text>
+        </View>
       </View>
     </View>
   );
@@ -253,98 +327,226 @@ export function PremiumPaymentScreen({ onBack, onSuccess, userEmail, userName }:
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000000' },
 
+  // Header
+  safeHeader: { backgroundColor: '#000000' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 52,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#1c1c1e',
   },
-  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerText: { flex: 1 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#ffffff' },
-  headerSub: { fontSize: 12, color: '#737373', marginTop: 1 },
-
-  scroll: { flex: 1 },
-  scrollContent: { padding: 20, gap: 20 },
-
-  badgeWrap: { marginTop: 10 },
-  badgeGradient: {
-    borderRadius: 20,
-    padding: 32,
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
   },
-  badgeTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: 1.5,
-    marginTop: 8,
-  },
-  badgeSubtitle: {
-    fontSize: 14,
-    color: '#ffffff',
-    opacity: 0.9,
-  },
-
-  priceCard: {
-    backgroundColor: '#111111',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-  },
-  priceLabel: {
-    fontSize: 13,
-    color: '#737373',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 8,
-  },
-  priceAmount: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: '#a855f7',
-  },
-  pricePeriod: {
-    fontSize: 18,
-    color: '#737373',
-    marginLeft: 4,
-  },
-  priceNote: {
-    fontSize: 12,
-    color: '#525252',
-    marginTop: 8,
-  },
-
-  benefitsCard: {
-    backgroundColor: '#111111',
-    borderRadius: 16,
-    padding: 20,
-    gap: 16,
-    borderWidth: 1,
-    borderColor: '#1e1e1e',
-  },
-  benefitsTitle: {
-    fontSize: 16,
+  headerTitle: {
+    fontSize: 17,
     fontWeight: '700',
     color: '#ffffff',
-    marginBottom: 4,
+    letterSpacing: 0.2,
   },
-  benefitItem: {
+
+  // Scroll
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingTop: 20,
+    paddingHorizontal: 16,
+    gap: 14,
+  },
+
+  // Hero
+  hero: {
+    borderRadius: 22,
+    paddingTop: 5,
+    paddingBottom: 36,
+    paddingHorizontal: 0,
+    alignItems: 'center',
+    overflow: 'hidden',
+    gap: 10,
+  },
+  heroOrb: {
+    position: 'absolute',
+    width: width * 0.9,
+    height: width * 0.9,
+    borderRadius: width * 0.45,
+    backgroundColor: 'rgba(192,38,211,0.3)',
+    top: -width * 0.3,
+    right: -width * 0.2,
+  },
+  heroIconWrap: {
+    marginBottom: 6,
+    shadowColor: '#fde047',
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 10,
+  },
+  heroIconBg: {
+    width: 46,
+    height: 46,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroLabel: {
+    fontSize: 21,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 3.5,
+  },
+  heroTagline: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.65)',
+    letterSpacing: 0.3,
+  },
+  heroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 10,
+    backgroundColor: 'rgba(253,224,71,0.12)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(253,224,71,0.28)',
+  },
+  heroPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fde047',
+    letterSpacing: 0.6,
+  },
+
+  // Price card
+  priceCard: {
+    backgroundColor: '#0d0d0d',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#2a1d4e',
+    padding: 22,
+  },
+  priceLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  priceLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  bestValueTag: {
+    backgroundColor: 'rgba(168,85,247,0.14)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(168,85,247,0.3)',
+  },
+  bestValueText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#a855f7',
+    letterSpacing: 0.8,
+  },
+  priceAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 18,
+    gap: 3,
+  },
+  priceCurrency: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 10,
+  },
+  priceAmount: {
+    fontSize: 68,
+    fontWeight: '800',
+    color: '#ffffff',
+    lineHeight: 72,
+    letterSpacing: -2,
+  },
+  pricePeriodStack: {
+    marginBottom: 14,
+    marginLeft: 3,
+  },
+  pricePer: {
+    fontSize: 12,
+    color: '#4b5563',
+    lineHeight: 16,
+  },
+  pricePeriod: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6b7280',
+    lineHeight: 18,
+  },
+  priceDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#1c1c1e',
+    marginBottom: 14,
+  },
+  priceInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  priceInfoText: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+
+  // Benefits
+  benefitsCard: {
+    backgroundColor: '#0d0d0d',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#1c1c1e',
+    padding: 20,
+  },
+  benefitsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 18,
+  },
+  benefitAccent: {
+    width: 3,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: '#a855f7',
+  },
+  benefitsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  benefitsGrid: { gap: 12 },
+  benefitRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  benefitIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(168,85,247,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   benefitText: {
     flex: 1,
@@ -353,115 +555,81 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  infoBox: {
-    backgroundColor: 'rgba(59,130,246,0.08)',
+  // Trust
+  trustRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#080808',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.2)',
-    borderRadius: 12,
-    padding: 16,
+    borderColor: '#1c1c1e',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
   },
-  infoText: {
-    fontSize: 13,
-    color: '#93c5fd',
-    lineHeight: 20,
+  trustItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  trustIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#111111',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trustLabel: {
+    fontSize: 11,
+    color: '#4b5563',
     textAlign: 'center',
+    lineHeight: 15,
+    fontWeight: '500',
+  },
+  trustSep: {
+    width: StyleSheet.hairlineWidth,
+    height: 36,
+    backgroundColor: '#1c1c1e',
   },
 
+  // CTA
   ctaWrap: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 36,
+    paddingTop: 28,
+    paddingBottom: Platform.OS === 'ios' ? 38 : 24,
   },
   payBtn: {
-    height: 56,
-    borderRadius: 14,
+    height: 58,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    marginBottom: 10,
   },
-  payBtnDisabled: { opacity: 0.45 },
-  payBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  payBtnText: { fontSize: 18, fontWeight: '700', color: '#ffffff', zIndex: 1 },
-});
-
-const iconStyles = StyleSheet.create({
-  arrowWrap: { width: 20, height: 20, justifyContent: 'center' },
-  arrowStem: {
-    position: 'absolute',
-    left: 2,
-    right: 2,
-    height: 2,
-    backgroundColor: '#ffffff',
-    borderRadius: 1,
+  payBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 1,
   },
-  arrowTip: {
-    position: 'absolute',
-    left: 2,
-    width: 8,
-    height: 2,
-    backgroundColor: '#ffffff',
-    borderRadius: 1,
+  payBtnText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.2,
   },
-  arrowTipUp: { transform: [{ rotate: '45deg' }], top: 5 },
-  arrowTipDown: { transform: [{ rotate: '-45deg' }], bottom: 5 },
-
-  checkOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#22c55e',
+  ctaFooter: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 5,
   },
-  checkLeft: {
-    position: 'absolute',
-    width: 5,
-    height: 2,
-    backgroundColor: '#ffffff',
-    borderRadius: 1,
-    bottom: 8,
-    left: 5,
-    transform: [{ rotate: '45deg' }],
-  },
-  checkRight: {
-    position: 'absolute',
-    width: 9,
-    height: 2,
-    backgroundColor: '#ffffff',
-    borderRadius: 1,
-    bottom: 9,
-    right: 4,
-    transform: [{ rotate: '-45deg' }],
-  },
-
-  crownWrap: {
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  crownBase: {
-    backgroundColor: '#fbbf24',
-    borderRadius: 2,
-    position: 'absolute',
-    bottom: 0,
-  },
-  crownSpike: {
-    position: 'absolute',
-    backgroundColor: '#fbbf24',
-  },
-  crownSpikeL: { left: '15%', bottom: '35%' },
-  crownSpikeC: { left: '42.5%', bottom: '40%' },
-  crownSpikeR: { right: '15%', bottom: '35%' },
-
-  spinner: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-    borderTopColor: 'transparent',
+  ctaFooterText: {
+    fontSize: 11,
+    color: '#3f3f46',
   },
 });

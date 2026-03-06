@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Content } from '../data/mockData';
 import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
 import { logger } from '../utils/logger';
@@ -148,15 +149,11 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
   };
 
   return (
-    <>
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}>
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-        </View>
         {/* ── Avatar + name ── */}
         <View style={styles.avatarRow}>
           <LinearGradient
@@ -252,11 +249,11 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                 <View style={styles.upgradeLeft}>
                   <View style={[styles.upgradePill, styles.upgradePillGreen]}>
                     <Ionicons name="checkmark-circle" size={12} color="#6ee7b7" />
-                    <Text style={[styles.upgradePillText, styles.upgradePillTextGreen]}>PREMIUM ACTIVE</Text>
+                    <Text style={[styles.upgradePillText, styles.upgradePillTextGreen]}>ACTIVE</Text>
                   </View>
 
-                  <Text style={styles.upgradeTitle}>You're all{`\n`}set! 🎉</Text>
-                  <Text style={styles.upgradePrice}>Unlimited premium access</Text>
+                  <Text style={styles.upgradeTitle}>SHORTSY +</Text>
+                  <Text style={styles.upgradePrice}>Unlimited premium access{"\n\n"}</Text>
 
                   <View style={styles.premiumExpiryRow}>
                     <Ionicons name="calendar-outline" size={13} color="rgba(255,255,255,0.6)" />
@@ -275,14 +272,6 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                 <View style={styles.upgradeRight}>
                   <View style={[styles.upgradeIconRing, styles.upgradeIconRingGreen]}>
                     <Ionicons name="shield-checkmark" size={36} color="rgba(110,231,183,0.9)" />
-                  </View>
-                  <View style={styles.upgradeFeatureTags}>
-                    {['HD Access', 'No Ads', 'Offline'].map(tag => (
-                      <View key={tag} style={[styles.featureTag, styles.featureTagGreen]}>
-                        <Ionicons name="checkmark" size={10} color="#34d399" />
-                        <Text style={styles.featureTagText}>{tag}</Text>
-                      </View>
-                    ))}
                   </View>
                 </View>
               </View>
@@ -339,12 +328,16 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
           </View>
         </View>
       </Modal>
-    </>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
   container: {
     flex: 1,
     backgroundColor: '#000000',

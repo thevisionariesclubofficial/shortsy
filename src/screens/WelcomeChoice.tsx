@@ -16,78 +16,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
-// ─── Film icon (reused from SplashScreen style) ───────────────────────────────
-function FilmIcon({ size = 48 }: { size?: number }) {
-  const holeSize = Math.round(size * 0.09);
-  const stripW = Math.round(size * 0.2);
-  return (
-    <View
-      style={{
-        width: size,
-        height: size * 0.75,
-        borderRadius: size * 0.09,
-        borderWidth: size * 0.05,
-        borderColor: '#fff',
-        flexDirection: 'row',
-        overflow: 'hidden',
-      }}>
-      <View
-        style={{
-          width: stripW,
-          borderRightWidth: size * 0.04,
-          borderRightColor: '#fff',
-          justifyContent: 'space-evenly',
-          alignItems: 'center',
-          paddingVertical: 2,
-        }}>
-        {[0, 1, 2, 3].map(i => (
-          <View
-            key={i}
-            style={{
-              width: holeSize,
-              height: holeSize,
-              borderRadius: 2,
-              backgroundColor: '#fff',
-            }}
-          />
-        ))}
-      </View>
-      <View style={{ flex: 1 }} />
-      <View
-        style={{
-          width: stripW,
-          borderLeftWidth: size * 0.04,
-          borderLeftColor: '#fff',
-          justifyContent: 'space-evenly',
-          alignItems: 'center',
-          paddingVertical: 2,
-        }}>
-        {[0, 1, 2, 3].map(i => (
-          <View
-            key={i}
-            style={{
-              width: holeSize,
-              height: holeSize,
-              borderRadius: 2,
-              backgroundColor: '#fff',
-            }}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
 
-// ─── Arrow right icon ─────────────────────────────────────────────────────────
-function ArrowRightIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={iconStyles.arrowTop} />
-      <View style={iconStyles.arrowBottom} />
-    </View>
-  );
-}
 
 // ─── Pulsing blob ─────────────────────────────────────────────────────────────
 function PulsingBlob({
@@ -384,38 +313,3 @@ const blobStyles = StyleSheet.create({
   },
 });
 
-const iconStyles = StyleSheet.create({
-  arrowWrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowStem: {
-    position: 'absolute',
-    width: 14,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-  },
-  arrowTop: {
-    position: 'absolute',
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    right: 3,
-    top: 5,
-    transform: [{ rotate: '45deg' }],
-  },
-  arrowBottom: {
-    position: 'absolute',
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    right: 3,
-    bottom: 5,
-    transform: [{ rotate: '-45deg' }],
-  },
-});

@@ -1,3 +1,4 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -26,56 +27,6 @@ function formatAccessDuration(rental: RentalRecord): string {
   return `${diffHours} hours`;
 }
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function CheckCircleIcon() {
-  return (
-    <View style={iconStyles.checkOuter}>
-      {/* Checkmark: two bars forming a tick */}
-      <View style={[iconStyles.checkBar, iconStyles.checkShort]} />
-      <View style={[iconStyles.checkBar, iconStyles.checkLong]} />
-    </View>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <View style={iconStyles.playTriangle} />
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <View style={iconStyles.dlWrap}>
-      <View style={iconStyles.dlStem} />
-      <View style={iconStyles.dlArrowL} />
-      <View style={iconStyles.dlArrowR} />
-      <View style={iconStyles.dlBase} />
-    </View>
-  );
-}
-
-function ShareIcon() {
-  return (
-    <View style={iconStyles.shareWrap}>
-      <View style={iconStyles.shareDotTop} />
-      <View style={iconStyles.shareDotBL} />
-      <View style={iconStyles.shareDotBR} />
-      <View style={iconStyles.shareLine1} />
-      <View style={iconStyles.shareLine2} />
-    </View>
-  );
-}
-
-function XCloseIcon() {
-  return (
-    <View style={{ width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ position: 'absolute', width: 12, height: 2, backgroundColor: '#a3a3a3', borderRadius: 1, transform: [{ rotate: '45deg' }] }} />
-      <View style={{ position: 'absolute', width: 12, height: 2, backgroundColor: '#a3a3a3', borderRadius: 1, transform: [{ rotate: '-45deg' }] }} />
-    </View>
-  );
-}
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString('en-IN', {
@@ -165,7 +116,7 @@ function ReceiptModal({
             onPress={onClose}
             style={receiptStyles.closeBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <XCloseIcon />
+            <Ionicons name="close" size={16} color="#a3a3a3" />
           </TouchableOpacity>
         </View>
 
@@ -246,7 +197,7 @@ function ReceiptModal({
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={[StyleSheet.absoluteFill, { borderRadius: 14 }]}
             />
-            <DownloadIcon />
+            <Ionicons name="download-outline" size={18} color="#ffffff" />
             <Text style={receiptStyles.shareBtnText}>Download / Share Receipt</Text>
           </TouchableOpacity>
 
@@ -273,7 +224,7 @@ function RippleRing() {
   return (
     <Animated.View
       style={[
-        iconStyles.ripple,
+        styles.ripple,
         { transform: [{ scale }], opacity },
       ]}
     />
@@ -341,7 +292,7 @@ export function PaymentSuccessScreen({
         <View style={styles.iconWrap}>
           <RippleRing />
           <View style={styles.iconCircle}>
-            <CheckCircleIcon />
+            <Ionicons name="checkmark-circle" size={44} color="#22c55e" />
           </View>
         </View>
 
@@ -390,18 +341,18 @@ export function PaymentSuccessScreen({
               end={{ x: 1, y: 0 }}
               style={[StyleSheet.absoluteFill, { borderRadius: 14 }]}
             />
-            <PlayIcon />
+            <Ionicons name="play" size={20} color="#ffffff" />
             <Text style={styles.watchBtnText}>Watch Now</Text>
           </TouchableOpacity>
 
           {/* Receipt + Share */}
           <View style={styles.secondRow}>
             <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.7} onPress={() => setShowReceipt(true)}>
-              <DownloadIcon />
+              <Ionicons name="download-outline" size={18} color="#ffffff" />
               <Text style={styles.outlineBtnText}>Receipt</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.7}>
-              <ShareIcon />
+              <Ionicons name="share-social-outline" size={18} color="#ffffff" />
               <Text style={styles.outlineBtnText}>Share</Text>
             </TouchableOpacity>
           </View>
@@ -425,6 +376,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+  },
+  ripple: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: 'rgba(34,197,94,0.4)',
   },
   blob: {
     position: 'absolute',
@@ -528,51 +487,7 @@ const styles = StyleSheet.create({
   ghostBtn:     { height: 44, alignItems: 'center', justifyContent: 'center' },
   ghostBtnText: { fontSize: 14, color: '#737373' },
 });
-
-const iconStyles = StyleSheet.create({
-  // Ripple
-  ripple: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: 'rgba(34,197,94,0.4)',
-  },
-
-  // CheckCircle
-  checkOuter: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  checkBar:   { position: 'absolute', height: 3.5, backgroundColor: '#22c55e', borderRadius: 2 },
-  checkShort: { width: 14, bottom: 17, left: 8, transform: [{ rotate: '45deg' }] },
-  checkLong:  { width: 24, bottom: 20, right: 5, transform: [{ rotate: '-50deg' }] },
-
-  // Play triangle
-  playTriangle: {
-    width: 0, height: 0,
-    borderTopWidth: 9,
-    borderBottomWidth: 9,
-    borderLeftWidth: 15,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#ffffff',
-    zIndex: 1,
-  },
-
-  // Download
-  dlWrap:  { width: 18, height: 18, alignItems: 'center' },
-  dlStem:  { position: 'absolute', top: 0, width: 2, height: 10, backgroundColor: '#ffffff', borderRadius: 1 },
-  dlArrowL:{ position: 'absolute', top: 7, left: 4, width: 7, height: 2, backgroundColor: '#ffffff', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  dlArrowR:{ position: 'absolute', top: 7, right: 4, width: 7, height: 2, backgroundColor: '#ffffff', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-  dlBase:  { position: 'absolute', bottom: 0, width: 14, height: 2, backgroundColor: '#ffffff', borderRadius: 1 },
-
-  // Share
-  shareWrap:   { width: 18, height: 16 },
-  shareDotTop: { position: 'absolute', top: 0, right: 0, width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ffffff' },
-  shareDotBL:  { position: 'absolute', bottom: 0, left: 0, width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ffffff' },
-  shareDotBR:  { position: 'absolute', bottom: 0, right: 0, width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ffffff' },
-  shareLine1:  { position: 'absolute', width: 12, height: 1.5, backgroundColor: '#ffffff', top: 4, left: 2, transform: [{ rotate: '-35deg' }] },
-  shareLine2:  { position: 'absolute', width: 12, height: 1.5, backgroundColor: '#ffffff', bottom: 4, left: 2, transform: [{ rotate: '35deg' }] },
-});
+;
 
 const receiptStyles = StyleSheet.create({
   modalRoot: {

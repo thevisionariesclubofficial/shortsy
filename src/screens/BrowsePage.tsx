@@ -1,3 +1,4 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,17 +13,6 @@ import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { clearContentCache, getContentMetadata, listContent } from '../services/contentService';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function FilterIcon() {
-  return (
-    <View style={iconStyles.filterWrap}>
-      <View style={iconStyles.filterLine1} />
-      <View style={iconStyles.filterLine2} />
-      <View style={iconStyles.filterLine3} />
-    </View>
-  );
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TypeFilter = 'all' | 'short-film' | 'vertical-series';
@@ -129,7 +119,7 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
             onPress={() => setShowFilters(v => !v)}
             style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
             activeOpacity={0.7}>
-            <FilterIcon />
+            <Ionicons name="funnel-outline" size={18} color="#ffffff" />
           </TouchableOpacity>
         </View>
 
@@ -328,28 +318,3 @@ const styles = StyleSheet.create({
   },
 });
 
-const iconStyles = StyleSheet.create({
-  filterWrap: {
-    width: 18,
-    height: 14,
-    justifyContent: 'space-between',
-  },
-  filterLine1: {
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#ffffff',
-    marginHorizontal: 0,
-  },
-  filterLine2: {
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#ffffff',
-    marginHorizontal: 2,
-  },
-  filterLine3: {
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#ffffff',
-    marginHorizontal: 5,
-  },
-});

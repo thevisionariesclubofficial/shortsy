@@ -1,3 +1,4 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import React, { useRef } from 'react';
 import {
   Animated,
@@ -7,44 +8,6 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function AlertCircleIcon() {
-  return (
-    <View style={iconStyles.alertWrap}>
-      {/* Circle ring */}
-      <View style={iconStyles.alertRing} />
-      {/* Exclamation shaft */}
-      <View style={iconStyles.alertShaft} />
-      {/* Exclamation dot */}
-      <View style={iconStyles.alertDot} />
-    </View>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <View style={iconStyles.refreshWrap}>
-      {/* 3/4 arc */}
-      <View style={iconStyles.refreshArc} />
-      {/* Arrowhead tip */}
-      <View style={[iconStyles.refreshArrow, iconStyles.refreshArrowTop]} />
-      <View style={[iconStyles.refreshArrow, iconStyles.refreshArrowRight]} />
-    </View>
-  );
-}
-
-function HomeIcon() {
-  return (
-    <View style={iconStyles.homeWrap}>
-      <View style={iconStyles.homeRoofLeft} />
-      <View style={iconStyles.homeRoofRight} />
-      <View style={iconStyles.homeBody}>
-        <View style={iconStyles.homeDoor} />
-      </View>
-    </View>
-  );
-}
 
 // ─── Animated button ─────────────────────────────────────────────────────────
 function AnimBtn({
@@ -111,7 +74,7 @@ export function ErrorScreen({
       <View style={styles.card}>
         {/* Icon bubble */}
         <View style={styles.iconBubble}>
-          <AlertCircleIcon />
+          <Ionicons name="alert-circle" size={40} color="#ef4444" />
         </View>
 
         {/* Text */}
@@ -126,7 +89,7 @@ export function ErrorScreen({
             <AnimBtn
               onPress={onRetry}
               gradient
-              icon={<RefreshIcon />}
+              icon={<Ionicons name="refresh" size={18} color="#ffffff" />}
               label="Try Again"
             />
           )}
@@ -134,7 +97,7 @@ export function ErrorScreen({
             <AnimBtn
               onPress={onGoHome}
               outline
-              icon={<HomeIcon />}
+              icon={<Ionicons name="home" size={18} color="#ffffff" />}
               label="Go to Home"
             />
           )}
@@ -212,114 +175,3 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Icon styles ──────────────────────────────────────────────────────────────
-const iconStyles = StyleSheet.create({
-  // AlertCircle
-  alertWrap: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertRing: {
-    position: 'absolute',
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 3,
-    borderColor: '#ef4444',
-  },
-  alertShaft: {
-    position: 'absolute',
-    width: 3,
-    height: 14,
-    backgroundColor: '#ef4444',
-    borderRadius: 2,
-    top: 7,
-  },
-  alertDot: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#ef4444',
-    bottom: 7,
-  },
-  // Refresh
-  refreshWrap: {
-    width: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  refreshArc: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-    borderTopColor: 'transparent',
-    transform: [{ rotate: '45deg' }],
-  },
-  refreshArrow: {
-    position: 'absolute',
-    backgroundColor: '#ffffff',
-    borderRadius: 1,
-  },
-  refreshArrowTop: {
-    width: 2,
-    height: 5,
-    top: 0,
-    right: 2,
-  },
-  refreshArrowRight: {
-    width: 5,
-    height: 2,
-    top: 0,
-    right: 0,
-  },
-  // Home
-  homeWrap: {
-    width: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  homeRoofLeft: {
-    position: 'absolute',
-    top: 3,
-    left: 1,
-    width: 10,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#ffffff',
-    transform: [{ rotate: '-35deg' }],
-  },
-  homeRoofRight: {
-    position: 'absolute',
-    top: 3,
-    right: 1,
-    width: 10,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: '#ffffff',
-    transform: [{ rotate: '35deg' }],
-  },
-  homeBody: {
-    width: 12,
-    height: 9,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-    borderRadius: 2,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginBottom: 1,
-  },
-  homeDoor: {
-    width: 4,
-    height: 5,
-    borderRadius: 1,
-    backgroundColor: '#ffffff',
-    marginBottom: -2,
-  },
-});

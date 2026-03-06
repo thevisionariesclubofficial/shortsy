@@ -1,3 +1,4 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
@@ -7,28 +8,6 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-
-// ─── Film strip icon (pure View) ─────────────────────────────────────────────
-function FilmIcon() {
-  return (
-    <View style={iconStyles.filmOuter}>
-      {/* Left perforations strip */}
-      <View style={[iconStyles.filmStrip, iconStyles.filmStripLeft]}>
-        {[0, 1, 2].map(i => (
-          <View key={i} style={iconStyles.filmHole} />
-        ))}
-      </View>
-      {/* Centre frame area */}
-      <View style={iconStyles.filmCenter} />
-      {/* Right perforations strip */}
-      <View style={[iconStyles.filmStrip, iconStyles.filmStripRight]}>
-        {[0, 1, 2].map(i => (
-          <View key={i} style={iconStyles.filmHole} />
-        ))}
-      </View>
-    </View>
-  );
-}
 
 // ─── Bouncing dot ─────────────────────────────────────────────────────────────
 function BounceDot({ delay }: { delay: number }) {
@@ -103,7 +82,7 @@ export function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps) {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.iconGrad}>
-          <FilmIcon />
+          <Ionicons name="film" size={32} color="#ffffff" />
         </LinearGradient>
       </Animated.View>
 
@@ -163,41 +142,3 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Icon styles ──────────────────────────────────────────────────────────────
-const iconStyles = StyleSheet.create({
-  filmOuter: {
-    width: 32,
-    height: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  filmStrip: {
-    width: 8,
-    height: 32,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  filmStripLeft: {
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.2)',
-  },
-  filmStripRight: {
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255,255,255,0.2)',
-  },
-  filmCenter: {
-    flex: 1,
-    height: 32,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  filmHole: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-});
