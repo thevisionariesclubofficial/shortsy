@@ -180,12 +180,13 @@ function Field({
 
 // ─── Main SignupScreen ────────────────────────────────────────────────────────
 interface SignupScreenProps {
-  onSignup: () => void;
+  onSignup: (email: string, password: string) => void;
   onLogin: () => void;
   onBack?: () => void;
+  onGoogleSignIn?: () => Promise<void>;
 }
 
-export function SignupScreen({ onSignup, onLogin, onBack }: SignupScreenProps) {
+export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: SignupScreenProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -193,6 +194,22 @@ export function SignupScreen({ onSignup, onLogin, onBack }: SignupScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    if (!onGoogleSignIn) return;
+    setIsGoogleLoading(true);
+    try {
+      await onGoogleSignIn();
+    } catch (err: any) {
+      const code = err?.code ?? '';
+      if (code !== 'GOOGLE_SIGN_IN_CANCELLED') {
+        Alert.alert('Google Sign-In Failed', err?.message ?? 'Please try again.');
+      }
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!acceptTerms) {
@@ -214,7 +231,7 @@ export function SignupScreen({ onSignup, onLogin, onBack }: SignupScreenProps) {
     setIsLoading(true);
     try {
       await signup({ email: email.trim(), password, displayName: name.trim() });
-      onSignup();
+      onSignup(email.trim(), password);
     } catch (err: any) {
       const code = err?.code ?? '';
       if (code === 'EMAIL_ALREADY_EXISTS') {
@@ -365,9 +382,15 @@ export function SignupScreen({ onSignup, onLogin, onBack }: SignupScreenProps) {
             </View>
 
             {/* Google button */}
-            <TouchableOpacity style={styles.googleBtn} activeOpacity={0.8}>
-              <GoogleIcon />
-              <Text style={styles.googleText}>Sign up with Google</Text>
+            <TouchableOpacity
+              style={[styles.googleBtn, isGoogleLoading && { opacity: 0.7 }]}
+              activeOpacity={0.8}
+              onPress={handleGoogleSignIn}
+              disabled={isGoogleLoading || isLoading}>
+              {isGoogleLoading ? <Spinner /> : <GoogleIcon />}
+              <Text style={styles.googleText}>
+                {isGoogleLoading ? 'Signing in...' : 'Sign up with Google'}
+              </Text>
             </TouchableOpacity>
           </View>
 

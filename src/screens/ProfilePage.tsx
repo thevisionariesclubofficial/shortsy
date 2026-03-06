@@ -273,6 +273,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
   const [totalSpent, setTotalSpent] = useState(0);
   const [contentWatched, setContentWatched] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
   const menuItems: Array<{ Icon: React.ComponentType; label: string; onPress?: () => void }> = [
     { Icon: HeartIcon,    label: 'My Favorites' },
@@ -405,13 +406,47 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
               <View style={styles.menuChevron} />
             </TouchableOpacity>
           ))}
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={onLogout}>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setShowLogoutConfirm(true)}>
             <LogOutIcon />
             <Text style={[styles.menuLabel, styles.menuDanger]}>Logout</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
       <SettingsModal visible={showSettings} onClose={() => setShowSettings(false)} navigate={navigate} />
+
+      {/* ── Logout Confirmation Modal ── */}
+      <Modal
+        visible={showLogoutConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLogoutConfirm(false)}>
+        <View style={styles.logoutOverlay}>
+          <View style={styles.logoutModal}>
+            {/* Icon */}
+            <View style={styles.logoutIconWrap}>
+              <LogOutIcon />
+            </View>
+            <Text style={styles.logoutTitle}>Log Out?</Text>
+            <Text style={styles.logoutSubtitle}>
+              You'll need to sign in again to access your account.
+            </Text>
+            <View style={styles.logoutBtnRow}>
+              <TouchableOpacity
+                style={[styles.logoutBtn, styles.logoutBtnCancel]}
+                activeOpacity={0.8}
+                onPress={() => setShowLogoutConfirm(false)}>
+                <Text style={styles.logoutBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.logoutBtn, styles.logoutBtnConfirm]}
+                activeOpacity={0.8}
+                onPress={() => { setShowLogoutConfirm(false); onLogout(); }}>
+                <Text style={styles.logoutBtnConfirmText}>Log Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -593,6 +628,77 @@ const styles = StyleSheet.create({
     borderRightWidth: 2,
     borderColor: '#525252',
     transform: [{ rotate: '45deg' }],
+  },
+
+  // Logout confirmation modal
+  logoutOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  logoutModal: {
+    width: '100%',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 20,
+    paddingTop: 28,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  logoutIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(239,68,68,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    transform: [{ scale: 1.6 }],
+  },
+  logoutTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  logoutSubtitle: {
+    fontSize: 13,
+    color: '#a3a3a3',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 24,
+  },
+  logoutBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  logoutBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutBtnCancel: {
+    backgroundColor: '#2a2a2a',
+  },
+  logoutBtnConfirm: {
+    backgroundColor: '#ef4444',
+  },
+  logoutBtnCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  logoutBtnConfirmText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });
 

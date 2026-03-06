@@ -150,6 +150,7 @@ interface LoginScreenProps {
   onSignup: () => void;
   onForgotPassword: () => void;
   onBack?: () => void;
+  onGoogleSignIn?: () => Promise<void>;
 }
 
 export function LoginScreen({
@@ -157,12 +158,30 @@ export function LoginScreen({
   onSignup,
   onForgotPassword,
   onBack,
+  onGoogleSignIn,
 }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleGoogleSignIn = async () => {
+    if (!onGoogleSignIn) return;
+    setIsGoogleLoading(true);
+    setError('');
+    try {
+      await onGoogleSignIn();
+    } catch (err: any) {
+      const code = err?.code ?? '';
+      if (code !== 'GOOGLE_SIGN_IN_CANCELLED') {
+        setError(err?.message ?? 'Google sign-in failed. Please try again.');
+      }
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -306,9 +325,15 @@ export function LoginScreen({
             </View>
 
             {/* Google button */}
-            <TouchableOpacity style={styles.googleBtn} activeOpacity={0.8}>
-              <GoogleIcon />
-              <Text style={styles.googleText}>Continue with Google</Text>
+            <TouchableOpacity
+              style={[styles.googleBtn, isGoogleLoading && { opacity: 0.7 }]}
+              activeOpacity={0.8}
+              onPress={handleGoogleSignIn}
+              disabled={isGoogleLoading || isLoading}>
+              {isGoogleLoading ? <Spinner /> : <GoogleIcon />}
+              <Text style={styles.googleText}>
+                {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
+              </Text>
             </TouchableOpacity>
           </View>
 

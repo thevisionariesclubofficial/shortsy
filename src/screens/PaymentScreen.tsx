@@ -132,9 +132,10 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
       });
       logger.info('PaymentScreen', 'Order created', { orderId: order.orderId, amount: order.amountINR ?? content.price });
 
-      // Step 2: If mock mode, skip Razorpay and confirm payment directly
-      if (require('../services/apiClient').USE_MOCK) {
-        logger.info('PaymentScreen', 'Skipping Razorpay modal in mock mode');
+      // Step 2: If mock mode OR mock order ID, skip Razorpay and confirm payment directly
+      const isMockOrder = order.gatewayOrderId?.startsWith('mock_order_') || order.orderId?.startsWith('mock_');
+      if (require('../services/apiClient').USE_MOCK || isMockOrder) {
+        logger.info('PaymentScreen', 'Skipping Razorpay modal (mock mode or mock order)', { isMockOrder, orderId: order.orderId });
         const { rental } = await confirmPayment({
           orderId: order.orderId,
           gatewayPaymentId: 'mock_payment_id',
@@ -145,7 +146,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
         return;
       }
 
-      // Step 2: Launch Razorpay modal
+      // Step 3: Launch Razorpay modal
       // Map our UI method names to Razorpay's expected method names
       const razorpayMethodMap: Record<PaymentMethod, string> = {
         'upi': 'upi',

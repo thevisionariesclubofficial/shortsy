@@ -12,20 +12,20 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import Orientation from 'react-native-orientation-locker';
 import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Content } from '../data/mockData';
 import { getWatchProgress, saveWatchProgress, getStreamUrl, getEpisodeStreamUrl } from '../services/playbackService';
 import { USE_MOCK } from '../services/apiClient';
 import { logger } from '../utils/logger';
-import type { SaveProgressRequest } from '../types/api';
+import type { SaveProgressRequest, WatchProgress } from '../types/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function ArrowLeftIcon() {
   return (
     <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={[iconStyles.arrowTip, iconStyles.arrowTipUp]} />
-      <View style={[iconStyles.arrowTip, iconStyles.arrowTipDown]} />
+      <View style={iconStyles.chevronTop} />
+      <View style={iconStyles.chevronBottom} />
     </View>
   );
 }
@@ -60,15 +60,18 @@ function VolumeIcon({ muted }: { muted: boolean }) {
   const c = '#ffffff';
   return (
     <View style={iconStyles.volWrap}>
-      {/* Speaker body */}
-      <View style={[iconStyles.volBody, { borderColor: c }]} />
+      {/* Solid speaker body (back box) */}
+      <View style={[iconStyles.volBody, { backgroundColor: c }]} />
+      {/* Speaker horn — right-pointing triangle */}
       <View style={[iconStyles.volCone, { borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: c }]} />
       {muted ? (
+        /* Mute: two diagonal bars forming an X */
         <>
           <View style={[iconStyles.volX1, { backgroundColor: c }]} />
           <View style={[iconStyles.volX2, { backgroundColor: c }]} />
         </>
       ) : (
+        /* Unmuted: semi-circular sound wave arc */
         <View style={[iconStyles.volWave, { borderColor: c }]} />
       )}
     </View>
@@ -125,6 +128,11 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
   const [duration,    setDuration]    = useState(0);   // total seconds
   const [currentTime, setCurrentTime] = useState(0);   // elapsed seconds
 
+  // true once the video has started playing for the first time (or immediately in mock mode)
+  const [isVideoReady, setIsVideoReady] = useState(!hasRealVideo);
+  const videoReadyOpacity = useRef(new Animated.Value(hasRealVideo ? 1 : 0)).current;
+  const videoReadyRef = useRef(false); // tracks whether the ready-fade has fired
+
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -180,6 +188,64 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
   const isShortFilm = content.type === 'short-film';
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+
+  // Debug logs to help diagnose orientation/playback issues
+  useEffect(() => {
+    logger.info('PLAYER', 'PlayerScreen mounted', {
+      contentId: content.id,
+      contentType: content.type,
+      videoUrl: !!videoUrl,
+      episodeNumber,
+      isShortFilm,
+    });
+    logger.info('PLAYER', 'Window dimensions', { width, height, isLandscape });
+    return () => logger.info('PLAYER', 'PlayerScreen unmounted', { contentId: content.id });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Lock orientation to landscape for short films while this component is mounted
+  useEffect(() => {
+    if (isShortFilm) {
+      logger.info('PLAYER', 'Locking orientation to landscape for short film', { contentId: content.id });
+      // prefer explicit left lock which can be more reliable on some devices
+      try {
+        Orientation.lockToLandscapeLeft();
+      } catch (err) {
+        // fallback
+        Orientation.lockToLandscape();
+      }
+
+      // Log orientation probe results (helpful for diagnosing simulator/device locks)
+      try {
+        const initial = Orientation.getInitialOrientation && Orientation.getInitialOrientation();
+        if (initial) logger.info('PLAYER', 'Orientation initial', { initial });
+      } catch (e) {}
+
+      try {
+        if (Orientation.getDeviceOrientation) {
+          Orientation.getDeviceOrientation((o: any) => logger.info('PLAYER', 'Device orientation (callback)', { orientation: o }));
+        } else if (Orientation.getOrientation) {
+          Orientation.getOrientation((o: any) => logger.info('PLAYER', 'Orientation (callback)', { orientation: o }));
+        }
+      } catch (e) {}
+      // Re-check after a brief delay to see if native rotated
+      setTimeout(() => {
+        try {
+          if (Orientation.getDeviceOrientation) {
+            Orientation.getDeviceOrientation((o: any) => logger.info('PLAYER', 'Device orientation (delayed)', { orientation: o }));
+          } else if (Orientation.getOrientation) {
+            Orientation.getOrientation((o: any) => logger.info('PLAYER', 'Orientation (delayed)', { orientation: o }));
+          }
+        } catch (e) {}
+      }, 500);
+    }
+    return () => {
+      if (isShortFilm) {
+        logger.info('PLAYER', 'Restoring orientation to portrait after short film', { contentId: content.id });
+        Orientation.lockToPortrait();
+      }
+    };
+  }, [isShortFilm]);
 
   // ── Control visibility ──────────────────────────────────────────────────────
   const toggleControls = () => {
@@ -271,6 +337,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
       }
       saveAndUpdateProgress(req);
     }
+    if (isShortFilm) Orientation.lockToPortrait();
     onBack();
   };
 
@@ -310,6 +377,10 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
     durationRef.current = 0;
     setProgress(0);
     setIsBuffering(true);
+    // reset black overlay so it shows again while the new episode buffers
+    videoReadyRef.current = false;
+    videoReadyOpacity.setValue(1);
+    setIsVideoReady(false);
     autoPlayOnLoad.current = true;
     try {
       // In real API mode, ep.videoUrl is null — fetch a fresh signed URL from the Playback API
@@ -385,6 +456,8 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
       setCurrentTime(t);
       setIsBuffering(false);
 
+      logger.info('PLAYER', 'onLoad event', { contentId: content.id, duration: dur, currentTime: t, autoPlayOnLoad: autoPlayOnLoad.current });
+
       if (autoPlayOnLoad.current) {
         // Episode switch — just play, don't restore progress
         autoPlayOnLoad.current = false;
@@ -423,6 +496,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
       const t = data.currentTime ?? 0;
       currentTimeRef.current = t;
       setCurrentTime(t);
+      logger.info('PLAYER', 'onProgress', { contentId: content.id, currentTime: t, duration: durationRef.current });
       // Throttled auto-save every 10 seconds
       const now = Date.now();
       if (now - lastSaveRef.current >= 10_000 && t > 0 && durationRef.current > 0) {
@@ -441,16 +515,30 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
     });
 
     const stateSub = epPlayer.addEventListener('onPlaybackStateChange', (data: any) => {
-      setIsPlaying(data.isPlaying ?? false);
+      const playing = data.isPlaying ?? false;
+      setIsPlaying(playing);
+      logger.info('PLAYER', 'playbackStateChange', { contentId: content.id, isPlaying: playing });
+      // First time the video actually plays → fade out the black loading overlay
+      if (playing && !videoReadyRef.current) {
+        videoReadyRef.current = true;
+        Animated.timing(videoReadyOpacity, {
+          toValue: 0,
+          duration: 350,
+          useNativeDriver: true,
+        }).start(() => setIsVideoReady(true));
+      }
     });
 
     const bufferSub = epPlayer.addEventListener('onBuffer', (buffering: any) => {
       // onBuffer passes a boolean directly in v7
-      setIsBuffering(typeof buffering === 'boolean' ? buffering : buffering?.isBuffering ?? false);
+      const buf = typeof buffering === 'boolean' ? buffering : buffering?.isBuffering ?? false;
+      setIsBuffering(buf);
+      logger.info('PLAYER', 'onBuffer', { contentId: content.id, buffering: buf });
     });
 
     // When video ends: save completed progress then advance or reset
     const endSub = epPlayer.addEventListener('onEnd', () => {
+      logger.info('PLAYER', 'onEnd', { contentId: content.id });
       if (durationRef.current > 0) {
         const req: SaveProgressRequest = {
           currentTime: durationRef.current,
@@ -571,16 +659,19 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
       <Animated.View style={[styles.overlay, styles.controlsLayer, { opacity: controlsOpacity }]} pointerEvents={showControls ? 'box-none' : 'none'}>
 
           {/* Top bar */}
-          <View style={styles.topBar}>
+          <View style={[
+            styles.topBar,
+            isShortFilm && { paddingTop: 8, paddingBottom: 6, paddingHorizontal: 12, gap: 8 },
+          ]}>
             <TouchableOpacity
               onPress={(e) => { e.stopPropagation?.(); handleBack(); }}
-              style={styles.iconBtn}
-              activeOpacity={0.7}>
+              style={styles.backBtn}
+              activeOpacity={0.8}>
               <ArrowLeftIcon />
             </TouchableOpacity>
             <View style={styles.topTitleWrap}>
-              <Text style={styles.topTitle} numberOfLines={1}>{content.title}</Text>
-              <Text style={styles.topDir}>{content.director}</Text>
+              <Text style={[styles.topTitle, isShortFilm && { fontSize: 13 }]} numberOfLines={1}>{content.title}</Text>
+              {/* <Text style={[styles.topDir,   isShortFilm && { fontSize: 11 }]}>{content.director}</Text> */}
             </View>
             <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7}>
               <MoreVertIcon />
@@ -591,14 +682,17 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
           <View style={styles.centreWrap}>
             <TouchableOpacity
               onPress={(e) => { e.stopPropagation?.(); togglePlay(); }}
-              style={styles.bigPlayBtn}
+              style={[styles.bigPlayBtn, isShortFilm && { width: 52, height: 52, borderRadius: 26 }]}
               activeOpacity={0.8}>
-              {isPlaying ? <PauseIcon size={36} /> : <PlayIcon size={36} />}
+              {isPlaying ? <PauseIcon size={isShortFilm ? 22 : 36} /> : <PlayIcon size={isShortFilm ? 22 : 36} />}
             </TouchableOpacity>
           </View>
 
           {/* Bottom controls */}
-          <View style={styles.bottomBar}>
+          <View style={[
+            styles.bottomBar,
+            isShortFilm && { paddingTop: 6, paddingBottom: 8, paddingHorizontal: 12, gap: 5 },
+          ]}>
             {/* Time + progress */}
             <View style={styles.timeRow}>
               <Text style={styles.timeText}>{hasRealVideo ? fmt(currentTime) : formatTime(progress)}</Text>
@@ -662,6 +756,16 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
           </View>
         )}
       </Animated.View>
+
+      {/* ── Black loading overlay (covers everything until first frame plays) ── */}
+      {hasRealVideo && !isVideoReady && (
+        <Animated.View
+          style={[styles.videoLoadOverlay, { opacity: videoReadyOpacity }]}
+          pointerEvents="none"
+        >
+          <LoadingSpinner />
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -674,6 +778,14 @@ const styles = StyleSheet.create({
   bgBlur:     { ...StyleSheet.absoluteFillObject, opacity: 0.35 },
   bgDim:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   mainImage:  { flex: 1, width: '100%' },
+
+  videoLoadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
 
   loadingWrap: {
     ...StyleSheet.absoluteFillObject,
@@ -752,6 +864,14 @@ const styles = StyleSheet.create({
   controlLeft: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   // Sidebar
   sidebar: {
@@ -772,20 +892,22 @@ const styles = StyleSheet.create({
 });
 
 const iconStyles = StyleSheet.create({
-  // ArrowLeft
-  arrowWrap:    { width: 22, height: 22, justifyContent: 'center' },
-  arrowStem:    { position: 'absolute', left: 2, right: 2, height: 2, backgroundColor: '#ffffff', borderRadius: 1 },
-  arrowTip:     { position: 'absolute', left: 2, width: 9, height: 2, backgroundColor: '#ffffff', borderRadius: 1 },
-  arrowTipUp:   { transform: [{ rotate: '45deg' }], top: 5 },
-  arrowTipDown: { transform: [{ rotate: '-45deg' }], bottom: 5 },
+  // ArrowLeft (chevron, matches ContentDetailScreen)
+  arrowWrap:      { width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
+  chevronTop:     { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, top: 6, transform: [{ rotate: '-45deg' }] },
+  chevronBottom:  { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, bottom: 6, transform: [{ rotate: '45deg' }] },
 
   // Volume
-  volWrap: { width: 22, height: 18, alignItems: 'center', justifyContent: 'center' },
-  volBody: { position: 'absolute', left: 0, width: 7, height: 10, borderWidth: 1.5, borderRightWidth: 0, borderRadius: 1 },
-  volCone: { position: 'absolute', left: 5, width: 0, height: 0, borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 6, borderStyle: 'solid' },
-  volWave: { position: 'absolute', right: 0, width: 8, height: 12, borderTopRightRadius: 8, borderBottomRightRadius: 8, borderWidth: 1.5, borderLeftWidth: 0 },
-  volX1:   { position: 'absolute', right: 0, width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  volX2:   { position: 'absolute', right: 0, width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  volWrap: { width: 28, height: 22 },
+  // Solid rectangular back of the speaker
+  volBody: { position: 'absolute', left: 0, top: 7, width: 5, height: 8, borderRadius: 1 },
+  // Right-pointing triangle (speaker horn)
+  volCone: { position: 'absolute', left: 4, top: 3, width: 0, height: 0, borderTopWidth: 8, borderBottomWidth: 8, borderLeftWidth: 9, borderStyle: 'solid' },
+  // Semi-circular sound-wave arc
+  volWave: { position: 'absolute', right: 1, top: 3, width: 9, height: 16, borderTopRightRadius: 8, borderBottomRightRadius: 8, borderWidth: 2.5, borderLeftWidth: 0 },
+  // Mute X — two diagonal bars
+  volX1:   { position: 'absolute', right: 1, top: 8, width: 12, height: 2.5, borderRadius: 1.5, transform: [{ rotate: '45deg' }] },
+  volX2:   { position: 'absolute', right: 1, top: 8, width: 12, height: 2.5, borderRadius: 1.5, transform: [{ rotate: '-45deg' }] },
 
   // More vertical
   moreWrap: { width: 20, height: 20, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 2 },
