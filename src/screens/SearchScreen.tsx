@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import {
   ActivityIndicator,
   Animated,
@@ -29,97 +30,7 @@ const TRENDING = [
 ];
 const RECENT_SEED = ['The Last Train', 'Midnight Caller'];
 
-// ─── Pure-View icons ──────────────────────────────────────────────────────────
-function ArrowLeftIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowShaft} />
-      <View style={[iconStyles.arrowHead, iconStyles.arrowHeadTop]} />
-      <View style={[iconStyles.arrowHead, iconStyles.arrowHeadBot]} />
-    </View>
-  );
-}
-
-function SearchIcon({ color = '#737373', size = 18 }: { color?: string; size?: number }) {
-  const r = size * 0.38;
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <View
-        style={{
-          width: r * 2,
-          height: r * 2,
-          borderRadius: r,
-          borderWidth: 2,
-          borderColor: color,
-          position: 'absolute',
-          top: 0,
-          left: 0,
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          right: 0,
-          width: 2,
-          height: size * 0.38,
-          backgroundColor: color,
-          borderRadius: 1,
-          transform: [{ rotate: '-45deg' }],
-        }}
-      />
-    </View>
-  );
-}
-
-function XIcon({ color = '#737373', size = 16 }: { color?: string; size?: number }) {
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <View
-        style={{
-          position: 'absolute',
-          width: size * 0.85,
-          height: 2,
-          backgroundColor: color,
-          borderRadius: 1,
-          transform: [{ rotate: '45deg' }],
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          width: size * 0.85,
-          height: 2,
-          backgroundColor: color,
-          borderRadius: 1,
-          transform: [{ rotate: '-45deg' }],
-        }}
-      />
-    </View>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <View style={iconStyles.clockWrap}>
-      <View style={iconStyles.clockFace} />
-      <View style={iconStyles.clockHour} />
-      <View style={iconStyles.clockMin} />
-    </View>
-  );
-}
-
-function TrendingUpIcon() {
-  return (
-    <View style={iconStyles.trendWrap}>
-      <View style={iconStyles.trendLine} />
-      <View style={iconStyles.trendArrowV} />
-      <View style={iconStyles.trendArrowH} />
-    </View>
-  );
-}
-
-// ─── Pill badge (trending tags) ───────────────────────────────────────────────
+// ─── Pill badge (trending tags) ─────────────────────────────────────────────
 function TrendBadge({ label, onPress }: { label: string; onPress: () => void }) {
   const scale = useRef(new Animated.Value(1)).current;
   const onPressIn = () => Animated.spring(scale, { toValue: 0.94, useNativeDriver: true }).start();
@@ -195,12 +106,12 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
       {/* ── Sticky header ── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.7}>
-          <ArrowLeftIcon />
+          <Ionicons name="chevron-back" size={22} color="#ffffff" />
         </TouchableOpacity>
 
         <View style={styles.inputWrap}>
           <View style={styles.inputIcon}>
-            <SearchIcon />
+            <Ionicons name="search" size={18} color="#737373" />
           </View>
           <TextInput
             ref={inputRef}
@@ -218,7 +129,7 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
               onPress={() => setQuery('')}
               style={styles.clearBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <XIcon color="#737373" size={16} />
+              <Ionicons name="close-circle" size={18} color="#525252" />
             </TouchableOpacity>
           )}
         </View>
@@ -252,7 +163,7 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
               /* ── Empty state ── */
               <View style={styles.empty}>
                 <View style={styles.emptyIcon}>
-                  <SearchIcon color="#525252" size={32} />
+                  <Ionicons name="search" size={32} color="#525252" />
                 </View>
                 <Text style={styles.emptyTitle}>No results found</Text>
                 <Text style={styles.emptySubtitle}>Try searching for different keywords</Text>
@@ -269,7 +180,7 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
               <View style={styles.section}>
                 <View style={styles.sectionRow}>
                   <View style={styles.sectionRowLeft}>
-                    <ClockIcon />
+                    <Ionicons name="time-outline" size={16} color="#737373" />
                     <Text style={styles.sectionLabel}>Recent Searches</Text>
                   </View>
                   <TouchableOpacity onPress={() => setHistory([])} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -283,12 +194,12 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
                     style={styles.historyRow}
                     onPress={() => handleSearch(item)}
                     activeOpacity={0.7}>
-                    <ClockIcon />
+                    <Ionicons name="time-outline" size={16} color="#737373" />
                     <Text style={styles.historyText}>{item}</Text>
                     <TouchableOpacity
                       onPress={() => removeFromHistory(idx)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <XIcon color="#525252" size={14} />
+                      <Ionicons name="close" size={14} color="#525252" />
                     </TouchableOpacity>
                   </TouchableOpacity>
                 ))}
@@ -298,7 +209,7 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
             {/* Trending searches */}
             <View style={styles.section}>
               <View style={styles.sectionRowLeft}>
-                <TrendingUpIcon />
+                <Ionicons name="trending-up" size={16} color="#737373" />
                 <Text style={styles.sectionLabel}>Trending Searches</Text>
               </View>
               <View style={styles.trendWrap}>
@@ -477,106 +388,3 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Icon styles ──────────────────────────────────────────────────────────────
-const iconStyles = StyleSheet.create({
-  // ── Back arrow ─────────────────────────────────────────────────────────────
-  arrowWrap: {
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  arrowShaft: {
-    position: 'absolute',
-    width: 14,
-    height: 2,
-    backgroundColor: '#ffffff',
-    borderRadius: 1,
-  },
-  arrowHead: {
-    position: 'absolute',
-    left: 0,
-    width: 8,
-    height: 2,
-    backgroundColor: '#ffffff',
-    borderRadius: 1,
-  },
-  arrowHeadTop: {
-    top: 5,
-    transform: [{ rotate: '-45deg' }],
-    transformOrigin: 'left center',
-  },
-  arrowHeadBot: {
-    bottom: 5,
-    transform: [{ rotate: '45deg' }],
-    transformOrigin: 'left center',
-  },
-  // ── Clock ──────────────────────────────────────────────────────────────────
-  clockWrap: {
-    width: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clockFace: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1.5,
-    borderColor: '#737373',
-  },
-  clockHour: {
-    position: 'absolute',
-    width: 1.5,
-    height: 4,
-    backgroundColor: '#737373',
-    borderRadius: 1,
-    top: 2,
-    left: 7,
-  },
-  clockMin: {
-    position: 'absolute',
-    width: 1.5,
-    height: 3,
-    backgroundColor: '#737373',
-    borderRadius: 1,
-    top: 6,
-    left: 7,
-    transform: [{ rotate: '90deg' }],
-  },
-  // ── Trending up ────────────────────────────────────────────────────────────
-  trendWrap: {
-    width: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trendLine: {
-    position: 'absolute',
-    width: 13,
-    height: 1.5,
-    backgroundColor: '#737373',
-    borderRadius: 1,
-    bottom: 3,
-    left: 1,
-    transform: [{ rotate: '-25deg' }],
-  },
-  trendArrowV: {
-    position: 'absolute',
-    width: 1.5,
-    height: 5,
-    backgroundColor: '#737373',
-    borderRadius: 1,
-    top: 1,
-    right: 2,
-  },
-  trendArrowH: {
-    position: 'absolute',
-    width: 5,
-    height: 1.5,
-    backgroundColor: '#737373',
-    borderRadius: 1,
-    top: 1,
-    right: 2,
-  },
-});

@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { Ionicons, type IoniconsIconName } from '@react-native-vector-icons/ionicons';
 import {
   Animated,
   Dimensions,
@@ -18,14 +19,14 @@ import LinearGradient from 'react-native-linear-gradient';
 const { width } = Dimensions.get('window');
 
 // ─── Slide data ───────────────────────────────────────────────────────────────
-const slides = [
+const slides: { id: number; title: string; description: string; colors: string[]; iconName: IoniconsIconName }[] = [
   {
     id: 0,
     title: 'Premium Short Films',
     description:
       'Discover award-winning short films and vertical series from independent creators',
     colors: ['#a855f7', '#9333ea'],   // purple-500 → purple-600
-    Icon: FilmIcon,
+    iconName: 'film',
   },
   {
     id: 1,
@@ -33,7 +34,7 @@ const slides = [
     description:
       'No subscription trap. Rent only what you want to watch. Starting at just ₹29',
     colors: ['#ec4899', '#db2777'],   // pink-500 → pink-600
-    Icon: ZapIcon,
+    iconName: 'flash',
   },
   {
     id: 2,
@@ -41,7 +42,7 @@ const slides = [
     description:
       '70% of your payment goes directly to filmmakers. Own their success',
     colors: ['#f59e0b', '#ea580c'],   // amber-500 → orange-600
-    Icon: HeartIcon,
+    iconName: 'heart',
   },
   {
     id: 3,
@@ -49,72 +50,17 @@ const slides = [
     description:
       'First OTT to treat vertical content as premium storytelling, not just reels',
     colors: ['#3b82f6', '#06b6d4'],   // blue-500 → cyan-600
-    Icon: TrendingUpIcon,
+    iconName: 'videocam',
   },
 ];
 
-// ─── Icon components (pure RN Views) ─────────────────────────────────────────
-
-function FilmIcon() {
-  return (
-    <View style={iconStyles.filmOuter}>
-      <View style={iconStyles.filmStripLeft}>
-        {[0, 1, 2, 3].map(i => <View key={i} style={iconStyles.filmHole} />)}
-      </View>
-      <View style={{ flex: 1 }} />
-      <View style={iconStyles.filmStripRight}>
-        {[0, 1, 2, 3].map(i => <View key={i} style={iconStyles.filmHole} />)}
-      </View>
-    </View>
-  );
-}
-
-function ZapIcon() {
-  // Lightning bolt: two slanted thin rectangles
-  return (
-    <View style={iconStyles.zapWrap}>
-      <View style={iconStyles.zapTop} />
-      <View style={iconStyles.zapBottom} />
-    </View>
-  );
-}
-
-function HeartIcon() {
-  // Heart using two rounded squares + rotated diamond
-  return (
-    <View style={iconStyles.heartWrap}>
-      <View style={[iconStyles.heartLobe, iconStyles.heartLobeLeft]} />
-      <View style={[iconStyles.heartLobe, iconStyles.heartLobeRight]} />
-      <View style={iconStyles.heartTip} />
-    </View>
-  );
-}
-
-function TrendingUpIcon() {
-  // Arrow line going up-right
-  return (
-    <View style={iconStyles.trendWrap}>
-      <View style={iconStyles.trendLine1} />
-      <View style={iconStyles.trendLine2} />
-      <View style={iconStyles.trendArrowV} />
-      <View style={iconStyles.trendArrowH} />
-    </View>
-  );
-}
-
 // ─── Chevron right icon ───────────────────────────────────────────────────────
 function ChevronRight() {
-  return (
-    <View style={chevronStyles.wrap}>
-      <View style={chevronStyles.top} />
-      <View style={chevronStyles.bottom} />
-    </View>
-  );
+  return <Ionicons name="chevron-forward" size={22} color="#fff" />;
 }
 
 // ─── Single slide page ────────────────────────────────────────────────────────
 function SlidePage({ slide }: { slide: (typeof slides)[number] }) {
-  const { Icon } = slide;
   return (
     <View style={styles.slidePage}>
       {/* Circle icon */}
@@ -123,7 +69,7 @@ function SlidePage({ slide }: { slide: (typeof slides)[number] }) {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.iconCircle}>
-        <Icon />
+        <Ionicons name={slide.iconName} size={56} color="#fff" />
       </LinearGradient>
 
       {/* Title + description */}
@@ -341,165 +287,3 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Icon sub-styles ──────────────────────────────────────────────────────────
-const iconStyles = StyleSheet.create({
-  // Film
-  filmOuter: {
-    width: 58,
-    height: 44,
-    borderRadius: 5,
-    borderWidth: 3,
-    borderColor: '#fff',
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  filmStripLeft: {
-    width: 12,
-    borderRightWidth: 2.5,
-    borderRightColor: '#fff',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingVertical: 3,
-  },
-  filmStripRight: {
-    width: 12,
-    borderLeftWidth: 2.5,
-    borderLeftColor: '#fff',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingVertical: 3,
-  },
-  filmHole: {
-    width: 5,
-    height: 5,
-    borderRadius: 1.5,
-    backgroundColor: '#fff',
-  },
-
-  // Zap / Lightning
-  zapWrap: {
-    width: 40,
-    height: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  zapTop: {
-    position: 'absolute',
-    width: 6,
-    height: 36,
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    top: 0,
-    transform: [{ rotate: '20deg' }, { translateX: 6 }],
-  },
-  zapBottom: {
-    position: 'absolute',
-    width: 6,
-    height: 36,
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    bottom: 0,
-    transform: [{ rotate: '20deg' }, { translateX: -6 }],
-  },
-
-  // Heart
-  heartWrap: {
-    width: 64,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  heartLobe: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    top: 0,
-  },
-  heartLobeLeft: { left: 2 },
-  heartLobeRight: { right: 2 },
-  heartTip: {
-    position: 'absolute',
-    width: 32,
-    height: 32,
-    backgroundColor: '#fff',
-    transform: [{ rotate: '45deg' }],
-    top: 14,
-    borderRadius: 4,
-  },
-
-  // Trending up
-  trendWrap: {
-    width: 64,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trendLine1: {
-    position: 'absolute',
-    width: 50,
-    height: 5,
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    top: 24,
-    transform: [{ rotate: '-28deg' }, { translateY: -8 }],
-  },
-  trendLine2: {
-    position: 'absolute',
-    width: 24,
-    height: 5,
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    bottom: 10,
-    left: 4,
-    transform: [{ rotate: '-6deg' }],
-  },
-  trendArrowV: {
-    position: 'absolute',
-    width: 5,
-    height: 16,
-    backgroundColor: '#fff',
-    borderRadius: 2,
-    top: 4,
-    right: 6,
-  },
-  trendArrowH: {
-    position: 'absolute',
-    width: 16,
-    height: 5,
-    backgroundColor: '#fff',
-    borderRadius: 2,
-    top: 4,
-    right: 6,
-  },
-});
-
-const chevronStyles = StyleSheet.create({
-  wrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  top: {
-    position: 'absolute',
-    width: 10,
-    height: 3,
-    backgroundColor: '#fff',
-    borderRadius: 1.5,
-    top: 4,
-    left: 4,
-    transform: [{ rotate: '45deg' }],
-  },
-  bottom: {
-    position: 'absolute',
-    width: 10,
-    height: 3,
-    backgroundColor: '#fff',
-    borderRadius: 1.5,
-    bottom: 4,
-    left: 4,
-    transform: [{ rotate: '-45deg' }],
-  },
-});

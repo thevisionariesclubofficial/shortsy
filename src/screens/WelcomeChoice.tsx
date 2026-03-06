@@ -1,8 +1,10 @@
+import {Ionicons} from '@react-native-vector-icons/ionicons';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Dimensions,
   Easing,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -177,13 +179,13 @@ export function WelcomeChoice({ onLogin, onSignup }: WelcomeChoiceProps) {
       {/* Centre hero */}
       <View style={styles.hero}>
         {/* Logo box */}
-        <LinearGradient
-          colors={['#9333ea', '#ec4899']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.logoBox}>
-          <FilmIcon size={48} />
-        </LinearGradient>
+        <View style={styles.logoBox}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
 
         {/* Branding text */}
         <View style={styles.brandBlock}>
@@ -217,7 +219,8 @@ export function WelcomeChoice({ onLogin, onSignup }: WelcomeChoiceProps) {
             end={{ x: 1, y: 0 }}
             style={styles.primaryBtn}>
             <Text style={styles.primaryBtnText}>Get Started</Text>
-            <ArrowRightIcon />
+            {/* <ArrowRightIcon /> */}
+            <Ionicons name="arrow-forward" size={15} color="#fff" />
           </LinearGradient>
         </Pressable>
 
@@ -254,9 +257,9 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   logoBox: {
-    width: 96,
-    height: 96,
-    borderRadius: 24,
+    width: 120,
+    height: 120,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#9333ea',
@@ -264,6 +267,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 14,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 28,
   },
   brandBlock: {
     alignItems: 'center',

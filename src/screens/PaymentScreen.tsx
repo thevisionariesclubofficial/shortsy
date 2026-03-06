@@ -11,82 +11,13 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Content } from '../data/mockData';
 import { confirmPayment, initiateRental } from '../services/rentalService';
 import RazorpayCheckout from 'react-native-razorpay';
 import { logger } from '../utils/logger';
 import type { RentalRecord } from '../types/api';
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function ArrowLeftIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={[iconStyles.arrowTip, iconStyles.arrowTipUp]} />
-      <View style={[iconStyles.arrowTip, iconStyles.arrowTipDown]} />
-    </View>
-  );
-}
-
-function ShieldIcon({ color = '#22c55e' }: { color?: string }) {
-  return (
-    <View style={iconStyles.shieldWrap}>
-      <View style={[iconStyles.shieldBody, { borderColor: color }]} />
-      <View style={[iconStyles.shieldCheck, { backgroundColor: color }]} />
-    </View>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <View style={iconStyles.infoOuter}>
-      <Text style={iconStyles.infoText}>i</Text>
-    </View>
-  );
-}
-
-function SmartphoneIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#a3a3a3';
-  return (
-    <View style={[iconStyles.phoneOuter, { borderColor: c }]}>
-      <View style={[iconStyles.phoneScreen, { backgroundColor: c + '33' }]} />
-      <View style={[iconStyles.phoneDot, { backgroundColor: c }]} />
-    </View>
-  );
-}
-
-function CreditCardIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#a3a3a3';
-  return (
-    <View style={[iconStyles.cardOuter, { borderColor: c }]}>
-      <View style={[iconStyles.cardStripe, { backgroundColor: c }]} />
-      <View style={[iconStyles.cardChip, { backgroundColor: c + '55' }]} />
-    </View>
-  );
-}
-
-function WalletIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#a3a3a3';
-  return (
-    <View style={[iconStyles.walletOuter, { borderColor: c }]}>
-      <View style={[iconStyles.walletFlap, { borderColor: c }]} />
-      <View style={[iconStyles.walletDot, { backgroundColor: c }]} />
-    </View>
-  );
-}
-
-function BankIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#a3a3a3';
-  return (
-    <View style={iconStyles.bankWrap}>
-      <View style={[iconStyles.bankRoof, { backgroundColor: c }]} />
-      {[0, 1, 2].map(i => (
-        <View key={i} style={[iconStyles.bankPillar, { backgroundColor: c }]} />
-      ))}
-      <View style={[iconStyles.bankBase, { backgroundColor: c }]} />
-    </View>
-  );
-}
+import { COLORS } from '../constants/colors';
 
 function Spinner() {
   const spin = useRef(new Animated.Value(0)).current;
@@ -97,7 +28,7 @@ function Spinner() {
   }, [spin]);
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   return (
-    <Animated.View style={[iconStyles.spinner, { transform: [{ rotate }] }]} />
+    <Animated.View style={[styles.spinner, { transform: [{ rotate }] }]} />
   );
 }
 
@@ -115,6 +46,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [processing, setProcessing] = useState(false);
   const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
+  const [securityTip, setSecurityTip] = useState(false);
 
   const isValid = () => {
     return selectedMethod !== null;
@@ -170,7 +102,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
           contact: '',
           name: '',
         },
-        theme: { color: '#7c3aed' },
+        theme: { color: COLORS.brand.primaryDark },
         config: {
           display: {
             preferences: {
@@ -261,11 +193,11 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
     }
   };
 
-  const methods: { key: PaymentMethod; label: string; Icon: React.FC<{ active: boolean }> }[] = [
-    { key: 'upi',        label: 'UPI',         Icon: SmartphoneIcon },
-    { key: 'card',       label: 'Card',         Icon: CreditCardIcon },
-    { key: 'wallet',     label: 'Wallet',       Icon: WalletIcon },
-    { key: 'netbanking', label: 'Net Banking',  Icon: BankIcon },
+  const methods: { key: PaymentMethod; label: string; iconName: string }[] = [
+    { key: 'upi',        label: 'UPI',         iconName: 'phone-portrait-outline' },
+    { key: 'card',       label: 'Card',         iconName: 'card-outline' },
+    { key: 'wallet',     label: 'Wallet',       iconName: 'wallet-outline' },
+    { key: 'netbanking', label: 'Net Banking',  iconName: 'business-outline' },
   ];
 
   return (
@@ -277,17 +209,28 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
         {/* ── Header ── */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
-            <ArrowLeftIcon />
+            <Ionicons name="chevron-back" size={24} color={COLORS.icon.white} />
           </TouchableOpacity>
           <View style={styles.headerText}>
             <Text style={styles.headerTitle}>Complete Payment</Text>
             <Text style={styles.headerSub}>Secure checkout</Text>
           </View>
-          <ShieldIcon />
+          <TouchableOpacity
+            style={styles.shieldBtn}
+            activeOpacity={0.75}
+            onPress={() => { setSecurityTip(v => !v); setTimeout(() => setSecurityTip(false), 2500); }}>
+            <Ionicons name="shield-checkmark" size={22} color={COLORS.accent.green} />
+            {securityTip && (
+              <View style={styles.shieldTip}>
+                <Text style={styles.shieldTipText}>256-bit SSL secured</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled">
 
@@ -299,7 +242,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
               {/* Thumbnail */}
               <View style={styles.thumbWrap}>
                 <LinearGradient
-                  colors={['#1e1b4b', '#4338ca']}
+                  colors={COLORS.gradient.thumbFallback}
                   style={StyleSheet.absoluteFill}
                 />
                 {content.thumbnail ? (
@@ -346,7 +289,9 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
 
           {/* ── Access Info ── */}
           <View style={styles.infoBox}>
-            <InfoIcon />
+            <View style={styles.infoIconWrap}>
+              <Ionicons name="information-circle" size={20} color={COLORS.accent.blue} />
+            </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>Access Details</Text>
               <Text style={styles.infoBody}>
@@ -360,7 +305,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
           {/* ── Method selector ── */}
           <Text style={styles.sectionTitle}>Select Payment Method</Text>
           <View style={styles.methodGrid}>
-            {methods.map(({ key, label, Icon }) => {
+          {methods.map(({ key, label, iconName }) => {
               const active = selectedMethod === key;
               return (
                 <TouchableOpacity
@@ -368,7 +313,11 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
                   style={[styles.methodBtn, active && styles.methodBtnActive]}
                   onPress={() => setSelectedMethod(key)}
                   activeOpacity={0.7}>
-                  <Icon active={active} />
+                  <Ionicons
+                    name={iconName as any}
+                    size={26}
+                    color={active ? COLORS.brand.violet : COLORS.text.tertiary}
+                  />
                   <Text style={[styles.methodLabel, active && styles.methodLabelActive]}>
                     {label}
                   </Text>
@@ -381,7 +330,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
 
           {/* ── Security badge ── */}
           <View style={styles.securityRow}>
-            <ShieldIcon color="#525252" />
+            <Ionicons name="shield-checkmark" size={14} color={COLORS.text.dimmed} />
             <Text style={styles.securityText}>Secured by 256-bit SSL encryption</Text>
           </View>
 
@@ -391,7 +340,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
         {/* ── Pay button ── */}
         <View style={styles.ctaWrap}>
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.95)', '#000000']}
+            colors={COLORS.gradient.ctaFade}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
@@ -400,7 +349,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
             activeOpacity={isValid() && !processing ? 0.85 : 1}
             style={[styles.payBtn, (!isValid() || processing) && styles.payBtnDisabled]}>
             <LinearGradient
-              colors={['#7c3aed', '#db2777']}
+              colors={COLORS.gradient.progress}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[StyleSheet.absoluteFill, { borderRadius: 14 }]}
@@ -428,7 +377,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
               onPress={() => setErrorModal({ visible: false, message: '' })}
               activeOpacity={0.8}>
               <LinearGradient
-                colors={['#7c3aed', '#db2777']}
+                colors={COLORS.gradient.progress}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={[StyleSheet.absoluteFill, { borderRadius: 12 }]}
@@ -451,7 +400,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   flex:      { flex: 1 },
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: COLORS.bg.black },
 
   header: {
     flexDirection: 'row',
@@ -461,58 +410,85 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
-    backgroundColor: 'rgba(0,0,0,0.97)',
+    borderBottomColor: COLORS.bg.elevated,
+    backgroundColor: COLORS.overlay.headerBg,
   },
   backBtn:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   headerText: { flex: 1 },
-  headerTitle:{ fontSize: 20, fontWeight: '700', color: '#ffffff' },
-  headerSub:  { fontSize: 12, color: '#737373', marginTop: 1 },
+  headerTitle:{ fontSize: 20, fontWeight: '700', color: COLORS.text.primary },
+  headerSub:  { fontSize: 12, color: COLORS.text.muted, marginTop: 1 },
 
   scroll: { padding: 20, gap: 16 },
 
   card: {
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderRadius: 20,
     padding: 20,
     gap: 12,
   },
-  cardLabel: { fontSize: 12, fontWeight: '600', color: '#737373', textTransform: 'uppercase', letterSpacing: 0.8 },
+  cardLabel: { fontSize: 12, fontWeight: '600', color: COLORS.text.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
 
   summaryRow:   { flexDirection: 'row', gap: 14 },
-  thumbWrap:    { width: 72, height: 100, borderRadius: 10, overflow: 'hidden', backgroundColor: '#1a1a1a' },
+  thumbWrap:    { width: 72, height: 100, borderRadius: 10, overflow: 'hidden', backgroundColor: COLORS.bg.elevated },
   thumbImg:     { ...StyleSheet.absoluteFillObject },
   summaryInfo:  { flex: 1, gap: 4 },
-  summaryTitle: { fontSize: 15, fontWeight: '600', color: '#ffffff', lineHeight: 20 },
-  summaryDir:   { fontSize: 12, color: '#737373' },
+  summaryTitle: { fontSize: 15, fontWeight: '600', color: COLORS.text.primary, lineHeight: 20 },
+  summaryDir:   { fontSize: 12, color: COLORS.text.muted },
   summaryBadges:{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 },
-  badgePurple:  { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, backgroundColor: '#7c3aed' },
-  badgeOutline: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, borderWidth: 1, borderColor: '#404040' },
-  badgeText:    { fontSize: 11, color: '#ffffff', fontWeight: '600' },
-  badgeOutlineText: { fontSize: 11, color: '#d4d4d4' },
+  badgePurple:  { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, backgroundColor: COLORS.brand.primaryDark },
+  badgeOutline: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border.medium },
+  badgeText:    { fontSize: 11, color: COLORS.text.primary, fontWeight: '600' },
+  badgeOutlineText: { fontSize: 11, color: COLORS.text.secondary },
 
-  divider:    { height: 1, backgroundColor: '#1e1e1e' },
+  divider:    { height: 1, backgroundColor: COLORS.border.subtle },
   priceRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  priceDim:   { fontSize: 13, color: '#737373' },
-  priceWhite: { fontSize: 13, color: '#ffffff' },
-  totalLabel: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
-  totalValue: { fontSize: 18, fontWeight: '700', color: '#a855f7' },
+  priceDim:   { fontSize: 13, color: COLORS.text.muted },
+  priceWhite: { fontSize: 13, color: COLORS.text.primary },
+  totalLabel: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary },
+  totalValue: { fontSize: 18, fontWeight: '700', color: COLORS.brand.violet },
 
   infoBox: {
     flexDirection: 'row',
-    gap: 12,
-    backgroundColor: 'rgba(59,130,246,0.08)',
+    gap: 10,
+    backgroundColor: COLORS.overlay.infoBg,
     borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.2)',
+    borderColor: COLORS.overlay.infoBorder,
     borderRadius: 14,
     padding: 14,
-    alignItems: 'flex-start',
+    alignItems: 'center',
+  },
+  infoIconWrap: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
   },
   infoContent: { flex: 1 },
-  infoTitle:   { fontSize: 13, fontWeight: '600', color: '#60a5fa', marginBottom: 4 },
-  infoBody:    { fontSize: 13, color: '#93c5fd', lineHeight: 18 },
+  infoTitle:   { fontSize: 13, fontWeight: '600', color: COLORS.accent.blue, marginBottom: 2 },
+  infoBody:    { fontSize: 13, color: COLORS.accent.blueSoft, lineHeight: 18 },
 
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
+  shieldBtn: {
+    position: 'relative',
+    padding: 4,
+  },
+  shieldTip: {
+    position: 'absolute',
+    top: 30,
+    right: 0,
+    backgroundColor: COLORS.bg.elevated,
+    borderWidth: 1,
+    borderColor: COLORS.accent.greenTip,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    width: 160,
+  },
+  shieldTipText: {
+    fontSize: 12,
+    color: COLORS.accent.green,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary },
 
   methodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   methodBtn: {
@@ -520,17 +496,17 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#1e1e1e',
-    backgroundColor: '#111111',
+    borderColor: COLORS.border.subtle,
+    backgroundColor: COLORS.bg.subtle,
     alignItems: 'center',
     gap: 8,
   },
-  methodBtnActive: { borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)' },
-  methodLabel:     { fontSize: 13, fontWeight: '500', color: '#737373' },
-  methodLabelActive:{ color: '#a855f7' },
+  methodBtnActive: { borderColor: COLORS.brand.primaryDark, backgroundColor: COLORS.overlay.brandTint },
+  methodLabel:     { fontSize: 13, fontWeight: '500', color: COLORS.text.muted },
+  methodLabelActive:{ color: COLORS.brand.violet },
 
   securityRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  securityText:{ fontSize: 12, color: '#525252' },
+  securityText:{ fontSize: 12, color: COLORS.text.dimmed },
 
   ctaWrap: {
     position: 'absolute',
@@ -548,7 +524,7 @@ const styles = StyleSheet.create({
   },
   payBtnDisabled: { opacity: 0.45 },
   payBtnInner:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  payBtnText:     { fontSize: 18, fontWeight: '700', color: '#ffffff', zIndex: 1 },
+  payBtnText:     { fontSize: 18, fontWeight: '700', color: COLORS.text.primary, zIndex: 1 },
 
   modalOverlay: {
     position: 'absolute',
@@ -556,30 +532,30 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: COLORS.overlay.modal,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 400,
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: COLORS.border.subtle,
   },
   modalTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     marginBottom: 12,
     textAlign: 'center',
   },
   modalMessage: {
     fontSize: 15,
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
     lineHeight: 22,
     marginBottom: 24,
     textAlign: 'center',
@@ -595,7 +571,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     zIndex: 1,
   },
   modalCancelButton: {
@@ -606,48 +582,14 @@ const styles = StyleSheet.create({
   modalCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#737373',
+    color: COLORS.text.muted,
   },
-});
-
-const iconStyles = StyleSheet.create({
-  // ArrowLeft
-  arrowWrap:    { width: 20, height: 20, justifyContent: 'center' },
-  arrowStem:    { position: 'absolute', left: 2, right: 2, height: 2, backgroundColor: '#ffffff', borderRadius: 1 },
-  arrowTip:     { position: 'absolute', left: 2, width: 8, height: 2, backgroundColor: '#ffffff', borderRadius: 1 },
-  arrowTipUp:   { transform: [{ rotate: '45deg' }], top: 5 },
-  arrowTipDown: { transform: [{ rotate: '-45deg' }], bottom: 5 },
-
-  // Shield
-  shieldWrap:  { width: 20, height: 22, alignItems: 'center' },
-  shieldBody:  { width: 18, height: 20, borderRadius: 4, borderWidth: 2, position: 'absolute' },
-  shieldCheck: { position: 'absolute', bottom: 7, width: 8, height: 2, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-
-  // Info circle
-  infoOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: '#60a5fa', alignItems: 'center', justifyContent: 'center' },
-  infoText:  { fontSize: 12, fontWeight: '700', color: '#60a5fa', lineHeight: 14 },
-
-  // Smartphone
-  phoneOuter: { width: 18, height: 24, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 3 },
-  phoneScreen:{ width: 10, height: 12, borderRadius: 1 },
-  phoneDot:   { width: 4, height: 4, borderRadius: 2 },
-
-  // CreditCard
-  cardOuter:  { width: 24, height: 18, borderRadius: 3, borderWidth: 2, justifyContent: 'space-between', paddingVertical: 2, paddingHorizontal: 2 },
-  cardStripe: { height: 4, borderRadius: 1 },
-  cardChip:   { width: 8, height: 6, borderRadius: 2 },
-
-  // Wallet
-  walletOuter: { width: 24, height: 18, borderRadius: 3, borderWidth: 2, alignItems: 'flex-end', justifyContent: 'center', paddingRight: 3 },
-  walletFlap:  { position: 'absolute', top: -1, left: 4, right: 0, height: 6, borderWidth: 1, borderBottomWidth: 0, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
-  walletDot:   { width: 6, height: 6, borderRadius: 3 },
-
-  // Bank
-  bankWrap:   { width: 22, height: 20, alignItems: 'center', gap: 2 },
-  bankRoof:   { width: 22, height: 3, borderRadius: 1 },
-  bankPillar: { position: 'absolute', bottom: 5, width: 3, height: 8, borderRadius: 1 },
-  bankBase:   { width: 22, height: 2, borderRadius: 1, position: 'absolute', bottom: 3 },
-
-  // Spinner
-  spinner: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)', borderTopColor: '#ffffff' },
+  spinner: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: COLORS.overlay.spinner,
+    borderTopColor: COLORS.text.primary,
+  },
 });

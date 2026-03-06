@@ -1,10 +1,13 @@
 import React, { useRef, useState } from 'react';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import {
   ActivityIndicator,
   Alert,
   Animated,
   Easing,
+  Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -16,83 +19,9 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { signup } from '../services/authService';
+import { LEGAL_LINKS } from '../constants/legalLinks';
 
-// ─── Icon components ──────────────────────────────────────────────────────────
 
-function FilmIcon() {
-  return (
-    <View style={iconStyles.filmOuter}>
-      <View style={iconStyles.filmStripLeft}>
-        {[0, 1, 2, 3].map(i => <View key={i} style={iconStyles.filmHole} />)}
-      </View>
-      <View style={{ flex: 1 }} />
-      <View style={iconStyles.filmStripRight}>
-        {[0, 1, 2, 3].map(i => <View key={i} style={iconStyles.filmHole} />)}
-      </View>
-    </View>
-  );
-}
-
-function MailIcon() {
-  return (
-    <View style={iconStyles.mailOuter}>
-      <View style={iconStyles.mailLine1} />
-      <View style={iconStyles.mailLine2} />
-      <View style={iconStyles.mailFlap} />
-    </View>
-  );
-}
-
-function UserIcon() {
-  return (
-    <View style={iconStyles.userWrap}>
-      <View style={iconStyles.userHead} />
-      <View style={iconStyles.userBody} />
-    </View>
-  );
-}
-
-function LockIcon() {
-  return (
-    <View style={iconStyles.lockWrap}>
-      <View style={iconStyles.lockShackle} />
-      <View style={iconStyles.lockBody} />
-    </View>
-  );
-}
-
-function EyeIcon({ off }: { off?: boolean }) {
-  return (
-    <View style={iconStyles.eyeWrap}>
-      <View style={iconStyles.eyeOval} />
-      <View style={iconStyles.eyePupil} />
-      {off && <View style={iconStyles.eyeSlash} />}
-    </View>
-  );
-}
-
-function ArrowLeftIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={iconStyles.arrowTop} />
-      <View style={iconStyles.arrowBottom} />
-    </View>
-  );
-}
-
-// ─── Google G SVG-alike (four coloured rectangles) ───────────────────────────
-function GoogleIcon() {
-  return (
-    <View style={iconStyles.gWrap}>
-      <View style={[iconStyles.gSlice, { backgroundColor: '#4285F4', top: 0, right: 10, width: 10, height: 10 }]} />
-      <View style={[iconStyles.gSlice, { backgroundColor: '#34A853', bottom: 0, right: 10, width: 10, height: 10 }]} />
-      <View style={[iconStyles.gSlice, { backgroundColor: '#FBBC05', bottom: 0, left: 10, width: 10, height: 10 }]} />
-      <View style={[iconStyles.gSlice, { backgroundColor: '#EA4335', top: 0, left: 10, width: 10, height: 10 }]} />
-      <View style={iconStyles.gCenter} />
-    </View>
-  );
-}
 
 // ─── Checkbox ─────────────────────────────────────────────────────────────────
 function Checkbox({ checked, onPress }: { checked: boolean; onPress: () => void }) {
@@ -108,8 +37,8 @@ function Checkbox({ checked, onPress }: { checked: boolean; onPress: () => void 
   );
 }
 
-// ─── Spinning loader ─────────────────────────────────────────────────────────
-function Spinner() {
+// ─── Spinning loader ────────────────────────────────────────────────────────────
+function Spinner({ color = '#ffffff' }: { color?: string }) {
   const rotation = useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
     Animated.loop(
@@ -125,7 +54,7 @@ function Spinner() {
   const rotate = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   return (
-    <Animated.View style={[spinnerStyles.ring, { transform: [{ rotate }] }]} />
+    <Animated.View style={[spinnerStyles.ring, { borderColor: `${color}40`, borderTopColor: color, transform: [{ rotate }] }]} />
   );
 }
 
@@ -138,7 +67,7 @@ interface FieldProps {
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address';
   hint?: string;
-  LeftIcon: React.ComponentType;
+  leftIcon: React.ReactNode;
   RightSlot?: React.ReactNode;
 }
 
@@ -150,7 +79,7 @@ function Field({
   secureTextEntry = false,
   keyboardType = 'default',
   hint,
-  LeftIcon,
+  leftIcon,
   RightSlot,
 }: FieldProps) {
   const [focused, setFocused] = useState(false);
@@ -158,7 +87,7 @@ function Field({
     <View style={fieldStyles.wrap}>
       <Text style={fieldStyles.label}>{label}</Text>
       <View style={[fieldStyles.row, focused && fieldStyles.rowFocused]}>
-        <View style={fieldStyles.leftIcon}><LeftIcon /></View>
+        <View style={fieldStyles.leftIcon}>{leftIcon}</View>
         <TextInput
           style={fieldStyles.input}
           placeholder={placeholder}
@@ -265,7 +194,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
           onPress={onBack}
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <ArrowLeftIcon />
+          <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
       )}
 
@@ -284,7 +213,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.logoBox}>
-              <FilmIcon />
+              <Ionicons name="person" size={32} color="#fff" />
             </LinearGradient>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Join the indie cinema revolution</Text>
@@ -298,7 +227,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               placeholder="John Doe"
               value={name}
               onChangeText={setName}
-              LeftIcon={UserIcon}
+              leftIcon={<Ionicons name="person" size={18} color="#737373" />}
             />
 
             {/* Email */}
@@ -308,7 +237,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
-              LeftIcon={MailIcon}
+              leftIcon={<Ionicons name="mail" size={18} color="#737373" />}
             />
 
             {/* Password */}
@@ -319,12 +248,12 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
               hint="At least 8 characters"
-              LeftIcon={LockIcon}
+              leftIcon={<Ionicons name="lock-closed" size={18} color="#737373" />}
               RightSlot={
                 <TouchableOpacity
                   onPress={() => setShowPassword(p => !p)}
                   style={fieldStyles.rightIcon}>
-                  <EyeIcon off={showPassword} />
+                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color="#737373" />
                 </TouchableOpacity>
               }
             />
@@ -336,7 +265,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showPassword}
-              LeftIcon={LockIcon}
+              leftIcon={<Ionicons name="lock-closed" size={18} color="#737373" />}
             />
 
             {/* Terms */}
@@ -347,9 +276,17 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               />
               <Text style={styles.termsText}>
                 I agree to the{' '}
-                <Text style={styles.termsLink}>Terms of Service</Text>
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => Linking.openURL(LEGAL_LINKS.termsOfService)}>
+                  Terms of Service
+                </Text>
                 {' '}and{' '}
-                <Text style={styles.termsLink}>Privacy Policy</Text>
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => Linking.openURL(LEGAL_LINKS.privacyPolicy)}>
+                  Privacy Policy
+                </Text>
               </Text>
             </View>
 
@@ -387,7 +324,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               activeOpacity={0.8}
               onPress={handleGoogleSignIn}
               disabled={isGoogleLoading || isLoading}>
-              {isGoogleLoading ? <Spinner /> : <GoogleIcon />}
+              {isGoogleLoading ? <Spinner color="#3c4043" /> : <Image source={require('../assets/google.png')} style={{ width: 22, height: 22, borderRadius: 10 }} resizeMode="contain" />}
               <Text style={styles.googleText}>
                 {isGoogleLoading ? 'Signing in...' : 'Sign up with Google'}
               </Text>
@@ -436,9 +373,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logoBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -517,13 +454,18 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#262626',
-    backgroundColor: '#171717',
+    borderColor: '#dadce0',
+    backgroundColor: '#ffffff',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
   },
   googleText: {
-    color: '#ffffff',
+    color: '#3c4043',
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   loginRow: {
     flexDirection: 'row',
@@ -631,8 +573,8 @@ const spinnerStyles = StyleSheet.create({
   },
 });
 
-// ─── Icon sub-styles ──────────────────────────────────────────────────────────
-const iconStyles = StyleSheet.create({
+// ─── (icon styles removed — now using Ionicons / FontAwesome5) ──────────────
+const _iconStyles = StyleSheet.create({
   // Film
   filmOuter: {
     width: 40,
