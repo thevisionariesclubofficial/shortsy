@@ -318,7 +318,11 @@ function HeroCard({
       {/* App bar */}
       <View style={heroStyles.appBar}>
         <View style={heroStyles.appBarBrand}>
-          <FilmIcon color="#a855f7" />
+          <Image
+            source={require('../assets/logo.png')}
+            style={heroStyles.appBarLogo}
+            resizeMode="contain"
+          />
           <Text style={heroStyles.appBarTitle}>SHORTSY</Text>
         </View>
       </View>
@@ -802,6 +806,11 @@ const heroStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  appBarLogo: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
   },
   appBarTitle: {
     fontSize: 18,

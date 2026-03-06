@@ -4,7 +4,7 @@
  * Intentionally thin: all state and business logic lives in `useAppState`.
  * This component is responsible only for mapping screen state → UI.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar, StyleSheet, View, Modal, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
@@ -32,12 +32,15 @@ import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
 import { ProfilePage } from '../screens/ProfilePage';
 import { SearchScreen } from '../screens/SearchScreen';
 import { SignupScreen } from '../screens/SignupScreen';
+import { OtpScreen } from '../screens/OtpScreen';
 import { SplashScreen } from '../screens/SplashScreen';
 import { TermsScreen } from '../screens/TermsScreen';
 import { WelcomeChoice } from '../screens/WelcomeChoice';
 import { resolveWatchNowScreen } from '../services/navigationService';
+import { configureGoogleSignIn } from '../services/authService';
 
 function App() {
+  useEffect(() => { configureGoogleSignIn(); }, []);
   const {
     screen,
     rentedContent,
@@ -62,6 +65,8 @@ function App() {
     onLogin,
     onLogout,
     onSignup,
+    onOtpVerified,
+    onGoogleSignIn,
     onContentClick,
     onRentedClick,
     onRent,
@@ -88,6 +93,7 @@ function App() {
           onSignup={() => navigate({ type: 'signup' })}
           onForgotPassword={() => navigate({ type: 'forgotPassword' })}
           onBack={() => navigate({ type: 'welcome' })}
+          onGoogleSignIn={onGoogleSignIn}
         />
       </SafeAreaProvider>
     );
@@ -116,6 +122,7 @@ function App() {
           onSignup={() => navigate({ type: 'signup' })}
           onForgotPassword={() => navigate({ type: 'forgotPassword' })}
           onBack={() => navigate({ type: 'welcome' })}
+          onGoogleSignIn={onGoogleSignIn}
         />
       )}
       {screen.type === 'forgotPassword' && (
@@ -126,6 +133,15 @@ function App() {
           onSignup={onSignup}
           onLogin={() => navigate({ type: 'login' })}
           onBack={() => navigate({ type: 'login' })}
+          onGoogleSignIn={onGoogleSignIn}
+        />
+      )}
+      {screen.type === 'otpVerify' && (
+        <OtpScreen
+          email={screen.email}
+          password={screen.password}
+          onVerified={onOtpVerified}
+          onBack={() => navigate({ type: 'signup' })}
         />
       )}
 

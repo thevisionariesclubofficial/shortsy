@@ -21,7 +21,7 @@ import { clearProfileStore, getCurrentUser } from '../services/profileService';
 import { getPaymentHistory } from '../services/rentalService';
 import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
 import { getContentDetail } from '../services/contentService';
-import { getSession, logout as authLogout, restoreSession } from '../services/authService';
+import { getSession, logout as authLogout, restoreSession, googleSignIn, confirmOtp, resendOtp } from '../services/authService';
 import { setAccessToken } from '../services/apiClient';
 import { logger } from '../utils/logger';
 import type { AppScreen } from '../types/navigation';
@@ -62,7 +62,11 @@ export interface AppStateHook {
   onOnboardingComplete: () => void;
   onLogin: () => void;
   onLogout: () => void;
-  onSignup: () => void;
+  /** Called after signup succeeds — navigates to OTP screen */
+  onSignup: (email: string, password: string) => void;
+  /** Called after OTP is confirmed — sets session and navigates home */
+  onOtpVerified: () => void;
+  onGoogleSignIn: () => Promise<void>;
 
   // ── Content handlers ──
   onContentClick: (content: Content) => void;
@@ -371,15 +375,36 @@ export function useAppState(): AppStateHook {
     navigate({ type: 'login' });
   }, [navigate]);
 
-  const onSignup = useCallback(() => {
-    // Same token wiring as onLogin
+  const onSignup = useCallback((email: string, password: string) => {
+    // Signup succeeded — OTP has been sent, navigate to verification screen
+    navigate({ type: 'otpVerify', email, password });
+  }, [navigate]);
+
+  const onOtpVerified = useCallback(() => {
+    // OTP confirmed: confirmOtp() already stored the session via authService
     const session = getSession();
     if (session) {
       setAccessToken(session.tokens.accessToken);
-      logger.info('APP', `New account created: ${session.user.email}`);
+      logger.info('APP', `OTP verified, account confirmed: ${session.user.email}`);
     }
     setIsAuthenticated(true);
     navigate({ type: 'home' });
+  }, [navigate]);
+
+  const onGoogleSignIn = useCallback(async () => {
+    try {
+      await googleSignIn();
+      const session = getSession();
+      if (session) {
+        setAccessToken(session.tokens.accessToken);
+        logger.info('APP', `Google sign-in: ${session.user.email}`);
+      }
+      setIsAuthenticated(true);
+      navigate({ type: 'home' });
+    } catch (err: any) {
+      // GOOGLE_SIGN_IN_CANCELLED is expected — rethrow so the screen can handle it
+      throw err;
+    }
   }, [navigate]);
 
   // ── Content handlers ────────────────────────────────────────────────────────
@@ -396,14 +421,12 @@ export function useAppState(): AppStateHook {
         let fullContent = content;
         if (content.type === 'vertical-series' && (!content.episodeList || content.episodeList.length === 0)) {
           logger.info('APP', `Fetching full content details for vertical series ${content.id}`);
-          const detailResponse = await getContentDetail(content.id);
-          fullContent = detailResponse.content;
+          fullContent = await getContentDetail(content.id);
           logger.info('APP', 'Fetched fullContent for vertical-series', { id: fullContent.id, type: fullContent.type, episodeCount: fullContent.episodeList?.length ?? 0 });
         } else if (!content.director || !content.description) {
           // Fetch full details if key fields are missing (director, description, etc.)
           logger.info('APP', `Fetching full content details for ${content.id}`);
-          const detailResponse = await getContentDetail(content.id);
-          fullContent = detailResponse.content;
+          fullContent = await getContentDetail(content.id);
           logger.info('APP', 'Fetched fullContent for content', { id: fullContent.id, type: fullContent.type, episodeCount: fullContent.episodeList?.length ?? 0 });
         }
         
@@ -604,6 +627,8 @@ export function useAppState(): AppStateHook {
     onLogin,
     onLogout,
     onSignup,
+    onOtpVerified,
+    onGoogleSignIn,
     onContentClick,
     onRentedClick,
     onRent,

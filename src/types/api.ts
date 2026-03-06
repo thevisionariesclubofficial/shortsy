@@ -44,9 +44,34 @@ export interface SignupRequest {
   displayName: string;
 }
 
-export interface SignupResponse {
+/** Returned by signup when email OTP verification is required. */
+export interface SignupPendingResponse {
+  pendingConfirmation: true;
+  email: string;
+  userId?: string;
+}
+
+// ── OTP Verification ─────────────────────────────────────────────────────────
+
+export interface ConfirmOtpRequest {
+  email: string;
+  /** 6-digit code sent to the registered email. */
+  code: string;
+  /** The password used at signup (needed to auto-login after confirmation). */
+  password: string;
+}
+
+export interface ConfirmOtpResponse {
   user: UserBasic;
   tokens: AuthTokens;
+}
+
+export interface ResendOtpRequest {
+  email: string;
+}
+
+export interface ResendOtpResponse {
+  message: string;
 }
 
 // ── 2.2 Log In ───────────────────────────────────────────────────────────────

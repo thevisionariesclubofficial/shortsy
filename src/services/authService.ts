@@ -27,6 +27,8 @@
 
 import type {
   AuthTokens,
+  ConfirmOtpRequest,
+  ConfirmOtpResponse,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   LoginRequest,
@@ -34,13 +36,34 @@ import type {
   LogoutRequest,
   RefreshTokenRequest,
   RefreshTokenResponse,
+  ResendOtpRequest,
+  ResendOtpResponse,
+  SignupPendingResponse,
   SignupRequest,
-  SignupResponse,
   UserBasic,
 } from '../types/api';
 import { USE_MOCK, ApiClientError, apiClient, mockDelay, setAccessToken } from './apiClient';
 import { logger } from '../utils/logger';
 import { saveAuthTokens, saveAuthUser, saveAuthFlag, clearAuthStorage, getAuthTokens, getAuthUser } from '../utils/storage';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+
+// ── Google Sign-In configuration ─────────────────────────────────────────────
+// Replace with your actual iOS/Android client IDs from Google Cloud Console
+const GOOGLE_IOS_CLIENT_ID     = '411501052320-ctaen736unlri4e0fhapjujnf56b92jv.apps.googleusercontent.com';
+const GOOGLE_WEB_CLIENT_ID     = '411501052320-i88soetdamgrna06pdj00peqsbuaac85.apps.googleusercontent.com';
+const GOOGLE_ANDROID_CLIENT_ID = '411501052320-iicd78lkbp0su75cn5tgdtel35c72jp8.apps.googleusercontent.com';
+
+/**
+ * Call once at app startup (e.g. in App.tsx useEffect or index.js).
+ * Safe to call multiple times.
+ */
+export function configureGoogleSignIn(): void {
+  GoogleSignin.configure({
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    offlineAccess: false,
+  });
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Session store (module-level → survives component remounts)
@@ -122,20 +145,18 @@ export function clearSession(): void {
 // POST /auth/signup
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Temporarily stores pending signup data in mock mode so confirmOtp can complete the flow. */
+const _mockPending = new Map<string, { request: SignupRequest; user: UserBasic }>();
+
 /**
- * Creates a new account and returns the user + auth tokens.
- * Stores the session and wires the access token into apiClient.
- *
- * In mock mode: any valid email + password (≥ 8 chars) succeeds.
+ * Registers a new account. Returns { pendingConfirmation: true, email } — the user
+ * is NOT logged in yet. A 6-digit OTP is sent to their email by Cognito.
+ * Call confirmOtp() with the code to complete registration and receive tokens.
  *
  * @throws ApiClientError(409, 'EMAIL_ALREADY_EXISTS') – email taken
  * @throws ApiClientError(422, 'VALIDATION_ERROR')     – weak password / bad email
- *
- * @example
- * const { user } = await signup({ email, password, displayName: name });
- * onSignup(); // navigate to home
  */
-export async function signup(params: SignupRequest): Promise<SignupResponse> {
+export async function signup(params: SignupRequest): Promise<SignupPendingResponse> {
   if (USE_MOCK) {
     const timer = logger.startTimer('AUTH', 'signup');
     await mockDelay();
@@ -153,30 +174,93 @@ export async function signup(params: SignupRequest): Promise<SignupResponse> {
       throw new ApiClientError(422, 'VALIDATION_ERROR', 'Display name cannot be empty');
     }
 
+    const email = params.email.trim().toLowerCase();
     const user: UserBasic = {
       id:          mockId('usr'),
-      email:       params.email.trim().toLowerCase(),
+      email,
       displayName: params.displayName.trim(),
       createdAt:   new Date().toISOString(),
     };
-    const tokens = mockTokens();
-    _session = { user, tokens };
-    setAccessToken(tokens.accessToken);
-    await saveAuthTokens(tokens);
-    await saveAuthUser(user);
-    await saveAuthFlag(true);
 
-    timer.end({ userId: user.id, email: user.email });
-    return { user, tokens };
+    // Store pending signup — confirmOtp will pick this up
+    _mockPending.set(email, { request: params, user });
+
+    timer.end({ email, pendingConfirmation: true });
+    return { pendingConfirmation: true, email };
   }
 
-  const result = await apiClient.post<SignupResponse>('/auth/signup', { body: params });
+  const result = await apiClient.post<SignupPendingResponse>('/auth/signup', { body: params });
+  // Session is NOT set here — awaiting OTP confirmation
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2.1b  Confirm OTP
+// POST /auth/confirm-otp
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Verifies the 6-digit OTP sent to the user's email after signup.
+ * On success, the user is confirmed and auto-logged in (tokens returned).
+ *
+ * @throws ApiClientError(422, 'INVALID_OTP')  – wrong code
+ * @throws ApiClientError(422, 'OTP_EXPIRED')  – code expired (resend required)
+ */
+export async function confirmOtp(params: ConfirmOtpRequest): Promise<ConfirmOtpResponse> {
+  if (USE_MOCK) {
+    const timer = logger.startTimer('AUTH', 'confirmOtp');
+    await mockDelay();
+
+    // In mock mode any 6-digit code is accepted
+    if (!/^\d{6}$/.test(params.code)) {
+      timer.fail({ code: 'INVALID_OTP' });
+      throw new ApiClientError(422, 'INVALID_OTP', 'Enter the 6-digit code sent to your email');
+    }
+
+    const email = params.email.trim().toLowerCase();
+    const pending = _mockPending.get(email);
+    if (!pending) {
+      timer.fail({ code: 'VALIDATION_ERROR', reason: 'No pending signup' });
+      throw new ApiClientError(400, 'VALIDATION_ERROR', 'No pending signup found for this email');
+    }
+    _mockPending.delete(email);
+
+    const tokens = mockTokens();
+    _session = { user: pending.user, tokens };
+    setAccessToken(tokens.accessToken);
+    await saveAuthTokens(tokens);
+    await saveAuthUser(pending.user);
+    await saveAuthFlag(true);
+
+    timer.end({ userId: pending.user.id, email });
+    return { user: pending.user, tokens };
+  }
+
+  const result = await apiClient.post<ConfirmOtpResponse>('/auth/confirm-otp', { body: params });
   _session = { user: result.user, tokens: result.tokens };
   setAccessToken(result.tokens.accessToken);
   await saveAuthTokens(result.tokens);
   await saveAuthUser(result.user);
   await saveAuthFlag(true);
+  logger.info('AUTH', 'OTP confirmed, session created', { email: params.email });
   return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2.1c  Resend OTP
+// POST /auth/resend-otp
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Resends the email verification code. The previous code is invalidated.
+ */
+export async function resendOtp(params: ResendOtpRequest): Promise<ResendOtpResponse> {
+  if (USE_MOCK) {
+    await mockDelay();
+    return { message: 'Verification code resent successfully' };
+  }
+
+  return apiClient.post<ResendOtpResponse>('/auth/resend-otp', { body: params });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -354,4 +438,82 @@ export async function logout(params?: Partial<LogoutRequest>): Promise<void> {
     apiClient.post('/auth/logout', { body }).catch(() => {});
   }
   clearSession();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2.6  Google Sign-In
+// POST /auth/google  (real mode)  |  mock auto-login (mock mode)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Launches the native Google Sign-In UI, obtains an ID token, then exchanges
+ * it with the backend for app-level Cognito JWTs.
+ *
+ * The backend creates a new Cognito user on first sign-in and links the
+ * Google sub on subsequent sign-ins — no password required from the user.
+ *
+ * @throws ApiClientError(401, 'INVALID_GOOGLE_TOKEN') – bad or expired ID token
+ * @throws ApiClientError(401, 'GOOGLE_SIGN_IN_CANCELLED') – user dismissed the UI
+ * @throws ApiClientError(503, 'GOOGLE_PLAY_SERVICES_UNAVAILABLE') – Android only
+ *
+ * @example
+ * await googleSignIn();
+ * onLogin(); // navigate to home
+ */
+export async function googleSignIn(): Promise<LoginResponse> {
+  if (USE_MOCK) {
+    const timer = logger.startTimer('AUTH', 'googleSignIn');
+    await mockDelay();
+    const user: UserBasic = {
+      id:          mockId('usr_g'),
+      email:       'google.user@gmail.com',
+      displayName: 'Google User',
+      createdAt:   new Date().toISOString(),
+    };
+    const tokens = mockTokens();
+    _session = { user, tokens };
+    setAccessToken(tokens.accessToken);
+    await saveAuthTokens(tokens);
+    await saveAuthUser(user);
+    await saveAuthFlag(true);
+    timer.end({ userId: user.id, provider: 'google' });
+    return { user, tokens };
+  }
+
+  // 1. Trigger native Google Sign-In
+  let idToken: string;
+  try {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    const response = await GoogleSignin.signIn();
+    const token = response.data?.idToken;
+    if (!token) throw new Error('No ID token returned by Google Sign-In');
+    idToken = token;
+  } catch (err: any) {
+    const code: string = err?.code ?? '';
+    if (code === statusCodes.SIGN_IN_CANCELLED) {
+      throw new ApiClientError(401, 'GOOGLE_SIGN_IN_CANCELLED', 'Sign in was cancelled');
+    }
+    if (code === statusCodes.IN_PROGRESS) {
+      throw new ApiClientError(409, 'GOOGLE_SIGN_IN_IN_PROGRESS', 'Sign in already in progress');
+    }
+    if (code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      throw new ApiClientError(503, 'GOOGLE_PLAY_SERVICES_UNAVAILABLE', 'Google Play Services not available');
+    }
+    logger.error('AUTH', 'Google Sign-In native error', err);
+    throw new ApiClientError(500, 'GOOGLE_SIGN_IN_ERROR', err?.message ?? 'Google Sign-In failed');
+  }
+
+  // 2. Exchange ID token with backend
+  const result = await apiClient.post<LoginResponse>('/auth/google', {
+    body: { idToken, googleClientId: GOOGLE_WEB_CLIENT_ID },
+  });
+
+  _session = { user: result.user, tokens: result.tokens };
+  setAccessToken(result.tokens.accessToken);
+  await saveAuthTokens(result.tokens);
+  await saveAuthUser(result.user);
+  await saveAuthFlag(true);
+
+  logger.info('AUTH', 'Google Sign-In successful', { userId: result.user.id, email: result.user.email });
+  return result;
 }

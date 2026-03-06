@@ -8,6 +8,7 @@ export type AppScreen =
   | { type: 'welcome' }
   | { type: 'login' }
   | { type: 'signup' }
+  | { type: 'otpVerify'; email: string; password: string }
   | { type: 'forgotPassword' }
   | { type: 'home' }
   | { type: 'search' }
@@ -57,5 +58,6 @@ export const AUTH_EXEMPT_SCREENS: ReadonlyArray<AppScreen['type']> = [
   'welcome',
   'login',
   'signup',
+  'otpVerify',
   'forgotPassword',
 ];
