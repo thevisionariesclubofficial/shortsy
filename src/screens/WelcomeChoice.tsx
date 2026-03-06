@@ -1,8 +1,10 @@
+import {Ionicons} from '@react-native-vector-icons/ionicons';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Dimensions,
   Easing,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -14,78 +16,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
-// ─── Film icon (reused from SplashScreen style) ───────────────────────────────
-function FilmIcon({ size = 48 }: { size?: number }) {
-  const holeSize = Math.round(size * 0.09);
-  const stripW = Math.round(size * 0.2);
-  return (
-    <View
-      style={{
-        width: size,
-        height: size * 0.75,
-        borderRadius: size * 0.09,
-        borderWidth: size * 0.05,
-        borderColor: '#fff',
-        flexDirection: 'row',
-        overflow: 'hidden',
-      }}>
-      <View
-        style={{
-          width: stripW,
-          borderRightWidth: size * 0.04,
-          borderRightColor: '#fff',
-          justifyContent: 'space-evenly',
-          alignItems: 'center',
-          paddingVertical: 2,
-        }}>
-        {[0, 1, 2, 3].map(i => (
-          <View
-            key={i}
-            style={{
-              width: holeSize,
-              height: holeSize,
-              borderRadius: 2,
-              backgroundColor: '#fff',
-            }}
-          />
-        ))}
-      </View>
-      <View style={{ flex: 1 }} />
-      <View
-        style={{
-          width: stripW,
-          borderLeftWidth: size * 0.04,
-          borderLeftColor: '#fff',
-          justifyContent: 'space-evenly',
-          alignItems: 'center',
-          paddingVertical: 2,
-        }}>
-        {[0, 1, 2, 3].map(i => (
-          <View
-            key={i}
-            style={{
-              width: holeSize,
-              height: holeSize,
-              borderRadius: 2,
-              backgroundColor: '#fff',
-            }}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
 
-// ─── Arrow right icon ─────────────────────────────────────────────────────────
-function ArrowRightIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={iconStyles.arrowTop} />
-      <View style={iconStyles.arrowBottom} />
-    </View>
-  );
-}
 
 // ─── Pulsing blob ─────────────────────────────────────────────────────────────
 function PulsingBlob({
@@ -177,13 +108,13 @@ export function WelcomeChoice({ onLogin, onSignup }: WelcomeChoiceProps) {
       {/* Centre hero */}
       <View style={styles.hero}>
         {/* Logo box */}
-        <LinearGradient
-          colors={['#9333ea', '#ec4899']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.logoBox}>
-          <FilmIcon size={48} />
-        </LinearGradient>
+        <View style={styles.logoBox}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
 
         {/* Branding text */}
         <View style={styles.brandBlock}>
@@ -217,7 +148,8 @@ export function WelcomeChoice({ onLogin, onSignup }: WelcomeChoiceProps) {
             end={{ x: 1, y: 0 }}
             style={styles.primaryBtn}>
             <Text style={styles.primaryBtnText}>Get Started</Text>
-            <ArrowRightIcon />
+            {/* <ArrowRightIcon /> */}
+            <Ionicons name="arrow-forward" size={15} color="#fff" />
           </LinearGradient>
         </Pressable>
 
@@ -254,9 +186,9 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   logoBox: {
-    width: 96,
-    height: 96,
-    borderRadius: 24,
+    width: 120,
+    height: 120,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#9333ea',
@@ -264,6 +196,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 14,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 28,
   },
   brandBlock: {
     alignItems: 'center',
@@ -376,38 +313,3 @@ const blobStyles = StyleSheet.create({
   },
 });
 
-const iconStyles = StyleSheet.create({
-  arrowWrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowStem: {
-    position: 'absolute',
-    width: 14,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-  },
-  arrowTop: {
-    position: 'absolute',
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    right: 3,
-    top: 5,
-    transform: [{ rotate: '45deg' }],
-  },
-  arrowBottom: {
-    position: 'absolute',
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    right: 3,
-    bottom: 5,
-    transform: [{ rotate: '-45deg' }],
-  },
-});

@@ -24,73 +24,11 @@ import {
   listContent,
 } from '../services/contentService';
 import type { WatchProgress, FeaturedHero } from '../types/api';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
+import { COLORS } from '../constants/colors';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
-
-// ─── Pure-View icons ──────────────────────────────────────────────────────────
-function FilmIcon({ color = '#a855f7' }: { color?: string }) {
-  return (
-    <View style={[iconStyles.filmOuter, { borderColor: color }]}>
-      <View style={[iconStyles.filmStrip, { borderRightColor: color }]}>
-        {[0, 1, 2].map(i => <View key={i} style={[iconStyles.filmHole, { backgroundColor: color }]} />)}
-      </View>
-      <View style={{ flex: 1 }} />
-      <View style={[iconStyles.filmStrip, iconStyles.filmStripRight, { borderLeftColor: color }]}>
-        {[0, 1, 2].map(i => <View key={i} style={[iconStyles.filmHole, { backgroundColor: color }]} />)}
-      </View>
-    </View>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <View style={iconStyles.searchWrap}>
-      <View style={iconStyles.searchCircle} />
-      <View style={iconStyles.searchHandle} />
-    </View>
-  );
-}
-
-function SparklesIcon() {
-  return (
-    <View style={iconStyles.sparkWrap}>
-      <View style={[iconStyles.sparkBar, iconStyles.sparkV]} />
-      <View style={[iconStyles.sparkBar, iconStyles.sparkH]} />
-      <View style={[iconStyles.sparkBar, iconStyles.sparkD1]} />
-      <View style={[iconStyles.sparkBar, iconStyles.sparkD2]} />
-    </View>
-  );
-}
-
-function TrendingUpIcon() {
-  return (
-    <View style={iconStyles.trendWrap}>
-      <View style={iconStyles.trendLine} />
-      <View style={iconStyles.trendArrowV} />
-      <View style={iconStyles.trendArrowH} />
-    </View>
-  );
-}
-
-function AwardIcon({ color = '#f59e0b' }: { color?: string }) {
-  return (
-    <View style={iconStyles.awardWrap}>
-      <View style={[iconStyles.awardCircle, { borderColor: color }]} />
-      <View style={[iconStyles.awardRibLeft, { backgroundColor: color }]} />
-      <View style={[iconStyles.awardRibRight, { backgroundColor: color }]} />
-    </View>
-  );
-}
-
-function PlayResumeIcon() {
-  return (
-    <View style={iconStyles.resumeWrap}>
-      <View style={iconStyles.resumeBar} />
-      <View style={iconStyles.resumeTriangle} />
-    </View>
-  );
-}
 
 // ─── Section header ───────────────────────────────────────────────────────────
 function SectionHeader({
@@ -146,7 +84,7 @@ function ShimmerPlaceholder({ width, height, borderRadius = 0 }: { width: number
           width: width === '100%' ? '100%' : width,
           height,
           borderRadius,
-          backgroundColor: '#262626',
+          backgroundColor: COLORS.bg.shimmer,
         },
         { opacity },
       ]}
@@ -202,7 +140,7 @@ function ContinueWatchingCard({
       {prog && pct > 0 && (
         <View style={cwStyles.progressTrack}>
           <LinearGradient
-            colors={['#7c3aed', '#db2777']}
+            colors={COLORS.gradient.progress}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={[cwStyles.progressFill, { width: `${pct}%` as any }]}
@@ -219,7 +157,7 @@ function ContinueWatchingCard({
       
       {/* play button */}
       <View style={cwStyles.playCircle}>
-        <View style={cwStyles.playTriangle} />
+        <Ionicons name="play" size={12} color={COLORS.icon.white} style={{ marginLeft: 2 }} />
       </View>
       
       <View style={cwStyles.info}>
@@ -311,7 +249,7 @@ function HeroCard({
 
       {/* Fade-to-black overlay at bottom */}
       <LinearGradient
-        colors={['transparent', '#000000dd', '#000000']}
+        colors={COLORS.gradient.heroBg}
         style={heroStyles.overlay}
       />
 
@@ -331,7 +269,7 @@ function HeroCard({
       <View style={heroStyles.infoBlock}>
         {hero.festivalWinner && (
           <View style={heroStyles.winnerRow}>
-            <AwardIcon color="#f59e0b" />
+            <Ionicons name="trophy" size={20} color={COLORS.icon.gold} style={{ marginRight: 4 }} />
             <Text style={heroStyles.winnerText}>Festival Winner</Text>
           </View>
         )}
@@ -509,12 +447,12 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         onPress={onSearchClick}
         style={styles.searchFab}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <SearchIcon />
+        <Ionicons name="search" size={20} color={COLORS.icon.white} />
       </TouchableOpacity>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#a855f7" />
+          <ActivityIndicator size="large" color={COLORS.brand.violet} />
         </View>
       ) : (
       <ScrollView
@@ -527,8 +465,8 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#a855f7"
-            colors={['#a855f7']}
+            tintColor={COLORS.brand.violet}
+            colors={[COLORS.brand.violet]}
           />
         }>
 
@@ -563,7 +501,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         {rentedContent.length > 0 && (
           <View style={styles.section}>
             <SectionHeader
-              Icon={<PlayResumeIcon />}
+              Icon={<Ionicons name="play-circle" size={18} color={COLORS.icon.brand} />}
               title="Continue Watching"
             />
             <ScrollView
@@ -602,7 +540,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         {/* ── Genre Discovery ── */}
         <View style={styles.section}>
           <SectionHeader
-            Icon={<SparklesIcon />}
+            Icon={<Ionicons name="sparkles" size={18} color={COLORS.icon.brand} />}
             title="Discover by Genre"
           />
           <ScrollView
@@ -623,7 +561,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         {/* ── Vertical Series ── */}
         <View style={styles.section}>
           <SectionHeader
-            Icon={<TrendingUpIcon />}
+            Icon={<Ionicons name="trending-up" size={18} color={COLORS.icon.brand} />}
             title="Vertical Series"
             subtitle="Premium storytelling in 9:16"
           />
@@ -645,7 +583,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         {/* ── Festival Winners ── */}
         <View style={styles.section}>
           <SectionHeader
-            Icon={<AwardIcon />}
+            Icon={<Ionicons name="trophy" size={18} color={COLORS.icon.gold} />}
             title="Festival Winners"
           />
           <ScrollView
@@ -666,7 +604,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         {/* ── All Content ── */}
         <View style={styles.section}>
           <SectionHeader
-            Icon={<FilmIcon />}
+            Icon={<Ionicons name="film" size={18} color={COLORS.icon.brand} />}
             title="All Content"
           />
           <ScrollView
@@ -696,13 +634,13 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   searchFab: {
     position: 'absolute',
@@ -712,7 +650,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#00000088',
+    backgroundColor: COLORS.overlay.fab,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -744,15 +682,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   sectionSubtitle: {
     fontSize: 11,
-    color: '#525252',
+    color: COLORS.text.dimmed,
   },
   moodRow: {
-    gap: 10,
+    gap: 13,
     paddingRight: 16,
+    paddingVertical: 4,
   },
   continueRow: {
     gap: 12,
@@ -780,7 +719,7 @@ const heroStyles = StyleSheet.create({
     width: width * 0.7,
     height: width * 0.7,
     borderRadius: width * 0.35,
-    backgroundColor: '#ffffff10',
+    backgroundColor: COLORS.overlay.circle1,
     top: -width * 0.15,
     right: -width * 0.2,
   },
@@ -789,7 +728,7 @@ const heroStyles = StyleSheet.create({
     width: width * 0.5,
     height: width * 0.5,
     borderRadius: width * 0.25,
-    backgroundColor: '#ffffff08',
+    backgroundColor: COLORS.overlay.circle2,
     bottom: width * 0.2,
     left: -width * 0.1,
   },
@@ -815,7 +754,7 @@ const heroStyles = StyleSheet.create({
   appBarTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 1,
   },
   infoBlock: {
@@ -833,18 +772,18 @@ const heroStyles = StyleSheet.create({
   },
   winnerText: {
     fontSize: 12,
-    color: '#f59e0b',
+    color: COLORS.text.gold,
     fontWeight: '600',
   },
   heroTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: -0.5,
   },
   heroDesc: {
     fontSize: 13,
-    color: '#d4d4d4',
+    color: COLORS.text.secondary,
     lineHeight: 20,
   },
   metaRow: {
@@ -854,177 +793,41 @@ const heroStyles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
   },
   metaDot: {
     fontSize: 12,
-    color: '#525252',
+    color: COLORS.text.dimmed,
   },
   rentBtn: {
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.text.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
   rentBtnText: {
-    color: '#000000',
+    color: COLORS.text.inverse,
     fontSize: 15,
     fontWeight: '700',
   },
   watchBtn: {
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#a855f7',
+    backgroundColor: COLORS.brand.violet,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
   watchBtnText: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 15,
     fontWeight: '700',
   },
 });
 
-// ─── Icon styles ──────────────────────────────────────────────────────────────
-const iconStyles = StyleSheet.create({
-  filmOuter: {
-    width: 22,
-    height: 16,
-    borderRadius: 3,
-    borderWidth: 2,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  filmStrip: {
-    width: 6,
-    borderRightWidth: 1.5,
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingVertical: 1,
-  },
-  filmStripRight: {
-    borderRightWidth: 0,
-    borderLeftWidth: 1.5,
-  },
-  filmHole: {
-    width: 3,
-    height: 3,
-    borderRadius: 1,
-  },
-
-  searchWrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchCircle: {
-    position: 'absolute',
-    width: 13,
-    height: 13,
-    borderRadius: 6.5,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-    top: 0,
-    left: 0,
-  },
-  searchHandle: {
-    position: 'absolute',
-    width: 2,
-    height: 7,
-    backgroundColor: '#ffffff',
-    borderRadius: 1,
-    bottom: 0,
-    right: 2,
-    transform: [{ rotate: '-45deg' }],
-  },
-
-  sparkWrap: {
-    width: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sparkBar: {
-    position: 'absolute',
-    backgroundColor: '#a855f7',
-    borderRadius: 1,
-  },
-  sparkV: { width: 2, height: 14 },
-  sparkH: { width: 14, height: 2 },
-  sparkD1: { width: 2, height: 10, transform: [{ rotate: '45deg' }] },
-  sparkD2: { width: 2, height: 10, transform: [{ rotate: '-45deg' }] },
-
-  trendWrap: {
-    width: 20,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trendLine: {
-    position: 'absolute',
-    width: 16,
-    height: 2.5,
-    backgroundColor: '#a855f7',
-    borderRadius: 1.5,
-    transform: [{ rotate: '-28deg' }, { translateY: -2 }],
-  },
-  trendArrowV: {
-    position: 'absolute',
-    width: 2.5,
-    height: 8,
-    backgroundColor: '#a855f7',
-    borderRadius: 1,
-    top: 1,
-    right: 2,
-  },
-  trendArrowH: {
-    position: 'absolute',
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#a855f7',
-    borderRadius: 1,
-    top: 1,
-    right: 2,
-  },
-
-  awardWrap: {
-    width: 18,
-    height: 20,
-    alignItems: 'center',
-  },
-  awardCircle: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: '#f59e0b',
-  },
-  awardRibLeft: {
-    position: 'absolute',
-    width: 5,
-    height: 8,
-    borderRadius: 2,
-    bottom: 0,
-    left: 2,
-    transform: [{ rotate: '15deg' }],
-  },
-  awardRibRight: {
-    position: 'absolute',
-    width: 5,
-    height: 8,
-    borderRadius: 2,
-    bottom: 0,
-    right: 2,
-    transform: [{ rotate: '-15deg' }],
-  },
-  resumeWrap:     { width: 18, height: 18, flexDirection: 'row', alignItems: 'center', gap: 2 },
-  resumeBar:      { width: 3, height: 14, backgroundColor: '#a855f7', borderRadius: 2 },
-  resumeTriangle: { width: 0, height: 0, borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 12, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#a855f7' },
-});
+// ─── (icon styles removed — now using Ionicons) ─────────────────────────────
 
 // ─── Continue Watching card styles ────────────────────────────────────────────
 const cwStyles = StyleSheet.create({
@@ -1032,7 +835,7 @@ const cwStyles = StyleSheet.create({
     width: CW_WIDTH,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
   },
   thumb: {
     width: '100%',
@@ -1040,13 +843,13 @@ const cwStyles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: COLORS.overlay.card,
   },
   badge: {
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: '#7c3aed',
+    backgroundColor: COLORS.brand.primaryDark,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
@@ -1054,7 +857,7 @@ const cwStyles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 0.4,
   },
   playCircle: {
@@ -1064,22 +867,11 @@ const cwStyles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: COLORS.overlay.playBtn,
     borderWidth: 1.5,
-    borderColor: '#ffffff88',
+    borderColor: COLORS.overlay.playBtnBorder,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  playTriangle: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 5,
-    borderBottomWidth: 5,
-    borderLeftWidth: 9,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#ffffff',
-    marginLeft: 2,
   },
   info: {
     padding: 10,
@@ -1088,11 +880,11 @@ const cwStyles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   sub: {
     fontSize: 11,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   progressTrack: {
     position: 'absolute',
@@ -1100,7 +892,7 @@ const cwStyles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: COLORS.overlay.progress,
   },
   progressFill: {
     height: 3,

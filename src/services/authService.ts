@@ -29,6 +29,8 @@ import type {
   AuthTokens,
   ConfirmOtpRequest,
   ConfirmOtpResponse,
+  ConfirmResetPasswordRequest,
+  ConfirmResetPasswordResponse,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   LoginRequest,
@@ -350,6 +352,40 @@ export async function forgotPassword(
   }
 
   return apiClient.post<ForgotPasswordResponse>('/auth/forgot-password', { body: params });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2.3b  Confirm Reset Password
+// POST /auth/confirm-reset-password
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Submits the reset code + new password to complete the password reset flow.
+ *
+ * @throws ApiClientError(422, 'INVALID_OTP')  – code is wrong
+ * @throws ApiClientError(422, 'OTP_EXPIRED')  – code has expired
+ * @throws ApiClientError(422, 'VALIDATION_ERROR') – password too short, etc.
+ *
+ * @example
+ * await confirmResetPassword({ email, code, newPassword });
+ */
+export async function confirmResetPassword(
+  params: ConfirmResetPasswordRequest,
+): Promise<ConfirmResetPasswordResponse> {
+  if (USE_MOCK) {
+    const timer = logger.startTimer('AUTH', 'confirmResetPassword');
+    await mockDelay();
+    // In mock mode accept any 6-digit code
+    if (!/^\d{6}$/.test(params.code)) {
+      timer.fail({ code: 'INVALID_OTP' });
+      throw new ApiClientError(422, 'INVALID_OTP', 'The verification code is incorrect');
+    }
+    const result: ConfirmResetPasswordResponse = { message: 'Password updated successfully' };
+    timer.end({ email: params.email });
+    return result;
+  }
+
+  return apiClient.post<ConfirmResetPasswordResponse>('/auth/confirm-reset-password', { body: params });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

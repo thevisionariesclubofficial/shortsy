@@ -1,3 +1,4 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
@@ -17,41 +18,8 @@ const { width, height } = Dimensions.get('window');
 // ─── Inline SVG-style icons (pure RN paths) ──────────────────────────────────
 // We draw Film and Sparkles icons using View shapes to avoid extra deps.
 
-function FilmIcon() {
-  return (
-    <View style={iconStyles.filmWrap}>
-      {/* outer rect */}
-      <View style={iconStyles.filmOuter}>
-        {/* left strip */}
-        <View style={iconStyles.filmStripLeft}>
-          {[0, 1, 2, 3].map(i => (
-            <View key={i} style={iconStyles.filmHole} />
-          ))}
-        </View>
-        {/* center screen */}
-        <View style={iconStyles.filmCenter} />
-        {/* right strip */}
-        <View style={iconStyles.filmStripRight}>
-          {[0, 1, 2, 3].map(i => (
-            <View key={i} style={iconStyles.filmHole} />
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-}
-
 function SparkleIcon({ size, color }: { size: number; color: string }) {
-  // Four-point star made from two thin rectangles rotated
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={[sparkleStyles.bar, { width: size * 0.15, height: size, backgroundColor: color }]} />
-      <View style={[sparkleStyles.bar, sparkleStyles.horizontal, { width: size, height: size * 0.15, backgroundColor: color }]} />
-      {/* diagonal bars */}
-      <View style={[sparkleStyles.bar, sparkleStyles.diag1, { width: size * 0.1, height: size * 0.65, backgroundColor: color }]} />
-      <View style={[sparkleStyles.bar, sparkleStyles.diag2, { width: size * 0.1, height: size * 0.65, backgroundColor: color }]} />
-    </View>
-  );
+  return <Ionicons name="sparkles" size={size} color={color} />;
 }
 
 // ─── Pulsing blob ─────────────────────────────────────────────────────────────
@@ -363,64 +331,5 @@ const blobStyles = StyleSheet.create({
     right: -width * 0.15,
   },
 });
-
-const iconStyles = StyleSheet.create({
-  filmWrap: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filmOuter: {
-    width: 44,
-    height: 34,
-    borderRadius: 4,
-    borderWidth: 2.5,
-    borderColor: '#ffffff',
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  filmStripLeft: {
-    width: 10,
-    height: '100%',
-    borderRightWidth: 2,
-    borderRightColor: '#ffffff',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingVertical: 2,
-  },
-  filmStripRight: {
-    width: 10,
-    height: '100%',
-    borderLeftWidth: 2,
-    borderLeftColor: '#ffffff',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingVertical: 2,
-  },
-  filmHole: {
-    width: 4,
-    height: 4,
-    borderRadius: 1,
-    backgroundColor: '#ffffff',
-  },
-  filmCenter: {
-    flex: 1,
-  },
-});
-
-const sparkleStyles = StyleSheet.create({
-  bar: {
-    position: 'absolute',
-    borderRadius: 2,
-  },
-  horizontal: {
-    // already absolute; width/height supplied inline
-  },
-  diag1: {
-    transform: [{ rotate: '45deg' }],
-  },
-  diag2: {
-    transform: [{ rotate: '-45deg' }],
-  },
-});
+;
+;

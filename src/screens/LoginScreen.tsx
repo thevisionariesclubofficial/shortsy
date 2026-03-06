@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,75 +14,11 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { login } from '../services/authService';
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function FilmIcon() {
-  return (
-    <View style={iconStyles.filmOuter}>
-      <View style={iconStyles.filmStrip}>
-        {[0, 1, 2, 3].map(i => <View key={i} style={iconStyles.filmHole} />)}
-      </View>
-      <View style={{ flex: 1 }} />
-      <View style={[iconStyles.filmStrip, iconStyles.filmStripRight]}>
-        {[0, 1, 2, 3].map(i => <View key={i} style={iconStyles.filmHole} />)}
-      </View>
-    </View>
-  );
-}
-
-function MailIcon() {
-  return (
-    <View style={iconStyles.mailOuter}>
-      <View style={iconStyles.mailDiag1} />
-      <View style={iconStyles.mailDiag2} />
-    </View>
-  );
-}
-
-function LockIcon() {
-  return (
-    <View style={iconStyles.lockWrap}>
-      <View style={iconStyles.lockShackle} />
-      <View style={iconStyles.lockBody} />
-    </View>
-  );
-}
-
-function EyeIcon({ off }: { off?: boolean }) {
-  return (
-    <View style={iconStyles.eyeWrap}>
-      <View style={iconStyles.eyeOval} />
-      <View style={iconStyles.eyePupil} />
-      {off && <View style={iconStyles.eyeSlash} />}
-    </View>
-  );
-}
-
-function ArrowLeftIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={iconStyles.arrowTop} />
-      <View style={iconStyles.arrowBottom} />
-    </View>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <View style={iconStyles.gWrap}>
-      <View style={[iconStyles.gSlice, { backgroundColor: '#4285F4', top: 0, right: 10, width: 10, height: 10 }]} />
-      <View style={[iconStyles.gSlice, { backgroundColor: '#34A853', bottom: 0, right: 10, width: 10, height: 10 }]} />
-      <View style={[iconStyles.gSlice, { backgroundColor: '#FBBC05', bottom: 0, left: 10, width: 10, height: 10 }]} />
-      <View style={[iconStyles.gSlice, { backgroundColor: '#EA4335', top: 0, left: 10, width: 10, height: 10 }]} />
-      <View style={iconStyles.gCenter} />
-    </View>
-  );
-}
-
 // ─── Spinner ──────────────────────────────────────────────────────────────────
-function Spinner() {
+function Spinner({ color = '#ffffff' }: { color?: string }) {
   const rotation = useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
     Animated.loop(
@@ -97,7 +34,7 @@ function Spinner() {
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
-  return <Animated.View style={[spinnerStyles.ring, { transform: [{ rotate }] }]} />;
+  return <Animated.View style={[spinnerStyles.ring, { borderColor: `${color}40`, borderTopColor: color, transform: [{ rotate }] }]} />;
 }
 
 // ─── Reusable Field ───────────────────────────────────────────────────────────
@@ -108,7 +45,7 @@ function Field({
   onChangeText,
   secureTextEntry = false,
   keyboardType = 'default',
-  LeftIcon,
+  leftIcon,
   RightSlot,
 }: {
   label: string;
@@ -117,7 +54,7 @@ function Field({
   onChangeText: (t: string) => void;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address';
-  LeftIcon: React.ComponentType;
+  leftIcon: React.ReactNode;
   RightSlot?: React.ReactNode;
 }) {
   const [focused, setFocused] = useState(false);
@@ -125,7 +62,7 @@ function Field({
     <View style={fieldStyles.wrap}>
       <Text style={fieldStyles.label}>{label}</Text>
       <View style={[fieldStyles.row, focused && fieldStyles.rowFocused]}>
-        <View style={fieldStyles.leftIcon}><LeftIcon /></View>
+        <View style={fieldStyles.leftIcon}>{leftIcon}</View>
         <TextInput
           style={fieldStyles.input}
           placeholder={placeholder}
@@ -228,7 +165,7 @@ export function LoginScreen({
           onPress={onBack}
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <ArrowLeftIcon />
+          <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
       )}
 
@@ -247,7 +184,7 @@ export function LoginScreen({
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.logoBox}>
-              <FilmIcon />
+              <Ionicons name="person" size={32} color="#fff" />
             </LinearGradient>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>Sign in to continue watching</Text>
@@ -262,7 +199,7 @@ export function LoginScreen({
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
-              LeftIcon={MailIcon}
+              leftIcon={<Ionicons name="mail" size={18} color="#737373" />}
             />
 
             {/* Password */}
@@ -272,12 +209,12 @@ export function LoginScreen({
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
-              LeftIcon={LockIcon}
+              leftIcon={<Ionicons name="lock-closed" size={18} color="#737373" />}
               RightSlot={
                 <TouchableOpacity
                   onPress={() => setShowPassword(p => !p)}
                   style={fieldStyles.rightIcon}>
-                  <EyeIcon off={showPassword} />
+                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color="#737373" />
                 </TouchableOpacity>
               }
             />
@@ -330,7 +267,9 @@ export function LoginScreen({
               activeOpacity={0.8}
               onPress={handleGoogleSignIn}
               disabled={isGoogleLoading || isLoading}>
-              {isGoogleLoading ? <Spinner /> : <GoogleIcon />}
+              {isGoogleLoading
+                ? <Spinner color="#3c4043" />
+                : <Image source={require('../assets/google.png')} style={{ width: 22, height: 22, borderRadius: 10 }} resizeMode="contain" />}
               <Text style={styles.googleText}>
                 {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
               </Text>
@@ -465,11 +404,11 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#262626',
-    backgroundColor: '#171717',
+    borderColor: '#dadce0',
+    backgroundColor: '#ffffff',
   },
   googleText: {
-    color: '#ffffff',
+    color: '#3c4043',
     fontSize: 15,
     fontWeight: '500',
   },
@@ -533,172 +472,4 @@ const spinnerStyles = StyleSheet.create({
   },
 });
 
-const iconStyles = StyleSheet.create({
-  // Film
-  filmOuter: {
-    width: 40,
-    height: 30,
-    borderRadius: 4,
-    borderWidth: 2.5,
-    borderColor: '#fff',
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  filmStrip: {
-    width: 9,
-    borderRightWidth: 2,
-    borderRightColor: '#fff',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingVertical: 2,
-  },
-  filmStripRight: {
-    borderRightWidth: 0,
-    borderLeftWidth: 2,
-    borderLeftColor: '#fff',
-  },
-  filmHole: {
-    width: 4,
-    height: 4,
-    borderRadius: 1,
-    backgroundColor: '#fff',
-  },
-
-  // Mail
-  mailOuter: {
-    width: 20,
-    height: 16,
-    borderRadius: 3,
-    borderWidth: 1.5,
-    borderColor: '#737373',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mailDiag1: {
-    position: 'absolute',
-    width: 26,
-    height: 1.5,
-    backgroundColor: '#737373',
-    top: 3,
-    transform: [{ rotate: '30deg' }],
-  },
-  mailDiag2: {
-    position: 'absolute',
-    width: 26,
-    height: 1.5,
-    backgroundColor: '#737373',
-    top: 3,
-    transform: [{ rotate: '-30deg' }],
-  },
-
-  // Lock
-  lockWrap: {
-    width: 20,
-    height: 22,
-    alignItems: 'center',
-  },
-  lockShackle: {
-    width: 12,
-    height: 8,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    borderWidth: 2,
-    borderColor: '#737373',
-    borderBottomWidth: 0,
-    marginBottom: -1,
-  },
-  lockBody: {
-    width: 18,
-    height: 12,
-    borderRadius: 4,
-    backgroundColor: '#737373',
-  },
-
-  // Eye
-  eyeWrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  eyeOval: {
-    width: 18,
-    height: 11,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: '#737373',
-  },
-  eyePupil: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#737373',
-  },
-  eyeSlash: {
-    position: 'absolute',
-    width: 22,
-    height: 2,
-    backgroundColor: '#737373',
-    borderRadius: 1,
-    transform: [{ rotate: '-45deg' }],
-  },
-
-  // Arrow left
-  arrowWrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowStem: {
-    position: 'absolute',
-    width: 14,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-  },
-  arrowTop: {
-    position: 'absolute',
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    left: 3,
-    top: 5,
-    transform: [{ rotate: '-45deg' }],
-  },
-  arrowBottom: {
-    position: 'absolute',
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    left: 3,
-    bottom: 5,
-    transform: [{ rotate: '45deg' }],
-  },
-
-  // Google G
-  gWrap: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  gSlice: {
-    position: 'absolute',
-    borderRadius: 2,
-  },
-  gCenter: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#1a1a1a',
-    top: 6,
-    left: 6,
-  },
-});
+// ─── (icon styles removed — now using Ionicons) ───────────────────────────────

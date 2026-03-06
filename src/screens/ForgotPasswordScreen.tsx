@@ -13,69 +13,13 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { forgotPassword } from '../services/authService';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
+import { forgotPassword, confirmResetPassword } from '../services/authService';
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function ArrowLeftIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={iconStyles.arrowTop} />
-      <View style={iconStyles.arrowBottom} />
-    </View>
-  );
-}
-
-function MailIcon({ color = '#737373', size = 20 }: { color?: string; size?: number }) {
-  return (
-    <View
-      style={{
-        width: size,
-        height: size * 0.8,
-        borderRadius: 3,
-        borderWidth: 1.5,
-        borderColor: color,
-        overflow: 'hidden',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-      <View
-        style={{
-          position: 'absolute',
-          width: size * 1.3,
-          height: 1.5,
-          backgroundColor: color,
-          top: size * 0.2,
-          transform: [{ rotate: '30deg' }],
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          width: size * 1.3,
-          height: 1.5,
-          backgroundColor: color,
-          top: size * 0.2,
-          transform: [{ rotate: '-30deg' }],
-        }}
-      />
-    </View>
-  );
-}
-
-function CheckCircleIcon() {
-  return (
-    <View style={checkStyles.outerRing}>
-      {/* checkmark — long arm */}
-      <View style={checkStyles.armLong} />
-      {/* checkmark — short arm */}
-      <View style={checkStyles.armShort} />
-    </View>
-  );
-}
+type Step = 'email' | 'code' | 'newPassword' | 'success';
 
 // ─── Spinner ──────────────────────────────────────────────────────────────────
-function Spinner() {
+function Spinner({ color = '#ffffff' }: { color?: string }) {
   const rotation = useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
     Animated.loop(
@@ -92,32 +36,56 @@ function Spinner() {
     outputRange: ['0deg', '360deg'],
   });
   return (
-    <Animated.View style={[spinnerStyles.ring, { transform: [{ rotate }] }]} />
+    <Animated.View style={[spinnerStyles.ring, { borderColor: `${color}40`, borderTopColor: color, transform: [{ rotate }] }]} />
   );
 }
 
-// ─── Success view ─────────────────────────────────────────────────────────────
-function SuccessView({ email, onBack }: { email: string; onBack: () => void }) {
+// ─── Shared gradient background ───────────────────────────────────────────────
+function GradientBg() {
+  return (
+    <LinearGradient
+      colors={['#1a0533', '#000000', '#1a0519']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+    />
+  );
+}
+
+// ─── Step indicator ───────────────────────────────────────────────────────────
+function StepDots({ step }: { step: Step }) {
+  const idx = { email: 0, code: 1, newPassword: 2, success: 2 }[step];
+  return (
+    <View style={stepStyles.row}>
+      {[0, 1, 2].map(i => (
+        <View
+          key={i}
+          style={[
+            stepStyles.dot,
+            i === idx && stepStyles.dotActive,
+            i < idx  && stepStyles.dotDone,
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+// ─── Success screen ───────────────────────────────────────────────────────────
+function SuccessView({ onBack }: { onBack: () => void }) {
   return (
     <View style={successStyles.root}>
-      {/* Green circle with check */}
+      <GradientBg />
       <View style={successStyles.iconWrap}>
-        <CheckCircleIcon />
+        <Ionicons name="checkmark-circle" size={64} color="#22c55e" />
       </View>
-
       <View style={successStyles.textBlock}>
-        <Text style={successStyles.title}>Check Your Email</Text>
+        <Text style={successStyles.title}>Password Updated!</Text>
         <Text style={successStyles.body}>
-          We've sent a password reset link to{' '}
-          <Text style={successStyles.emailHighlight}>{email}</Text>
+          Your password has been reset successfully. You can now sign in with your new password.
         </Text>
       </View>
-
-      <Text style={successStyles.hint}>
-        Didn't receive the email? Check your spam folder or try again.
-      </Text>
-
-      {/* Back to Login button */}
       <TouchableOpacity onPress={onBack} style={successStyles.backBtn} activeOpacity={0.85}>
         <Text style={successStyles.backBtnText}>Back to Login</Text>
       </TouchableOpacity>
@@ -131,51 +99,119 @@ interface ForgotPasswordScreenProps {
 }
 
 export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [focused, setFocused] = useState(false);
+  const [step, setStep]                   = useState<Step>('email');
+  const [email, setEmail]                 = useState('');
+  const [code, setCode]                   = useState('');
+  const [newPassword, setNewPassword]     = useState('');
+  const [confirmPwd, setConfirmPwd]       = useState('');
+  const [showNew, setShowNew]             = useState(false);
+  const [showConfirm, setShowConfirm]     = useState(false);
+  const [isLoading, setIsLoading]         = useState(false);
+  const [error, setError]                 = useState('');
+  const [focusedField, setFocusedField]   = useState('');
 
-  const handleSubmit = async () => {
+  // ── Step 1: send code ──────────────────────────────────────────────────────
+  const handleSendCode = async () => {
     if (!email.trim()) return;
     setIsLoading(true);
+    setError('');
     try {
       await forgotPassword({ email: email.trim() });
-      setIsSuccess(true);
+      setStep('code');
     } catch {
-      // Spec: always returns 200, so errors here are network-level only.
-      // Show success anyway to match spec behaviour (prevent enumeration).
-      setIsSuccess(true);
+      // Anti-enumeration: always advance (network errors only reach here)
+      setStep('code');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isSuccess) {
-    return (
-      <View style={styles.root}>
-        <LinearGradient
-          colors={['#1a0533', '#000000', '#1a0519']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        />
-        <SuccessView email={email} onBack={onBack} />
-      </View>
-    );
+  // ── Step 2: validate code locally, advance to new password ────────────────
+  const handleVerifyCode = () => {
+    const trimmed = code.trim();
+    if (!trimmed) {
+      setError('Please enter the reset code sent to your email.');
+      return;
+    }
+    setError('');
+    setStep('newPassword');
+  };
+
+  // ── Step 3: confirm reset with code + new password ─────────────────────────
+  const handleUpdatePassword = async () => {
+    if (!newPassword || !confirmPwd) {
+      setError('Please fill in both password fields.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPwd) {
+      setError('Passwords do not match.');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    try {
+      await confirmResetPassword({ email: email.trim(), code: code.trim(), newPassword });
+      setStep('success');
+    } catch (err: any) {
+      const c = err?.code ?? '';
+      if (c === 'INVALID_OTP') {
+        setError('The reset code is incorrect. Please go back and check it.');
+      } else if (c === 'OTP_EXPIRED') {
+        setError('The reset code has expired. Please request a new one.');
+      } else {
+        setError(err?.message ?? 'Something went wrong. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (step === 'success') {
+    return <SuccessView onBack={onBack} />;
   }
+
+  // ── Step meta ──────────────────────────────────────────────────────────────
+  const stepMeta = {
+    email: {
+      icon: 'mail' as const,
+      iconColor: '#a855f7',
+      title: 'Forgot Password?',
+      subtitle: "Enter your email and we'll send you a reset code.",
+    },
+    code: {
+      icon: 'key' as const,
+      iconColor: '#f59e0b',
+      title: 'Enter Reset Code',
+      subtitle: `We sent a 6-digit code to ${email}. Enter it below.`,
+    },
+    newPassword: {
+      icon: 'lock-closed' as const,
+      iconColor: '#22c55e',
+      title: 'Set New Password',
+      subtitle: 'Choose a strong password with at least 8 characters.',
+    },
+  }[step];
+
+  const headerTitle = {
+    email: 'Forgot Password',
+    code: 'Verify Code',
+    newPassword: 'New Password',
+  }[step];
+
+  const handleBack = () => {
+    setError('');
+    if (step === 'code')        { setStep('email');       return; }
+    if (step === 'newPassword') { setStep('code');        return; }
+    onBack();
+  };
 
   return (
     <View style={styles.root}>
-      {/* Background gradient */}
-      <LinearGradient
-        colors={['#1a0533', '#000000', '#1a0519']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <GradientBg />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -185,82 +221,199 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
 
-          {/* Header row — back button + title */}
+          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
-              onPress={onBack}
+              onPress={handleBack}
               style={styles.backBtn}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <ArrowLeftIcon />
+              <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Forgot Password</Text>
+            <Text style={styles.headerTitle}>{headerTitle}</Text>
           </View>
+
+          {/* Step dots */}
+          <StepDots step={step} />
 
           {/* Centre content */}
           <View style={styles.centre}>
-            {/* Mail circle */}
-            <View style={styles.mailCircle}>
-              <MailIcon color="#a855f7" size={32} />
+            {/* Icon circle */}
+            <View style={[styles.iconCircle, { backgroundColor: `${stepMeta.iconColor}20` }]}>
+              <Ionicons name={stepMeta.icon} size={32} color={stepMeta.iconColor} />
             </View>
 
-            <Text style={styles.title}>Reset Your Password</Text>
-            <Text style={styles.subtitle}>
-              Enter your email and we'll send you a link to reset your password
-            </Text>
+            <Text style={styles.title}>{stepMeta.title}</Text>
+            <Text style={styles.subtitle}>{stepMeta.subtitle}</Text>
 
-            {/* Email field */}
-            <View style={styles.fieldWrap}>
-              <Text style={styles.label}>Email Address</Text>
-              <View style={[styles.inputRow, focused && styles.inputRowFocused]}>
-                <View style={styles.inputIcon}>
-                  <MailIcon color="#737373" size={20} />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="your@email.com"
-                  placeholderTextColor="#737373"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
-                />
-              </View>
-            </View>
-
-            {/* Send Reset Link button */}
-            <Pressable
-              onPress={handleSubmit}
-              disabled={isLoading || !email}
-              android_ripple={{ color: '#ffffff20' }}>
-              <LinearGradient
-                colors={
-                  isLoading || !email
-                    ? ['#4a1f6e', '#7c2453']
-                    : ['#9333ea', '#ec4899']
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.sendBtn}>
-                {isLoading ? (
-                  <View style={styles.loadingRow}>
-                    <Spinner />
-                    <Text style={styles.sendBtnText}>Sending...</Text>
+            {/* ── STEP 1: Email ────────────────────────────────────────────── */}
+            {step === 'email' && (
+              <>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.label}>Email Address</Text>
+                  <View style={[styles.inputRow, focusedField === 'email' && styles.inputRowFocused]}>
+                    <View style={styles.inputIcon}>
+                      <Ionicons name="mail" size={20} color="#737373" />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="your@email.com"
+                      placeholderTextColor="#737373"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      onFocus={() => setFocusedField('email')}
+                      onBlur={() => setFocusedField('')}
+                    />
                   </View>
-                ) : (
-                  <Text style={styles.sendBtnText}>Send Reset Link</Text>
-                )}
-              </LinearGradient>
-            </Pressable>
+                </View>
 
-            {/* Back to Login text link */}
-            <TouchableOpacity onPress={onBack} style={styles.backLinkWrap}>
-              <Text style={styles.backLinkText}>Back to Login</Text>
-            </TouchableOpacity>
+                {error !== '' && <ErrorBox message={error} />}
+
+                <Pressable
+                  onPress={handleSendCode}
+                  disabled={isLoading || !email.trim()}
+                  android_ripple={{ color: '#ffffff20' }}
+                  style={{ width: '100%' }}>
+                  <LinearGradient
+                    colors={isLoading || !email.trim() ? ['#4a1f6e', '#7c2453'] : ['#9333ea', '#ec4899']}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={styles.primaryBtn}>
+                    {isLoading
+                      ? <View style={styles.loadingRow}><Spinner /><Text style={styles.primaryBtnText}>Sending...</Text></View>
+                      : <Text style={styles.primaryBtnText}>Send Reset Code</Text>}
+                  </LinearGradient>
+                </Pressable>
+              </>
+            )}
+
+            {/* ── STEP 2: Code ─────────────────────────────────────────────── */}
+            {step === 'code' && (
+              <>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.label}>Reset Code</Text>
+                  <View style={[styles.inputRow, focusedField === 'code' && styles.inputRowFocused]}>
+                    <View style={styles.inputIcon}>
+                      <Ionicons name="keypad" size={20} color="#737373" />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="6-digit code"
+                      placeholderTextColor="#737373"
+                      value={code}
+                      onChangeText={t => setCode(t.replace(/\D/g, '').slice(0, 6))}
+                      keyboardType="number-pad"
+                      autoCapitalize="none"
+                      onFocus={() => setFocusedField('code')}
+                      onBlur={() => setFocusedField('')}
+                    />
+                  </View>
+                </View>
+
+                {error !== '' && <ErrorBox message={error} />}
+
+                <Pressable
+                  onPress={handleVerifyCode}
+                  disabled={!code.trim()}
+                  android_ripple={{ color: '#ffffff20' }}
+                  style={{ width: '100%' }}>
+                  <LinearGradient
+                    colors={!code.trim() ? ['#4a1f6e', '#7c2453'] : ['#9333ea', '#ec4899']}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={styles.primaryBtn}>
+                    <Text style={styles.primaryBtnText}>Continue</Text>
+                  </LinearGradient>
+                </Pressable>
+
+                <TouchableOpacity onPress={handleSendCode} style={styles.resendWrap} disabled={isLoading}>
+                  <Text style={styles.resendText}>
+                    Didn't receive it?{' '}
+                    <Text style={styles.resendLink}>Resend code</Text>
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* ── STEP 3: New Password ──────────────────────────────────────── */}
+            {step === 'newPassword' && (
+              <>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.label}>New Password</Text>
+                  <View style={[styles.inputRow, focusedField === 'new' && styles.inputRowFocused]}>
+                    <View style={styles.inputIcon}>
+                      <Ionicons name="lock-closed" size={20} color="#737373" />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="At least 8 characters"
+                      placeholderTextColor="#737373"
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry={!showNew}
+                      autoCapitalize="none"
+                      onFocus={() => setFocusedField('new')}
+                      onBlur={() => setFocusedField('')}
+                    />
+                    <TouchableOpacity onPress={() => setShowNew(v => !v)} style={styles.eyeBtn}>
+                      <Ionicons name={showNew ? 'eye-off' : 'eye'} size={20} color="#737373" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.label}>Confirm Password</Text>
+                  <View style={[styles.inputRow, focusedField === 'confirm' && styles.inputRowFocused]}>
+                    <View style={styles.inputIcon}>
+                      <Ionicons name="lock-closed" size={20} color="#737373" />
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Repeat your password"
+                      placeholderTextColor="#737373"
+                      value={confirmPwd}
+                      onChangeText={setConfirmPwd}
+                      secureTextEntry={!showConfirm}
+                      autoCapitalize="none"
+                      onFocus={() => setFocusedField('confirm')}
+                      onBlur={() => setFocusedField('')}
+                    />
+                    <TouchableOpacity onPress={() => setShowConfirm(v => !v)} style={styles.eyeBtn}>
+                      <Ionicons name={showConfirm ? 'eye-off' : 'eye'} size={20} color="#737373" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {error !== '' && <ErrorBox message={error} />}
+
+                <Pressable
+                  onPress={handleUpdatePassword}
+                  disabled={isLoading || !newPassword || !confirmPwd}
+                  android_ripple={{ color: '#ffffff20' }}
+                  style={{ width: '100%' }}>
+                  <LinearGradient
+                    colors={isLoading || !newPassword || !confirmPwd ? ['#4a1f6e', '#7c2453'] : ['#9333ea', '#ec4899']}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={styles.primaryBtn}>
+                    {isLoading
+                      ? <View style={styles.loadingRow}><Spinner /><Text style={styles.primaryBtnText}>Updating...</Text></View>
+                      : <Text style={styles.primaryBtnText}>Update Password</Text>}
+                  </LinearGradient>
+                </Pressable>
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+// ─── Inline error box ─────────────────────────────────────────────────────────
+function ErrorBox({ message }: { message: string }) {
+  return (
+    <View style={errorStyles.wrap}>
+      <Ionicons name="alert-circle" size={16} color="#fca5a5" style={{ marginTop: 1 }} />
+      <Text style={errorStyles.text}>{message}</Text>
     </View>
   );
 }
@@ -281,7 +434,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 40,
+    marginBottom: 24,
   },
   backBtn: {
     width: 40,
@@ -300,12 +453,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     gap: 16,
+    marginTop: 16,
   },
-  mailCircle: {
+  iconCircle: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#2d1a4a',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -327,7 +480,7 @@ const styles = StyleSheet.create({
   fieldWrap: {
     width: '100%',
     gap: 6,
-    marginTop: 8,
+    marginTop: 4,
   },
   label: {
     fontSize: 13,
@@ -355,10 +508,13 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#ffffff',
     fontSize: 15,
-    paddingRight: 12,
   },
-  sendBtn: {
-    width: '100%',
+  eyeBtn: {
+    width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtn: {
     height: 52,
     borderRadius: 14,
     alignItems: 'center',
@@ -370,18 +526,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  sendBtnText: {
+  primaryBtnText: {
     color: '#ffffff',
     fontSize: 17,
     fontWeight: '600',
   },
-  backLinkWrap: {
+  resendWrap: {
     marginTop: 4,
     paddingVertical: 8,
   },
-  backLinkText: {
+  resendText: {
     fontSize: 14,
     color: '#737373',
+    textAlign: 'center',
+  },
+  resendLink: {
+    color: '#c084fc',
+    fontWeight: '600',
+  },
+});
+
+const stepStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#262626',
+  },
+  dotActive: {
+    backgroundColor: '#9333ea',
+    width: 24,
+  },
+  dotDone: {
+    backgroundColor: '#7c3aed',
   },
 });
 
@@ -394,9 +576,9 @@ const successStyles = StyleSheet.create({
     gap: 20,
   },
   iconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: '#052e16',
     alignItems: 'center',
     justifyContent: 'center',
@@ -407,7 +589,7 @@ const successStyles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '700',
     color: '#ffffff',
     textAlign: 'center',
@@ -417,16 +599,6 @@ const successStyles = StyleSheet.create({
     color: '#a3a3a3',
     textAlign: 'center',
     lineHeight: 24,
-  },
-  emailHighlight: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  hint: {
-    fontSize: 13,
-    color: '#525252',
-    textAlign: 'center',
-    lineHeight: 20,
   },
   backBtn: {
     width: '100%',
@@ -444,6 +616,27 @@ const successStyles = StyleSheet.create({
   },
 });
 
+const errorStyles = StyleSheet.create({
+  wrap: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#3b0a0a',
+    borderWidth: 1,
+    borderColor: '#7f1d1d',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  text: {
+    flex: 1,
+    color: '#fca5a5',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+});
+
 const spinnerStyles = StyleSheet.create({
   ring: {
     width: 20,
@@ -455,70 +648,3 @@ const spinnerStyles = StyleSheet.create({
   },
 });
 
-const checkStyles = StyleSheet.create({
-  outerRing: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 3,
-    borderColor: '#22c55e',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  armLong: {
-    position: 'absolute',
-    width: 20,
-    height: 3,
-    backgroundColor: '#22c55e',
-    borderRadius: 2,
-    bottom: 13,
-    right: 5,
-    transform: [{ rotate: '-50deg' }],
-  },
-  armShort: {
-    position: 'absolute',
-    width: 10,
-    height: 3,
-    backgroundColor: '#22c55e',
-    borderRadius: 2,
-    bottom: 11,
-    left: 6,
-    transform: [{ rotate: '45deg' }],
-  },
-});
-
-const iconStyles = StyleSheet.create({
-  arrowWrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowStem: {
-    position: 'absolute',
-    width: 14,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-  },
-  arrowTop: {
-    position: 'absolute',
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    left: 3,
-    top: 5,
-    transform: [{ rotate: '-45deg' }],
-  },
-  arrowBottom: {
-    position: 'absolute',
-    width: 8,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    left: 3,
-    bottom: 5,
-    transform: [{ rotate: '45deg' }],
-  },
-});

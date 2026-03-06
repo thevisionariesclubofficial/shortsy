@@ -1,3 +1,4 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -20,74 +21,7 @@ import { USE_MOCK } from '../services/apiClient';
 import { logger } from '../utils/logger';
 import type { SaveProgressRequest, WatchProgress } from '../types/api';
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function ArrowLeftIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.chevronTop} />
-      <View style={iconStyles.chevronBottom} />
-    </View>
-  );
-}
-
-function PlayIcon({ size = 40 }: { size?: number }) {
-  return (
-    <View
-      style={{
-        width: 0, height: 0,
-        borderTopWidth: size * 0.55,
-        borderBottomWidth: size * 0.55,
-        borderLeftWidth: size,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-        borderLeftColor: '#ffffff',
-        marginLeft: size * 0.15,
-      }}
-    />
-  );
-}
-
-function PauseIcon({ size = 36 }: { size?: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: size * 0.2 }}>
-      <View style={{ width: size * 0.25, height: size, backgroundColor: '#ffffff', borderRadius: 3 }} />
-      <View style={{ width: size * 0.25, height: size, backgroundColor: '#ffffff', borderRadius: 3 }} />
-    </View>
-  );
-}
-
-function VolumeIcon({ muted }: { muted: boolean }) {
-  const c = '#ffffff';
-  return (
-    <View style={iconStyles.volWrap}>
-      {/* Solid speaker body (back box) */}
-      <View style={[iconStyles.volBody, { backgroundColor: c }]} />
-      {/* Speaker horn — right-pointing triangle */}
-      <View style={[iconStyles.volCone, { borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: c }]} />
-      {muted ? (
-        /* Mute: two diagonal bars forming an X */
-        <>
-          <View style={[iconStyles.volX1, { backgroundColor: c }]} />
-          <View style={[iconStyles.volX2, { backgroundColor: c }]} />
-        </>
-      ) : (
-        /* Unmuted: semi-circular sound wave arc */
-        <View style={[iconStyles.volWave, { borderColor: c }]} />
-      )}
-    </View>
-  );
-}
-
-function MoreVertIcon() {
-  return (
-    <View style={iconStyles.moreWrap}>
-      {[0, 1, 2].map(i => (
-        <View key={i} style={iconStyles.moreDot} />
-      ))}
-    </View>
-  );
-}
-
+// ─── Loading spinner ─────────────────────────────────────────────────────────
 function LoadingSpinner() {
   const spin = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -667,14 +601,14 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
               onPress={(e) => { e.stopPropagation?.(); handleBack(); }}
               style={styles.backBtn}
               activeOpacity={0.8}>
-              <ArrowLeftIcon />
+              <Ionicons name="chevron-back" size={22} color="#ffffff" />
             </TouchableOpacity>
             <View style={styles.topTitleWrap}>
               <Text style={[styles.topTitle, isShortFilm && { fontSize: 13 }]} numberOfLines={1}>{content.title}</Text>
               {/* <Text style={[styles.topDir,   isShortFilm && { fontSize: 11 }]}>{content.director}</Text> */}
             </View>
             <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7}>
-              <MoreVertIcon />
+              <Ionicons name="ellipsis-vertical" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
 
@@ -684,7 +618,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
               onPress={(e) => { e.stopPropagation?.(); togglePlay(); }}
               style={[styles.bigPlayBtn, isShortFilm && { width: 52, height: 52, borderRadius: 26 }]}
               activeOpacity={0.8}>
-              {isPlaying ? <PauseIcon size={isShortFilm ? 22 : 36} /> : <PlayIcon size={isShortFilm ? 22 : 36} />}
+              {isPlaying ? <Ionicons name="pause" size={isShortFilm ? 22 : 36} color="#ffffff" /> : <Ionicons name="play" size={isShortFilm ? 22 : 36} color="#ffffff" />}
             </TouchableOpacity>
           </View>
 
@@ -717,7 +651,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
                   onPress={(e) => { e.stopPropagation?.(); togglePlay(); }}
                   style={styles.iconBtn}
                   activeOpacity={0.7}>
-                  {isPlaying ? <PauseIcon size={20} /> : <PlayIcon size={20} />}
+                  {isPlaying ? <Ionicons name="pause" size={20} color="#ffffff" /> : <Ionicons name="play" size={20} color="#ffffff" />}
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={(e) => {
@@ -730,7 +664,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
                   }}
                   style={styles.iconBtn}
                   activeOpacity={0.7}>
-                  <VolumeIcon muted={isMuted} />
+                  <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={22} color="#ffffff" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -889,29 +823,6 @@ const styles = StyleSheet.create({
   epBtnActive:  { backgroundColor: 'rgba(168,85,247,0.25)' },
   epText:       { fontSize: 13, color: '#a3a3a3', fontWeight: '500' },
   epTextActive: { color: '#a855f7', fontWeight: '700' },
-});
-
-const iconStyles = StyleSheet.create({
-  // ArrowLeft (chevron, matches ContentDetailScreen)
-  arrowWrap:      { width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
-  chevronTop:     { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, top: 6, transform: [{ rotate: '-45deg' }] },
-  chevronBottom:  { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, bottom: 6, transform: [{ rotate: '45deg' }] },
-
-  // Volume
-  volWrap: { width: 28, height: 22 },
-  // Solid rectangular back of the speaker
-  volBody: { position: 'absolute', left: 0, top: 7, width: 5, height: 8, borderRadius: 1 },
-  // Right-pointing triangle (speaker horn)
-  volCone: { position: 'absolute', left: 4, top: 3, width: 0, height: 0, borderTopWidth: 8, borderBottomWidth: 8, borderLeftWidth: 9, borderStyle: 'solid' },
-  // Semi-circular sound-wave arc
-  volWave: { position: 'absolute', right: 1, top: 3, width: 9, height: 16, borderTopRightRadius: 8, borderBottomRightRadius: 8, borderWidth: 2.5, borderLeftWidth: 0 },
-  // Mute X — two diagonal bars
-  volX1:   { position: 'absolute', right: 1, top: 8, width: 12, height: 2.5, borderRadius: 1.5, transform: [{ rotate: '45deg' }] },
-  volX2:   { position: 'absolute', right: 1, top: 8, width: 12, height: 2.5, borderRadius: 1.5, transform: [{ rotate: '-45deg' }] },
-
-  // More vertical
-  moreWrap: { width: 20, height: 20, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 2 },
-  moreDot:  { width: 4, height: 4, borderRadius: 2, backgroundColor: '#ffffff' },
 });
 
 const spinnerStyles = StyleSheet.create({

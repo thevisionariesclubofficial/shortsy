@@ -1,3 +1,4 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,16 +13,6 @@ import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { clearContentCache, listContent } from '../services/contentService';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function BackIcon() {
-  return (
-    <View style={iconStyles.backWrap}>
-      <View style={iconStyles.chevronTop} />
-      <View style={iconStyles.chevronBottom} />
-    </View>
-  );
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TypeFilter = 'all' | 'short-film' | 'vertical-series';
@@ -113,7 +104,7 @@ export function GenreDetailScreen({ genre, onBack, onContentClick }: GenreDetail
             style={styles.backBtn}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <BackIcon />
+            <Ionicons name="chevron-back" size={22} color="#ffffff" />
           </TouchableOpacity>
           <View style={styles.headerTitleRow}>
             <Text style={styles.headerEmoji}>{genre.emoji}</Text>
@@ -284,31 +275,3 @@ const styles = StyleSheet.create({
   },
 });
 
-const iconStyles = StyleSheet.create({
-  backWrap: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chevronTop: {
-    position: 'absolute',
-    width: 10,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 2,
-    right: 6,
-    top: 6,
-    transform: [{ rotate: '-45deg' }],
-  },
-  chevronBottom: {
-    position: 'absolute',
-    width: 10,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 2,
-    right: 6,
-    bottom: 6,
-    transform: [{ rotate: '45deg' }],
-  },
-});

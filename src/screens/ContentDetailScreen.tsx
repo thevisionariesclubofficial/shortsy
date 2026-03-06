@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { VideoView, useVideoPlayer } from 'react-native-video';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Content, Episode } from '../data/mockData';
 import { checkRentalStatus } from '../services/rentalService';
 
@@ -31,94 +32,6 @@ const GENRE_BG: Record<string, [string, string, string]> = {
   default:        ['#0f0e30', '#1e1b4b', '#4338ca'],
 };
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function ArrowLeftIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.chevronTop} />
-      <View style={iconStyles.chevronBottom} />
-    </View>
-  );
-}
-
-function HeartIcon({ filled }: { filled: boolean }) {
-  const c = filled ? '#ef4444' : '#ffffff';
-  return (
-    <View style={iconStyles.heartWrap}>
-      <View style={[iconStyles.heartLeftCircle, { backgroundColor: c }]} />
-      <View style={[iconStyles.heartRightCircle, { backgroundColor: c }]} />
-      <View style={[iconStyles.heartBottomPoint, { backgroundColor: c }]} />
-    </View>
-  );
-}
-
-function ShareIcon() {
-  return (
-    <View style={iconStyles.shareWrap}>
-      {/* Box/Container */}
-      <View style={iconStyles.shareBox} />
-      {/* Arrow stem */}
-      <View style={iconStyles.shareArrowStem} />
-      {/* Arrow head - left */}
-      <View style={iconStyles.shareArrowLeft} />
-      {/* Arrow head - right */}
-      <View style={iconStyles.shareArrowRight} />
-    </View>
-  );
-}
-
-function StarIcon() {
-  return (
-    <View style={iconStyles.starWrap}>
-      <View style={[iconStyles.starBar, iconStyles.starH]} />
-      <View style={[iconStyles.starBar, iconStyles.starD1]} />
-      <View style={[iconStyles.starBar, iconStyles.starD2]} />
-    </View>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <View style={iconStyles.usersWrap}>
-      <View style={iconStyles.usersHead1} />
-      <View style={iconStyles.usersBody1} />
-      <View style={iconStyles.usersHead2} />
-      <View style={iconStyles.usersBody2} />
-    </View>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <View style={iconStyles.clockOuter}>
-      <View style={iconStyles.clockHandH} />
-      <View style={iconStyles.clockHandM} />
-    </View>
-  );
-}
-
-function AwardIcon() {
-  return (
-    <View style={iconStyles.awardWrap}>
-      <View style={iconStyles.awardCircle} />
-      <View style={[iconStyles.awardRib, iconStyles.awardRibL]} />
-      <View style={[iconStyles.awardRib, iconStyles.awardRibR]} />
-    </View>
-  );
-}
-
-function PlayIcon() {
-  return <View style={iconStyles.playTriangle} />;
-}
-
-function LockIcon() {
-  return (
-    <View style={iconStyles.lockWrap}>
-      <View style={iconStyles.lockShackle} />
-      <View style={iconStyles.lockBody} />
-    </View>
-  );
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ContentDetailScreenProps {
@@ -254,7 +167,7 @@ export function ContentDetailScreen({
 
           {/* Back button */}
           <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.8}>
-            <ArrowLeftIcon />
+            <Ionicons name="chevron-back" size={22} color="#ffffff" />
           </TouchableOpacity>
 
           {/* Top-right actions */}
@@ -263,10 +176,10 @@ export function ContentDetailScreen({
               style={styles.actionBtn}
               onPress={() => setLiked(v => !v)}
               activeOpacity={0.8}>
-              <HeartIcon filled={liked} />
+              <Ionicons name={liked ? 'heart' : 'heart-outline'} size={20} color={liked ? '#ef4444' : '#ffffff'} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8}>
-              <ShareIcon />
+              <Ionicons name="share-social" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -278,7 +191,7 @@ export function ContentDetailScreen({
           <View style={styles.badgeRow}>
             {content.festivalWinner && (
               <View style={[styles.badge, styles.badgeAmber]}>
-                <AwardIcon />
+                <Ionicons name="trophy" size={12} color="#ffffff" />
                 <Text style={[styles.badgeText, { marginLeft: 4 }]}>Festival Winner</Text>
               </View>
             )}
@@ -298,15 +211,15 @@ export function ContentDetailScreen({
           {/* Stats row */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <StarIcon />
+              <Ionicons name="star" size={14} color="#f59e0b" />
               <Text style={styles.statHighlight}>{content.rating}</Text>
             </View>
             <View style={styles.statItem}>
-              <UsersIcon />
+              <Ionicons name="people" size={14} color="#737373" />
               <Text style={styles.statDim}>{formatViews(content.views)} views</Text>
             </View>
             <View style={styles.statItem}>
-              <ClockIcon />
+              <Ionicons name="time-outline" size={14} color="#737373" />
               <Text style={styles.statDim}>{content.duration}</Text>
             </View>
           </View>
@@ -346,12 +259,14 @@ export function ContentDetailScreen({
                   <View style={epStyles.meta}>
                     <Text style={epStyles.title} numberOfLines={1}>{ep.title}</Text>
                     <View style={epStyles.durationRow}>
-                      <ClockIcon />
+                      <Ionicons name="time-outline" size={12} color="#737373" />
                       <Text style={epStyles.duration}>{ep.duration}</Text>
                     </View>
                   </View>
                   <View style={[epStyles.playBtn, !rentalActive && epStyles.lockBtn]}>
-                    {rentalActive ? <PlayIcon /> : <LockIcon />}
+                    {rentalActive
+                      ? <Ionicons name="play" size={16} color="#7c3aed" />
+                      : <Ionicons name="lock-closed" size={14} color="#a3a3a3" />}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -380,7 +295,7 @@ export function ContentDetailScreen({
         />
         {rentalActive ? (
           <TouchableOpacity style={styles.watchBtn} activeOpacity={0.85} onPress={onWatchNow}>
-            <PlayIcon />
+            <Ionicons name="play" size={18} color="#ffffff" />
             <Text style={styles.watchBtnText}>Watch Now</Text>
           </TouchableOpacity>
         ) : (
@@ -525,69 +440,7 @@ const styles = StyleSheet.create({
   rentNote:    { fontSize: 12, color: '#525252', textAlign: 'center' },
 });
 
-const iconStyles = StyleSheet.create({
-  // ArrowLeft (Chevron)
-  arrowWrap:     { width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
-  chevronTop:    { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, top: 6, transform: [{ rotate: '-45deg' }] },
-  chevronBottom: { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, bottom: 6, transform: [{ rotate: '45deg' }] },
 
-  // Heart
-  heartWrap:        { width: 20, height: 18, alignItems: 'center', justifyContent: 'center' },
-  heartLeftCircle:  { position: 'absolute', left: 3, top: 3, width: 7, height: 7, borderRadius: 3.5 },
-  heartRightCircle: { position: 'absolute', right: 3, top: 3, width: 7, height: 7, borderRadius: 3.5 },
-  heartBottomPoint: { position: 'absolute', bottom: 5, width: 8, height: 8, transform: [{ rotate: '45deg' }] },
-
-  // Share
-  shareWrap:       { width: 18, height: 18, alignItems: 'center', justifyContent: 'center' },
-  shareBox:        { position: 'absolute', bottom: 1, width: 12, height: 8, borderWidth: 2, borderColor: '#ffffff', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
-  shareArrowStem:  { position: 'absolute', top: 1, width: 2, height: 10, backgroundColor: '#ffffff', borderRadius: 1 },
-  shareArrowLeft:  { position: 'absolute', top: 3, left: 6, width: 5, height: 2, backgroundColor: '#ffffff', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-  shareArrowRight: { position: 'absolute', top: 3, right: 6, width: 5, height: 2, backgroundColor: '#ffffff', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-
-  // Star
-  starWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
-  starBar:  { position: 'absolute', width: 12, height: 2, backgroundColor: '#f59e0b', borderRadius: 1 },
-  starH:    {},
-  starD1:   { transform: [{ rotate: '60deg' }] },
-  starD2:   { transform: [{ rotate: '-60deg' }] },
-
-  // Users
-  usersWrap:  { width: 20, height: 16 },
-  usersHead1: { position: 'absolute', left: 0, top: 0, width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: '#737373' },
-  usersBody1: { position: 'absolute', left: 0, bottom: 0, width: 11, height: 7, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderWidth: 1.5, borderBottomWidth: 0, borderColor: '#737373' },
-  usersHead2: { position: 'absolute', right: 0, top: 0, width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: '#737373' },
-  usersBody2: { position: 'absolute', right: 0, bottom: 0, width: 11, height: 7, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderWidth: 1.5, borderBottomWidth: 0, borderColor: '#737373' },
-
-  // Clock
-  clockOuter: { width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, borderColor: '#737373', alignItems: 'center', justifyContent: 'center' },
-  clockHandH: { position: 'absolute', width: 1.5, height: 5, backgroundColor: '#737373', borderRadius: 1, bottom: '50%', left: '50%', marginLeft: -0.75 },
-  clockHandM: { position: 'absolute', width: 1.5, height: 4, backgroundColor: '#737373', borderRadius: 1, bottom: '50%', left: '50%', marginLeft: -0.75, transform: [{ rotate: '90deg' }] },
-
-  // Award
-  awardWrap:   { width: 14, height: 16 },
-  awardCircle: { position: 'absolute', top: 0, left: 1, width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: '#ffffff' },
-  awardRib:    { position: 'absolute', bottom: 0, width: 6, height: 6, borderRadius: 1, backgroundColor: '#ffffff' },
-  awardRibL:   { left: 0, transform: [{ rotate: '-20deg' }] },
-  awardRibR:   { right: 0, transform: [{ rotate: '20deg' }] },
-
-  // Play
-  playTriangle: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 9,
-    borderBottomWidth: 9,
-    borderLeftWidth: 16,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#ffffff',
-    marginRight: -2,
-  },
-
-  // Lock
-  lockWrap:    { width: 14, height: 16, alignItems: 'center' },
-  lockShackle: { width: 8, height: 7, borderWidth: 2, borderColor: '#a3a3a3', borderBottomWidth: 0, borderTopLeftRadius: 4, borderTopRightRadius: 4, marginBottom: -1 },
-  lockBody:    { width: 14, height: 9, backgroundColor: '#a3a3a3', borderRadius: 3 },
-});
 
 // ─── Episode tile styles ──────────────────────────────────────────────────────
 const epStyles = StyleSheet.create({

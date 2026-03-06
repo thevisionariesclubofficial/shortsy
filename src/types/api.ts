@@ -97,6 +97,18 @@ export interface ForgotPasswordResponse {
   message: string;
 }
 
+// ── 2.3b Confirm Reset Password ──────────────────────────────────────────────
+
+export interface ConfirmResetPasswordRequest {
+  email:       string;
+  code:        string;
+  newPassword: string;
+}
+
+export interface ConfirmResetPasswordResponse {
+  message: string;
+}
+
 // ── 2.4 Refresh Token ────────────────────────────────────────────────────────
 
 export interface RefreshTokenRequest {

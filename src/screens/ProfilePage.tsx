@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import {
   Alert,
   Linking,
@@ -10,160 +11,12 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Content } from '../data/mockData';
 import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
 import { logger } from '../utils/logger';
 import type { UserProfile, PaymentHistoryRecord } from '../types/api';
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function UserIcon() {
-  return (
-    <View style={iconStyles.userWrap}>
-      <View style={iconStyles.userHead} />
-      <View style={iconStyles.userShoulders} />
-    </View>
-  );
-}
-
-function HeartIcon() {
-  return (
-    <View style={iconStyles.heartWrap}>
-      <View style={iconStyles.heartLeft} />
-      <View style={iconStyles.heartRight} />
-      <View style={iconStyles.heartBottom} />
-    </View>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <View style={iconStyles.clockOuter}>
-      <View style={iconStyles.clockHand} />
-      <View style={iconStyles.clockHandM} />
-    </View>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <View style={iconStyles.settingsOuter}>
-      <View style={iconStyles.settingsInner} />
-      {[0, 60, 120, 180, 240, 300].map(deg => (
-        <View
-          key={deg}
-          style={[
-            iconStyles.settingsTooth,
-            { transform: [{ rotate: `${deg}deg` }] },
-          ]}
-        />
-      ))}
-    </View>
-  );
-}
-
-function LogOutIcon() {
-  return (
-    <View style={iconStyles.logoutWrap}>
-      <View style={iconStyles.logoutBox} />
-      <View style={iconStyles.logoutArrow} />
-      <View style={iconStyles.logoutArrowUp} />
-      <View style={iconStyles.logoutArrowDown} />
-    </View>
-  );
-}
-
-function CrownIcon() {
-  return (
-    <View style={iconStyles.crownWrap}>
-      <View style={iconStyles.crownBase} />
-      <View style={[iconStyles.crownSpike, iconStyles.crownSpikeL]} />
-      <View style={[iconStyles.crownSpike, iconStyles.crownSpikeC]} />
-      <View style={[iconStyles.crownSpike, iconStyles.crownSpikeR]} />
-    </View>
-  );
-}
-
-function ReceiptIcon() {
-  return (
-    <View style={iconStyles.receiptWrap}>
-      <View style={iconStyles.receiptBody} />
-      <View style={iconStyles.receiptLine1} />
-      <View style={iconStyles.receiptLine2} />
-      <View style={iconStyles.receiptLine3} />
-      <View style={iconStyles.receiptNotch1} />
-      <View style={iconStyles.receiptNotch2} />
-      <View style={iconStyles.receiptNotch3} />
-    </View>
-  );
-}
-
-// ─── Settings-modal icons ─────────────────────────────────────────────────────
-function HelpCircleIcon() {
-  return (
-    <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ width: 2, height: 5, backgroundColor: '#a855f7', borderRadius: 1 }} />
-      <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: '#a855f7', marginTop: 1 }} />
-    </View>
-  );
-}
-
-function ChatLinesIcon() {
-  return (
-    <View style={{ width: 18, height: 16, borderRadius: 4, borderWidth: 1.5, borderColor: '#a855f7', alignItems: 'flex-start', justifyContent: 'center', paddingLeft: 3, gap: 3 }}>
-      <View style={{ width: 10, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
-      <View style={{ width: 7, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
-    </View>
-  );
-}
-
-function EnvelopeSmIcon() {
-  return (
-    <View style={{ width: 18, height: 13, borderRadius: 2, borderWidth: 1.5, borderColor: '#a855f7', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ position: 'absolute', width: 24, height: 1.5, backgroundColor: '#a855f7', top: 2, transform: [{ rotate: '25deg' }] }} />
-      <View style={{ position: 'absolute', width: 24, height: 1.5, backgroundColor: '#a855f7', top: 2, transform: [{ rotate: '-25deg' }] }} />
-    </View>
-  );
-}
-
-function DocLinesIcon() {
-  return (
-    <View style={{ width: 14, height: 17, borderRadius: 2, borderWidth: 1.5, borderColor: '#a855f7', paddingHorizontal: 2, paddingTop: 3, gap: 2.5 }}>
-      <View style={{ width: 8, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
-      <View style={{ width: 6, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
-      <View style={{ width: 8, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
-      <View style={{ width: 5, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1 }} />
-    </View>
-  );
-}
-
-function ShieldCheckIcon() {
-  return (
-    <View style={{ width: 16, height: 18, alignItems: 'center' }}>
-      <View style={{ width: 16, height: 16, borderWidth: 1.5, borderColor: '#a855f7', borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ position: 'absolute', width: 5, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1, bottom: 6, left: 2, transform: [{ rotate: '45deg' }] }} />
-        <View style={{ position: 'absolute', width: 8, height: 1.5, backgroundColor: '#a855f7', borderRadius: 1, bottom: 7, right: 2, transform: [{ rotate: '-45deg' }] }} />
-      </View>
-    </View>
-  );
-}
-
-function InfoCircleIcon() {
-  return (
-    <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: '#a855f7', alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: '#a855f7' }} />
-      <View style={{ width: 2, height: 5, backgroundColor: '#a855f7', borderRadius: 1, marginTop: 1 }} />
-    </View>
-  );
-}
-
-function XCloseIcon() {
-  return (
-    <View style={{ width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ position: 'absolute', width: 12, height: 2, backgroundColor: '#a3a3a3', borderRadius: 1, transform: [{ rotate: '45deg' }] }} />
-      <View style={{ position: 'absolute', width: 12, height: 2, backgroundColor: '#a3a3a3', borderRadius: 1, transform: [{ rotate: '-45deg' }] }} />
-    </View>
-  );
-}
 
 // ─── SettingsModal ────────────────────────────────────────────────────────────
 function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClose: () => void; navigate: (screen: any) => void }) {
@@ -171,23 +24,23 @@ function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClo
     {
       title: 'Support',
       items: [
-        { Icon: HelpCircleIcon,  label: 'Help Center',    screenType: 'helpCenter' },
-        { Icon: ChatLinesIcon,   label: 'FAQs',           screenType: 'faq' },
-        { Icon: EnvelopeSmIcon,  label: 'Contact Us',     screenType: 'contactUs' },
+        { iconName: 'help-circle-outline',  label: 'Help Center',    screenType: 'helpCenter' },
+        { iconName: 'chatbubble-outline',   label: 'FAQs',           screenType: 'faq' },
+        { iconName: 'mail-outline',         label: 'Contact Us',     screenType: 'contactUs' },
       ],
     },
     {
       title: 'Legal',
       items: [
-        { Icon: DocLinesIcon,    label: 'Terms & Conditions', screenType: 'terms' },
-        { Icon: ShieldCheckIcon, label: 'Privacy Policy',     screenType: 'privacy' },
-        { Icon: DocLinesIcon,    label: 'Cookie Policy',      screenType: 'cookies' },
+        { iconName: 'document-text-outline',    label: 'Terms & Conditions', screenType: 'terms' },
+        { iconName: 'shield-checkmark-outline', label: 'Privacy Policy',     screenType: 'privacy' },
+        { iconName: 'document-text-outline',    label: 'Cookie Policy',      screenType: 'cookies' },
       ],
     },
     {
       title: 'About',
       items: [
-        { Icon: InfoCircleIcon, label: 'About Shortsy', screenType: 'about' },
+        { iconName: 'information-circle-outline', label: 'About Shortsy', screenType: 'about' },
       ],
     },
   ];
@@ -209,7 +62,7 @@ function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClo
             onPress={onClose}
             style={modalStyles.closeBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <XCloseIcon />
+            <Ionicons name="close" size={16} color="#a3a3a3" />
           </TouchableOpacity>
         </View>
 
@@ -220,7 +73,7 @@ function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClo
             <View key={section.title} style={modalStyles.section}>
               <Text style={modalStyles.sectionTitle}>{section.title}</Text>
               <View style={modalStyles.sectionCard}>
-                {section.items.map(({ Icon, label, screenType }, idx) => (
+                {section.items.map(({ iconName, label, screenType }, idx) => (
                   <TouchableOpacity
                     key={label}
                     style={[
@@ -233,7 +86,7 @@ function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClo
                     }}
                     activeOpacity={0.7}>
                     <View style={modalStyles.itemIconWrap}>
-                      <Icon />
+                      <Ionicons name={iconName as any} size={20} color="#a855f7" />
                     </View>
                     <Text style={modalStyles.itemLabel}>{label}</Text>
                     <View style={modalStyles.itemChevron} />
@@ -275,11 +128,11 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
   const [showSettings, setShowSettings] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   
-  const menuItems: Array<{ Icon: React.ComponentType; label: string; onPress?: () => void }> = [
-    { Icon: HeartIcon,    label: 'My Favorites' },
-    { Icon: ClockIcon,    label: 'Watch History', onPress: onHistoryClick },
-    { Icon: ReceiptIcon,  label: 'Payment History', onPress: onPaymentHistoryClick },
-    { Icon: SettingsIcon, label: 'Settings',      onPress: () => setShowSettings(true) },
+  const menuItems: Array<{ iconName: string; label: string; onPress?: () => void }> = [
+    { iconName: 'heart-outline',    label: 'My Favorites' },
+    { iconName: 'time-outline',     label: 'Watch History', onPress: onHistoryClick },
+    { iconName: 'receipt-outline',  label: 'Payment History', onPress: onPaymentHistoryClick },
+    { iconName: 'settings-outline', label: 'Settings',      onPress: () => setShowSettings(true) },
   ];
   
   useEffect(() => {
@@ -296,15 +149,11 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
   };
 
   return (
-    <>
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}>
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-        </View>
         {/* ── Avatar + name ── */}
         <View style={styles.avatarRow}>
           <LinearGradient
@@ -312,7 +161,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.avatarCircle}>
-            <UserIcon />
+            <Ionicons name="person" size={32} color="#ffffff" />
           </LinearGradient>
           <View style={styles.avatarInfo}>
             <Text style={styles.userName}>{user?.displayName ?? 'Film Lover'}</Text>
@@ -342,28 +191,45 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         {!isPremium && (
           <View style={styles.upgradeWrap}>
             <LinearGradient
-              colors={['#7c3aed', '#db2777']}
+              colors={['#4f1fa3', '#7c3aed', '#c026d3']}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.upgradeCard}>
-              {/* Decorative circle */}
-              <View style={styles.upgradeCircle} />
-              <View style={styles.upgradeContent}>
-                <View style={styles.upgradeTopRow}>
-                  <CrownIcon />
-                  <Text style={styles.upgradeBadge}>SHORTSY +</Text>
+              {/* Decorative blobs */}
+              <View style={styles.blobTL} />
+              <View style={styles.blobBR} />
+
+              <View style={styles.upgradeInner}>
+                {/* Left: text + CTA */}
+                <View style={styles.upgradeLeft}>
+                  {/* Badge row */}
+                  <View style={styles.upgradePill}>
+                    <Ionicons name="diamond" size={12} color="#fde047" />
+                    <Text style={styles.upgradePillText}>SHORTSY+</Text>
+                  </View>
+
+                  <Text style={styles.upgradeTitle}>Unlimited Access</Text>
+                  <Text style={styles.upgradePrice}>₹199 / month</Text>
+                  
+                  <TouchableOpacity
+                    style={styles.upgradeBtn}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      logger.info('ProfilePage', 'TouchableOpacity pressed');
+                      handleUpgradePress();
+                    }}>
+                    <Text style={styles.upgradeBtnText}>Get Started</Text>
+                    <Ionicons name="arrow-forward" size={14} color="#7c3aed" />
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.upgradeTitle}>Get unlimited access</Text>
-                <Text style={styles.upgradePrice}>₹199/month • Selected catalog</Text>
-                <TouchableOpacity 
-                  style={styles.upgradeBtn} 
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    logger.info('ProfilePage', 'TouchableOpacity pressed');
-                    handleUpgradePress();
-                  }}>
-                  <Text style={styles.upgradeBtnText}>Upgrade Now</Text>
-                </TouchableOpacity>
+
+                {/* Right: decorative icon stack */}
+                <View style={styles.upgradeRight}>
+                  <View style={styles.upgradeIconRing}>
+                    <Ionicons name="diamond" size={36} color="rgba(253,224,71,0.9)" />
+                  </View>
+                  
+                </View>
               </View>
             </LinearGradient>
           </View>
@@ -371,27 +237,42 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         {isPremium && premiumSubscription && (
           <View style={styles.upgradeWrap}>
             <LinearGradient
-              colors={['#10b981', '#059669']}
+              colors={['#064e35', '#10b981', '#059669']}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.upgradeCard}>
-              <View style={styles.upgradeCircle} />
-              <View style={styles.upgradeContent}>
-                <View style={styles.upgradeTopRow}>
-                  <CrownIcon />
-                  <Text style={styles.upgradeBadge}>PREMIUM ACTIVE</Text>
+              <View style={styles.blobTL} />
+              <View style={styles.blobBR} />
+
+              <View style={styles.upgradeInner}>
+                {/* Left */}
+                <View style={styles.upgradeLeft}>
+                  <View style={[styles.upgradePill, styles.upgradePillGreen]}>
+                    <Ionicons name="checkmark-circle" size={12} color="#6ee7b7" />
+                    <Text style={[styles.upgradePillText, styles.upgradePillTextGreen]}>ACTIVE</Text>
+                  </View>
+
+                  <Text style={styles.upgradeTitle}>SHORTSY +</Text>
+                  <Text style={styles.upgradePrice}>Unlimited premium access{"\n\n"}</Text>
+
+                  <View style={styles.premiumExpiryRow}>
+                    <Ionicons name="calendar-outline" size={13} color="rgba(255,255,255,0.6)" />
+                    <Text style={styles.premiumExpiryLabel}>Valid until </Text>
+                    <Text style={styles.premiumExpiryDate}>
+                      {new Date(premiumSubscription.expiresAt).toLocaleDateString('en-US', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.upgradeTitle}>You're a premium member!</Text>
-                <Text style={styles.upgradePrice}>Unlimited access to premium content</Text>
-                <View style={styles.premiumExpiryRow}>
-                  <Text style={styles.premiumExpiryLabel}>Valid until:</Text>
-                  <Text style={styles.premiumExpiryDate}>
-                    {new Date(premiumSubscription.expiresAt).toLocaleDateString('en-US', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </Text>
+
+                {/* Right */}
+                <View style={styles.upgradeRight}>
+                  <View style={[styles.upgradeIconRing, styles.upgradeIconRingGreen]}>
+                    <Ionicons name="shield-checkmark" size={36} color="rgba(110,231,183,0.9)" />
+                  </View>
                 </View>
               </View>
             </LinearGradient>
@@ -399,15 +280,15 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         )}
         {/* ── Menu ── */}
         <View style={styles.menuSection}>
-          {menuItems.map(({ Icon, label, onPress }) => (
+          {menuItems.map(({ iconName, label, onPress }) => (
             <TouchableOpacity key={label} style={styles.menuItem} activeOpacity={0.7} onPress={onPress}>
-              <Icon />
+              <Ionicons name={iconName as any} size={20} color="#a3a3a3" />
               <Text style={styles.menuLabel}>{label}</Text>
               <View style={styles.menuChevron} />
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setShowLogoutConfirm(true)}>
-            <LogOutIcon />
+            <Ionicons name="log-out-outline" size={20} color="#ef4444" />
             <Text style={[styles.menuLabel, styles.menuDanger]}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -424,7 +305,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
           <View style={styles.logoutModal}>
             {/* Icon */}
             <View style={styles.logoutIconWrap}>
-              <LogOutIcon />
+              <Ionicons name="log-out-outline" size={24} color="#ef4444" />
             </View>
             <Text style={styles.logoutTitle}>Log Out?</Text>
             <Text style={styles.logoutSubtitle}>
@@ -447,12 +328,16 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
           </View>
         </View>
       </Modal>
-    </>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
   container: {
     flex: 1,
     backgroundColor: '#000000',
@@ -505,7 +390,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   statCard: {
     flex: 1,
@@ -525,78 +410,155 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   upgradeWrap: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 20
   },
   upgradeCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    padding: 24,
+    marginHorizontal: 10
   },
-  upgradeCircle: {
+  // Decorative blobs
+  blobTL: {
     position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    top: -40,
-    right: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    top: -50,
+    left: -40,
   },
-  upgradeContent: {
-    zIndex: 1,
+  blobBR: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    bottom: -30,
+    right: -20,
   },
-  upgradeTopRow: {
+  upgradeInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20
   },
-  upgradeBadge: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#ffffff',
+  upgradeLeft: {
+    flex: 1,
+    gap: 6,
+  },
+  upgradeRight: {
+    alignItems: 'center',
+    gap: 10,
+    paddingLeft: 4,
+  },
+  upgradePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    alignSelf: 'flex-start',
+  },
+  upgradePillGreen: {
+    backgroundColor: 'rgba(110,231,183,0.2)',
+  },
+  upgradePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fde68a',
+    letterSpacing: 0.8,
+  },
+  upgradePillTextGreen: {
+    color: '#6ee7b7',
   },
   upgradeTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#ffffff',
-    marginBottom: 4,
+    lineHeight: 28,
   },
   upgradePrice: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: 16,
+    fontSize: 15,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.95)',
+  },
+  upgradeSub: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.55)',
+    marginTop: -2,
+  },
+  upgradeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  upgradeBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#7c3aed',
+  },
+  upgradeIconRing: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upgradeIconRingGreen: {
+    backgroundColor: 'rgba(110,231,183,0.15)',
+    borderColor: 'rgba(110,231,183,0.3)',
+  },
+  upgradeFeatureTags: {
+    gap: 5,
+  },
+  featureTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+  },
+  featureTagGreen: {
+    backgroundColor: 'rgba(52,211,153,0.15)',
+  },
+  featureTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
   },
   premiumExpiryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     marginTop: 4,
-    paddingTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.2)',
+    borderTopColor: 'rgba(255,255,255,0.15)',
   },
   premiumExpiryLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.6)',
     fontWeight: '500',
   },
   premiumExpiryDate: {
     fontSize: 13,
     color: '#ffffff',
     fontWeight: '700',
-  },
-  upgradeBtn: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    alignSelf: 'flex-start',
-  },
-  upgradeBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#7c3aed',
   },
   menuSection: {
     paddingHorizontal: 20,
@@ -700,54 +662,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
   },
-});
-
-const iconStyles = StyleSheet.create({
-  // User
-  userWrap: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  userHead: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff', marginBottom: 3 },
-  userShoulders: { width: 24, height: 12, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: '#ffffff' },
-
-  // Heart (simple diamond shape)
-  heartWrap: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
-  heartLeft: { position: 'absolute', left: 0, top: 3, width: 10, height: 10, borderRadius: 5, backgroundColor: '#a3a3a3' },
-  heartRight: { position: 'absolute', right: 0, top: 3, width: 10, height: 10, borderRadius: 5, backgroundColor: '#a3a3a3' },
-  heartBottom: { position: 'absolute', bottom: 0, width: 14, height: 14, backgroundColor: '#a3a3a3', transform: [{ rotate: '45deg' }] },
-
-  // Clock
-  clockOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#a3a3a3', alignItems: 'center', justifyContent: 'center' },
-  clockHand: { position: 'absolute', width: 2, height: 6, backgroundColor: '#a3a3a3', borderRadius: 1, bottom: '50%', left: '50%', marginLeft: -1, transformOrigin: 'bottom' },
-  clockHandM: { position: 'absolute', width: 2, height: 5, backgroundColor: '#a3a3a3', borderRadius: 1, bottom: '50%', left: '50%', marginLeft: -1, transform: [{ rotate: '90deg' }] },
-
-  // Settings gear (simplified)
-  settingsOuter: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
-  settingsInner: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: '#a3a3a3' },
-  settingsTooth: { position: 'absolute', width: 3, height: 20, borderRadius: 1, backgroundColor: 'transparent', borderTopWidth: 2, borderTopColor: '#a3a3a3' },
-
-  // Logout
-  logoutWrap: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
-  logoutBox: { position: 'absolute', left: 0, width: 12, height: 16, borderWidth: 2, borderColor: '#ef4444', borderRadius: 2 },
-  logoutArrow: { position: 'absolute', right: 0, top: 9, width: 10, height: 2, backgroundColor: '#ef4444', borderRadius: 1 },
-  logoutArrowUp: { position: 'absolute', right: 0, top: 6, width: 5, height: 2, backgroundColor: '#ef4444', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-  logoutArrowDown: { position: 'absolute', right: 0, top: 12, width: 5, height: 2, backgroundColor: '#ef4444', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-
-  // Crown
-  crownWrap: { width: 20, height: 16, justifyContent: 'flex-end' },
-  crownBase: { width: 20, height: 7, backgroundColor: '#fde047', borderRadius: 2 },
-  crownSpike: { position: 'absolute', bottom: 6, width: 4, height: 10, backgroundColor: '#fde047', borderRadius: 2 },
-  crownSpikeL: { left: 1, transform: [{ rotate: '-20deg' }] },
-  crownSpikeC: { left: 8, height: 12, bottom: 6 },
-  crownSpikeR: { right: 1, transform: [{ rotate: '20deg' }] },
-
-  // Receipt
-  receiptWrap: { width: 18, height: 22, alignItems: 'center', position: 'relative' },
-  receiptBody: { width: 18, height: 20, backgroundColor: '#a3a3a3', borderRadius: 2, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
-  receiptLine1: { position: 'absolute', top: 4, width: 12, height: 1.5, backgroundColor: '#000', borderRadius: 1 },
-  receiptLine2: { position: 'absolute', top: 8, width: 10, height: 1.5, backgroundColor: '#000', borderRadius: 1 },
-  receiptLine3: { position: 'absolute', top: 12, width: 8, height: 1.5, backgroundColor: '#000', borderRadius: 1 },
-  receiptNotch1: { position: 'absolute', bottom: 0, left: 2, width: 3, height: 3, backgroundColor: '#000', borderTopLeftRadius: 3, borderTopRightRadius: 3 },
-  receiptNotch2: { position: 'absolute', bottom: 0, left: 7.5, width: 3, height: 3, backgroundColor: '#000', borderTopLeftRadius: 3, borderTopRightRadius: 3 },
-  receiptNotch3: { position: 'absolute', bottom: 0, right: 2, width: 3, height: 3, backgroundColor: '#000', borderTopLeftRadius: 3, borderTopRightRadius: 3 },
 });
 
 const modalStyles = StyleSheet.create({

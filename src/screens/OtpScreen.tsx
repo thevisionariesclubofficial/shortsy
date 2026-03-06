@@ -1,3 +1,4 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -13,39 +14,6 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { confirmOtp, resendOtp } from '../services/authService';
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-function MailIcon() {
-  return (
-    <View style={iconStyles.mailOuter}>
-      <View style={iconStyles.mailBody} />
-      <View style={iconStyles.mailLine1} />
-      <View style={iconStyles.mailLine2} />
-      <View style={iconStyles.mailFlap} />
-      <View style={iconStyles.mailDot} />
-    </View>
-  );
-}
-
-function ArrowLeftIcon() {
-  return (
-    <View style={iconStyles.arrowWrap}>
-      <View style={iconStyles.arrowStem} />
-      <View style={iconStyles.arrowTop} />
-      <View style={iconStyles.arrowBottom} />
-    </View>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <View style={iconStyles.checkWrap}>
-      <View style={iconStyles.checkLeft} />
-      <View style={iconStyles.checkRight} />
-    </View>
-  );
-}
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 function Spinner() {
@@ -263,7 +231,7 @@ export function OtpScreen({ email, password, onVerified, onBack }: OtpScreenProp
         onPress={onBack}
         style={styles.backBtn}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-        <ArrowLeftIcon />
+        <Ionicons name="chevron-back" size={22} color="#ffffff" />
       </TouchableOpacity>
 
       <KeyboardAvoidingView
@@ -278,7 +246,7 @@ export function OtpScreen({ email, password, onVerified, onBack }: OtpScreenProp
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.iconGradient}>
-              <MailIcon />
+              <Ionicons name="mail" size={32} color="#ffffff" />
             </LinearGradient>
           </View>
 
@@ -321,7 +289,7 @@ export function OtpScreen({ email, password, onVerified, onBack }: OtpScreenProp
           {/* Success message */}
           {resendSuccess && !error && (
             <View style={styles.successWrap}>
-              <CheckIcon />
+              <Ionicons name="checkmark" size={16} color="#34d399" />
               <Text style={styles.successText}>New code sent to your email</Text>
             </View>
           )}
@@ -610,79 +578,6 @@ const digitStyles = StyleSheet.create({
     backgroundColor: '#a855f7',
     borderRadius: 1,
   },
-});
-
-const iconStyles = StyleSheet.create({
-  // Mail icon
-  mailOuter: {
-    width: 36,
-    height: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mailBody: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 4,
-    bottom: 0,
-    borderRadius: 4,
-    borderWidth: 2.5,
-    borderColor: '#ffffff',
-  },
-  mailLine1: {
-    position: 'absolute',
-    left: 0,
-    top: 4,
-    width: 19,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    transform: [{ rotate: '28deg' }],
-    transformOrigin: 'left top',
-  },
-  mailLine2: {
-    position: 'absolute',
-    right: 0,
-    top: 4,
-    width: 19,
-    height: 2.5,
-    backgroundColor: '#ffffff',
-    borderRadius: 1.5,
-    transform: [{ rotate: '-28deg' }],
-    transformOrigin: 'right top',
-  },
-  mailFlap: {
-    position: 'absolute',
-    top: 4,
-    left: 0,
-    right: 0,
-    height: 12,
-    borderRadius: 3,
-    borderWidth: 0,
-  },
-  mailDot: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ec4899',
-    borderWidth: 1.5,
-    borderColor: '#ffffff',
-  },
-
-  // Arrow left
-  arrowWrap: { width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
-  arrowStem: { position: 'absolute', width: 14, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 1 },
-  arrowTop: { position: 'absolute', width: 9, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, left: 0, top: 5, transform: [{ rotate: '-45deg' }] },
-  arrowBottom: { position: 'absolute', width: 9, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, left: 0, bottom: 5, transform: [{ rotate: '45deg' }] },
-
-  // Check
-  checkWrap: { width: 16, height: 16, justifyContent: 'center', alignItems: 'center' },
-  checkLeft: { position: 'absolute', left: 0, bottom: 4, width: 6, height: 2.5, backgroundColor: '#34d399', borderRadius: 1.5, transform: [{ rotate: '45deg' }] },
-  checkRight: { position: 'absolute', right: 1, top: 3, width: 10, height: 2.5, backgroundColor: '#34d399', borderRadius: 1.5, transform: [{ rotate: '-50deg' }] },
 });
 
 const spinnerStyles = StyleSheet.create({

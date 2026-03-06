@@ -1,3 +1,4 @@
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,42 +10,6 @@ import {
   View,
 } from 'react-native';
 import type { PaymentHistoryRecord } from '../types/api';
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function BackArrowIcon() {
-  return (
-    <View style={iconStyles.backArrow}>
-      <View style={iconStyles.backArrowLine} />
-      <View style={iconStyles.backArrowTop} />
-      <View style={iconStyles.backArrowBottom} />
-    </View>
-  );
-}
-
-function CheckCircleIcon() {
-  return (
-    <View style={iconStyles.checkCircle}>
-      <View style={iconStyles.checkMark} />
-    </View>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <View style={iconStyles.clockCircle}>
-      <View style={iconStyles.clockHand} />
-    </View>
-  );
-}
-
-function XCircleIcon() {
-  return (
-    <View style={iconStyles.xCircle}>
-      <View style={iconStyles.xLine1} />
-      <View style={iconStyles.xLine2} />
-    </View>
-  );
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 interface PaymentHistoryScreenProps {
@@ -70,11 +35,11 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'paid':
-        return <CheckCircleIcon />;
+        return <Ionicons name="checkmark-circle" size={16} color="#10b981" />;
       case 'pending':
-        return <ClockIcon />;
+        return <Ionicons name="time-outline" size={16} color="#f59e0b" />;
       case 'failed':
-        return <XCircleIcon />;
+        return <Ionicons name="close-circle" size={16} color="#ef4444" />;
       default:
         return null;
     }
@@ -112,7 +77,7 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
           onPress={onBack}
           style={styles.backButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <BackArrowIcon />
+          <Ionicons name="chevron-back" size={22} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment History</Text>
         <View style={styles.headerSpacer} />
@@ -378,96 +343,3 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Icon Styles ──────────────────────────────────────────────────────────────
-const iconStyles = StyleSheet.create({
-  backArrow: {
-    width: 20,
-    height: 20,
-    position: 'relative',
-  },
-  backArrowLine: {
-    position: 'absolute',
-    left: 2,
-    top: 9,
-    width: 16,
-    height: 2,
-    backgroundColor: '#fff',
-    borderRadius: 1,
-  },
-  backArrowTop: {
-    position: 'absolute',
-    left: 2,
-    top: 5,
-    width: 8,
-    height: 2,
-    backgroundColor: '#fff',
-    borderRadius: 1,
-    transform: [{ rotate: '45deg' }],
-  },
-  backArrowBottom: {
-    position: 'absolute',
-    left: 2,
-    top: 13,
-    width: 8,
-    height: 2,
-    backgroundColor: '#fff',
-    borderRadius: 1,
-    transform: [{ rotate: '-45deg' }],
-  },
-  checkCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#10b981',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkMark: {
-    width: 8,
-    height: 4,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: '#fff',
-    transform: [{ rotate: '-45deg' }],
-    marginTop: -2,
-  },
-  clockCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#f59e0b',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clockHand: {
-    width: 1.5,
-    height: 5,
-    backgroundColor: '#f59e0b',
-    marginBottom: 2,
-  },
-  xCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#ef4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  xLine1: {
-    position: 'absolute',
-    width: 8,
-    height: 2,
-    backgroundColor: '#fff',
-    borderRadius: 1,
-    transform: [{ rotate: '45deg' }],
-  },
-  xLine2: {
-    position: 'absolute',
-    width: 8,
-    height: 2,
-    backgroundColor: '#fff',
-    borderRadius: 1,
-    transform: [{ rotate: '-45deg' }],
-  },
-});

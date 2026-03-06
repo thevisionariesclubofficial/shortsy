@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Content } from '../data/mockData';
 
 // Deterministic bg colours per genre (image placeholder)
@@ -20,28 +21,6 @@ const GENRE_COLORS: Record<string, [string, string, string]> = {
   'Sci-Fi':       ['#082f49', '#0c4a6e', '#0284c7'],
   default:        ['#0f0e30', '#1e1b4b', '#4338ca'],
 };
-
-// ─── Play button icon ─────────────────────────────────────────────────────────
-function PlayIcon() {
-  return (
-    <View style={playStyles.circle}>
-      {/* Triangle pointing right */}
-      <View style={playStyles.triangle} />
-    </View>
-  );
-}
-
-// ─── Star icon ────────────────────────────────────────────────────────────────
-function StarIcon() {
-  return (
-    <View style={starStyles.wrap}>
-      {/* 5-point star approximated with two overlapping rotated rectangles */}
-      <View style={[starStyles.bar, starStyles.barH]} />
-      <View style={[starStyles.bar, starStyles.barD1]} />
-      <View style={[starStyles.bar, starStyles.barD2]} />
-    </View>
-  );
-}
 
 interface ContentCardProps {
   content: Content;
@@ -92,7 +71,9 @@ export function ContentCard({ content, onClick }: ContentCardProps) {
             colors={['transparent', '#000000cc']}
             style={StyleSheet.absoluteFill}
           />
-          <PlayIcon />
+          <View style={styles.playCircle}>
+            <Ionicons name="play" size={18} color="#ffffff" />
+          </View>
         </Animated.View>
 
         {/* Top-left: Winner + Vertical badges */}
@@ -122,7 +103,7 @@ export function ContentCard({ content, onClick }: ContentCardProps) {
         <Text style={styles.title} numberOfLines={1}>{content.title}</Text>
 
         <View style={styles.ratingRow}>
-          <StarIcon />
+          <Ionicons name="star" size={11} color="#f59e0b" />
           <Text style={styles.ratingText}>{content.rating}</Text>
           <Text style={styles.dot}>•</Text>
           <Text style={styles.durationText}>{content.duration}</Text>
@@ -233,52 +214,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#525252',
   },
-});
-
-const playStyles = StyleSheet.create({
-  circle: {
+  playCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: '#ffffff30',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  triangle: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 9,
-    borderBottomWidth: 9,
-    borderLeftWidth: 16,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#ffffff',
-    marginLeft: 3,
-  },
-});
-
-const starStyles = StyleSheet.create({
-  wrap: {
-    width: 12,
-    height: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bar: {
-    position: 'absolute',
-    width: 2,
-    height: 12,
-    backgroundColor: '#f59e0b',
-    borderRadius: 1,
-  },
-  barH: {
-    width: 12,
-    height: 2,
-  },
-  barD1: {
-    transform: [{ rotate: '45deg' }],
-  },
-  barD2: {
-    transform: [{ rotate: '-45deg' }],
   },
 });
