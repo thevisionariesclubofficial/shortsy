@@ -4,7 +4,7 @@
  * Intentionally thin: all state and business logic lives in `useAppState`.
  * This component is responsible only for mapping screen state → UI.
  */
-import React, { useEffect } from 'react';
+import React from 'react';
 import { StatusBar, StyleSheet, View, Modal, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
@@ -37,10 +37,8 @@ import { SplashScreen } from '../screens/SplashScreen';
 import { TermsScreen } from '../screens/TermsScreen';
 import { WelcomeChoice } from '../screens/WelcomeChoice';
 import { resolveWatchNowScreen } from '../services/navigationService';
-import { configureGoogleSignIn } from '../services/authService';
 
 function App() {
-  useEffect(() => { configureGoogleSignIn(); }, []);
   const {
     screen,
     rentedContent,

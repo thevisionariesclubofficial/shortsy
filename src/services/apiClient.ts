@@ -141,7 +141,11 @@ async function request<T>(
         }
       } catch (refreshError) {
         logger.error('API', 'Token refresh failed', refreshError);
-        // If refresh fails, throw the original 401 error
+        // Refresh token is expired/invalid — force logout the user
+        try {
+          const { triggerForceLogout } = await import('./authService');
+          triggerForceLogout();
+        } catch (_) {}
       }
     }
     

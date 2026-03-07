@@ -85,6 +85,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        // Required by react-native-app-auth for the OAuth redirect URI scheme
+        manifestPlaceholders = [appAuthRedirectScheme: "com.googleusercontent.apps.431180594705-ctaen736unlri4e0fhapjujnf56b92jv"]
     }
     signingConfigs {
         debug {

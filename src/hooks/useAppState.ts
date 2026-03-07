@@ -21,7 +21,7 @@ import { clearProfileStore, getCurrentUser } from '../services/profileService';
 import { getPaymentHistory } from '../services/rentalService';
 import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
 import { getContentDetail } from '../services/contentService';
-import { getSession, logout as authLogout, restoreSession, googleSignIn, confirmOtp, resendOtp } from '../services/authService';
+import { getSession, logout as authLogout, restoreSession, googleSignIn, confirmOtp, resendOtp, registerForceLogoutCallback } from '../services/authService';
 import { setAccessToken } from '../services/apiClient';
 import { logger } from '../utils/logger';
 import type { AppScreen } from '../types/navigation';
@@ -374,6 +374,12 @@ export function useAppState(): AppStateHook {
     setProgressMap(new Map());
     navigate({ type: 'login' });
   }, [navigate]);
+
+  // Keep the force-logout callback up to date so apiClient can trigger it
+  // when the refresh token is found to be expired or invalid.
+  useEffect(() => {
+    registerForceLogoutCallback(onLogout);
+  }, [onLogout]);
 
   const onSignup = useCallback((email: string, password: string) => {
     // Signup succeeded — OTP has been sent, navigate to verification screen

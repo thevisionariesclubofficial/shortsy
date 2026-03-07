@@ -34,6 +34,7 @@
 				<string>shortsy</string>
 			</array>
 		</dict>
+		<!-- Google OAuth redirect for react-native-app-auth (SFSafariViewController) -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -41,12 +42,10 @@
 			<string>com.googleusercontent.apps</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.411501052320-ctaen736unlri4e0fhapjujnf56b92jv</string>
+				<string>com.googleusercontent.apps.431180594705-ctaen736unlri4e0fhapjujnf56b92jv</string>
 			</array>
 		</dict>
 	</array>
-	<key>GIDClientID</key>
-	<string>411501052320-ctaen736unlri4e0fhapjujnf56b92jv.apps.googleusercontent.com</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
