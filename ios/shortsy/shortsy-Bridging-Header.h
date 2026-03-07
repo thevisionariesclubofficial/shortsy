@@ -11,6 +11,9 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 
+// react-native-app-auth: AppDelegate must conform to this protocol
+#import "RNAppAuthAuthorizationFlowManager.h"
+
 static inline UIInterfaceOrientationMask OrientationGetSupportedMask(void) {
 #if TARGET_OS_TV
     return UIInterfaceOrientationMaskAll;

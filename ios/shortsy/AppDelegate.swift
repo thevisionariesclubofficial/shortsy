@@ -4,8 +4,11 @@ import React_RCTAppDelegate
 import ReactAppDependencyProvider
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, RNAppAuthAuthorizationFlowManager {
   var window: UIWindow?
+
+  // Required by react-native-app-auth to hand back the OAuth redirect URL
+  weak var authorizationFlowManagerDelegate: RNAppAuthAuthorizationFlowManagerDelegate?
 
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
@@ -30,6 +33,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     )
 
     return true
+  }
+
+  // Handle OAuth redirect URL coming back from SFSafariViewController
+  func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    return authorizationFlowManagerDelegate?.resumeExternalUserAgentFlow(with: url) ?? false
   }
 
   func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
