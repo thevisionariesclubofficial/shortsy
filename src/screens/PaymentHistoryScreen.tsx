@@ -296,7 +296,7 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
           content={activeReceipt.content}
         />
       )}
-      {/* Header */}}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={onBack}
