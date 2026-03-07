@@ -415,8 +415,19 @@ export function useAppState(): AppStateHook {
 
   // ── Content handlers ────────────────────────────────────────────────────────
   const onContentClick = useCallback(
-    (content: Content) =>
-      navigate(resolveContentScreen(content, isRented(content))),
+    async (content: Content) => {
+      // For vertical series the list endpoint returns episodeList: null.
+      // Fetch full details so the episode list is available on the detail screen.
+      let fullContent = content;
+      if (content.type === 'vertical-series' && (!content.episodeList || content.episodeList.length === 0)) {
+        try {
+          fullContent = await getContentDetail(content.id);
+        } catch (err) {
+          logger.warn('APP', `Failed to fetch full details for ${content.id}, using list data`, err);
+        }
+      }
+      navigate(resolveContentScreen(fullContent, isRented(fullContent)));
+    },
     [navigate, isRented],
   );
 

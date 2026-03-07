@@ -15,6 +15,7 @@ import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Content, Episode } from '../data/mockData';
 import { checkRentalStatus } from '../services/rentalService';
+import { getContentDetail } from '../services/contentService';
 
 const SCREEN_H = Dimensions.get('window').height;
 
@@ -51,7 +52,7 @@ function TrailerPlayer({ uri }: { uri: string }) {
   const opacity = useRef(new Animated.Value(0)).current;
 
   const player = useVideoPlayer({ uri }, p => {
-    p.muted = true;
+    p.muted = false;
     p.loop = false;
   });
 
@@ -97,6 +98,20 @@ export function ContentDetailScreen({
   const [liked, setLiked] = useState(false);
   // Deferred: mount TrailerPlayer only after navigation transition completes
   const [videoMounted, setVideoMounted] = useState(false);
+
+  // Self-fetch episodeList if the prop came from a list endpoint (episodeList is null there).
+  const [episodeList, setEpisodeList] = useState<Episode[] | null | undefined>(
+    content.episodeList,
+  );
+
+  useEffect(() => {
+    setEpisodeList(content.episodeList);
+    if (content.type === 'vertical-series' && (!content.episodeList || content.episodeList.length === 0)) {
+      getContentDetail(content.id)
+        .then(full => setEpisodeList(full.episodeList ?? null))
+        .catch(() => { /* silently keep null */ });
+    }
+  }, [content.id, content.type, content.episodeList]);
 
   // Start from the prop value (instant, no flicker), then verify against the
   // service layer so ground truth is always from the backend (real or mock).
@@ -239,10 +254,10 @@ export function ContentDetailScreen({
           </View>
 
           {/* Episodes (series only) */}
-          {content.type === 'vertical-series' && content.episodeList && content.episodeList.length > 0 && (
+          {content.type === 'vertical-series' && episodeList && episodeList.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{content.episodeList.length} Episodes · {content.duration} each</Text>
-              {content.episodeList.map((ep: Episode, index: number) => (
+              <Text style={styles.sectionLabel}>{episodeList.length} Episodes · {content.duration} each</Text>
+              {episodeList.map((ep: Episode, index: number) => (
                 <TouchableOpacity
                   key={ep.id}
                   style={epStyles.row}
