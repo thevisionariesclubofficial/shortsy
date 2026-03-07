@@ -4,8 +4,8 @@
  * Intentionally thin: all state and business logic lives in `useAppState`.
  * This component is responsible only for mapping screen state → UI.
  */
-import React from 'react';
-import { StatusBar, StyleSheet, View, Modal, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Linking, StatusBar, StyleSheet, View, Modal, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { RentalModal } from '../components/RentalModal';
@@ -79,7 +79,51 @@ function App() {
     onRefreshRentals,
     onRefreshPremium,
     onRefreshPaymentHistory,
+    favorites,
+    onToggleFavorite,
   } = useAppState();
+
+  // ── Deep link handler ─────────────────────────────────────────────────────
+  // State (not ref) so that the flush effect re-runs whenever either
+  // the ID arrives OR the screen type changes — whichever happens last.
+  const [pendingDeepLinkId, setPendingDeepLinkId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const extractId = (url: string): string | null => {
+      const match = url.match(/shortsy:\/\/content\/([^/?#]+)/);
+      return match ? match[1] : null;
+    };
+
+    // Cold-start: app opened from the link
+    Linking.getInitialURL().then(url => {
+      if (url) {
+        const id = extractId(url);
+        if (id) { setPendingDeepLinkId(id); }
+      }
+    });
+
+    // Warm-start: app already running, link tapped again
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      const id = extractId(url);
+      if (id) { setPendingDeepLinkId(id); }
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Flush when BOTH conditions are true — whichever arrives last triggers this
+  useEffect(() => {
+    if (!pendingDeepLinkId) { return; }
+    if (screen.type !== 'home' && screen.type !== 'browse' && screen.type !== 'profile') { return; }
+
+    const id = pendingDeepLinkId;
+    setPendingDeepLinkId(null);
+    import('../services/contentService').then(({ getContentDetail }) =>
+      getContentDetail(id)
+        .then(content => navigate({ type: 'detail', content }))
+        .catch(() => {}),
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingDeepLinkId, screen.type]);
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   if (needsAuth) {
@@ -172,6 +216,7 @@ function App() {
               premiumSubscription={premiumSubscription}
               user={user}
               paymentHistory={paymentHistory}
+              favorites={favorites}
             />
           )}
           {showNav && (
@@ -236,6 +281,8 @@ function App() {
           onRent={onRent}
           isRented={isRented(screen.content)}
           isPremium={isPremium}
+          isFavorited={favorites.some(f => f.id === screen.content.id)}
+          onToggleFavorite={onToggleFavorite}
           onWatchNow={() => {
             // If premium user watching non-rented content, add it to rentals first
             if (isPremium && !isRented(screen.content)) {

@@ -430,6 +430,26 @@ export interface UpdateProfileRequest {
 /** Same shape as UserProfile but without stats (per spec 7.2 response). */
 export type UpdateProfileResponse = Omit<UserProfile, 'stats'>;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Section 8 — Favourites APIs
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface GetFavoritesResponse {
+  favorites: Content[];
+}
+
+export interface AddFavoriteResponse {
+  message: string;
+}
+
+export interface RemoveFavoriteResponse {
+  message: string;
+}
+
+export interface CheckFavoriteResponse {
+  isFavorite: boolean;
+}
+
 // ── 7.3 Delete Account ───────────────────────────────────────────────────────
 
 export interface DeleteAccountRequest {

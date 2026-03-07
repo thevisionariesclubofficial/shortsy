@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import {
   Alert,
+  Image,
   Linking,
   Modal,
   ScrollView,
@@ -119,22 +120,24 @@ interface ProfilePageProps {
   premiumSubscription: PremiumSubscription | null;
   user: UserProfile | null;
   paymentHistory: PaymentHistoryRecord[];
+  favorites: Content[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, onPaymentHistoryClick, navigate, isPremium, premiumSubscription, user, paymentHistory }: ProfilePageProps) {
+export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, onPaymentHistoryClick, navigate, isPremium, premiumSubscription, user, paymentHistory, favorites }: ProfilePageProps) {
   const [totalSpent, setTotalSpent] = useState(0);
   const [contentWatched, setContentWatched] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const favoritesRef = useRef<ScrollView>(null);
   
   const menuItems: Array<{ iconName: string; label: string; onPress?: () => void }> = [
-    { iconName: 'heart-outline',    label: 'My Favorites' },
+    
     { iconName: 'time-outline',     label: 'Watch History', onPress: onHistoryClick },
     { iconName: 'receipt-outline',  label: 'Payment History', onPress: onPaymentHistoryClick },
     { iconName: 'settings-outline', label: 'Settings',      onPress: () => setShowSettings(true) },
   ];
-  
+
   useEffect(() => {
     // Calculate total spent and content watched from payment history (only paid orders)
     const paidOrders = paymentHistory.filter(order => order.status === 'paid');
@@ -278,6 +281,57 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
             </LinearGradient>
           </View>
         )}
+        {/* ── My Favorites ── */}
+        <View style={styles.favSection}>
+          <View style={styles.favHeader}>
+            <Ionicons name="heart" size={16} color="#ef4444" />
+            <Text style={styles.favTitle}>My Favorites</Text>
+            <Text style={styles.favCount}>
+              {`${favorites.length}`}
+            </Text>
+          </View>
+          {favorites.length === 0 ? (
+            <View style={styles.favEmpty}>
+              <Ionicons name="heart-outline" size={32} color="#404040" />
+              <Text style={styles.favEmptyText}>No favorites yet</Text>
+              <Text style={styles.favEmptyHint}>Tap ♥ on any content to save it here</Text>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.favScroll}>
+              {favorites.map(item => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.favCard}
+                  activeOpacity={0.8}
+                  onPress={() => onContentClick(item)}>
+                  <View style={styles.favThumb}>
+                    {item.thumbnail ? (
+                      <Image
+                        source={{ uri: item.thumbnail }}
+                        style={StyleSheet.absoluteFillObject}
+                        resizeMode="cover"
+                      />
+                    ) : null}
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.75)']}
+                      style={styles.favGradient}
+                    />
+                    {item.type === 'vertical-series' && (
+                      <View style={styles.favBadge}>
+                        <Text style={styles.favBadgeText}>Series</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.favCardTitle} numberOfLines={2}>{item.title}</Text>
+                  <Text style={styles.favCardMeta}>{item.genre} · {item.duration}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
         {/* ── Menu ── */}
         <View style={styles.menuSection}>
           {menuItems.map(({ iconName, label, onPress }) => (
@@ -564,6 +618,91 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 8,
     marginBottom: 8,
+  },
+
+  // ── Favorites shelf ──
+  favSection: {
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  favHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  favTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  favCount: {
+    fontSize: 13,
+    color: '#737373',
+    fontWeight: '500',
+  },
+  favScroll: {
+    gap: 12,
+    paddingRight: 4,
+  },
+  favCard: {
+    width: 110,
+  },
+  favThumb: {
+    width: 110,
+    height: 160,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a1a',
+    marginBottom: 6,
+  },
+  favGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  favBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    backgroundColor: 'rgba(168,85,247,0.85)',
+    borderRadius: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 5,
+  },
+  favBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
+  favCardTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ffffff',
+    lineHeight: 16,
+  },
+  favCardMeta: {
+    fontSize: 10,
+    color: '#737373',
+    marginTop: 2,
+  },
+  favEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 28,
+    gap: 6,
+    backgroundColor: '#111111',
+    borderRadius: 14,
+  },
+  favEmptyText: {
+    fontSize: 14,
+    color: '#525252',
+    fontWeight: '500',
+  },
+  favEmptyHint: {
+    fontSize: 12,
+    color: '#404040',
+    textAlign: 'center',
   },
   menuItem: {
     flexDirection: 'row',

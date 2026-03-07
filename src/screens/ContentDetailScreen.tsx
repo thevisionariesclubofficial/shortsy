@@ -5,6 +5,7 @@ import {
   Image,
   InteractionManager,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -42,6 +43,8 @@ interface ContentDetailScreenProps {
   onWatchNow: () => void;
   isRented: boolean;
   isPremium: boolean;
+  isFavorited: boolean;
+  onToggleFavorite: (contentId: string, currentlyFavorited: boolean) => Promise<void>;
   onEpisodePlay: (ep: Episode, episodeNumber: number) => void;
 }
 
@@ -93,9 +96,12 @@ export function ContentDetailScreen({
   onWatchNow,
   isRented,
   isPremium,
+  isFavorited,
+  onToggleFavorite,
   onEpisodePlay,
 }: ContentDetailScreenProps) {
-  const [liked, setLiked] = useState(false);
+  const liked = isFavorited;
+  const handleToggleFavorite = () => onToggleFavorite(content.id, liked);
   // Deferred: mount TrailerPlayer only after navigation transition completes
   const [videoMounted, setVideoMounted] = useState(false);
 
@@ -141,6 +147,14 @@ export function ContentDetailScreen({
 
   const formatViews = (v: number) =>
     v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
+
+  const handleShare = async () => {
+    const webLink = `https://shortsy-7c19f.web.app/open.html?id=${content.id}&title=${encodeURIComponent(content.title)}`;
+    const message = `🎬 Watch "${content.title}" on Shortsy!\n\n${content.description?.slice(0, 120)}...\n\n${webLink}`;
+    try {
+      await Share.share({ message, title: content.title, url: webLink });
+    } catch (_) { /* user cancelled or share unavailable */ }
+  };
 
   return (
     <View style={styles.container}>
@@ -189,11 +203,11 @@ export function ContentDetailScreen({
           <View style={styles.topActions}>
             <TouchableOpacity
               style={styles.actionBtn}
-              onPress={() => setLiked(v => !v)}
+              onPress={handleToggleFavorite}
               activeOpacity={0.8}>
               <Ionicons name={liked ? 'heart' : 'heart-outline'} size={20} color={liked ? '#ef4444' : '#ffffff'} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={handleShare}>
               <Ionicons name="share-social" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>

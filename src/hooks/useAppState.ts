@@ -21,6 +21,7 @@ import { clearProfileStore, getCurrentUser } from '../services/profileService';
 import { getPaymentHistory } from '../services/rentalService';
 import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
 import { getContentDetail } from '../services/contentService';
+import { getFavorites, addFavorite, removeFavorite } from '../services/favoriteService';
 import { getSession, logout as authLogout, restoreSession, googleSignIn, confirmOtp, resendOtp, registerForceLogoutCallback } from '../services/authService';
 import { setAccessToken } from '../services/apiClient';
 import { logger } from '../utils/logger';
@@ -39,6 +40,7 @@ export interface AppStateHook {
   user: UserProfile | null;
   paymentHistory: PaymentHistoryRecord[];
   progressMap: Map<string, WatchProgress>;
+  favorites: Content[];
   showRentalModal: boolean;
   showExpiredModal: boolean;
   expiredMessage: string;
@@ -53,6 +55,7 @@ export interface AppStateHook {
   getProgress: (contentId: string) => WatchProgress | null;
   updateProgress: (contentId: string, progress: WatchProgress) => void;
   onPremiumWatch: (content: Content) => Promise<void>;
+  onToggleFavorite: (contentId: string, currentlyFavorited: boolean) => Promise<void>;
 
   // ── Navigation ──
   navigate: (screen: AppScreen) => void;
@@ -100,6 +103,7 @@ export function useAppState(): AppStateHook {
   const [user,             setUser]             = useState<UserProfile | null>(null);
   const [paymentHistory,   setPaymentHistory]   = useState<PaymentHistoryRecord[]>([]);
   const [progressMap,      setProgressMap]      = useState<Map<string, WatchProgress>>(new Map());
+  const [favorites,        setFavorites]        = useState<Content[]>([]);
   const [showRentalModal,  setShowRentalModal]  = useState(false);
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   const [expiredMessage,   setExpiredMessage]   = useState('');
@@ -125,6 +129,24 @@ export function useAppState(): AppStateHook {
       newMap.set(contentId, progress);
       return newMap;
     });
+  }, []);
+
+  const onToggleFavorite = useCallback(async (contentId: string, currentlyFavorited: boolean) => {
+    // Optimistic update
+    if (currentlyFavorited) {
+      setFavorites(prev => prev.filter(c => c.id !== contentId));
+      try { await removeFavorite(contentId); }
+      catch { setFavorites(prev => [...prev]); /* revert handled by re-fetch */ }
+    } else {
+      try {
+        await addFavorite(contentId);
+        // Re-fetch to get the full Content object from the backend
+        const updated = await getFavorites();
+        setFavorites(updated);
+      } catch {
+        // nothing to revert — item was never added visually
+      }
+    }
   }, []);
 
   const addRented = useCallback((c: Content) => {
@@ -330,6 +352,14 @@ export function useAppState(): AppStateHook {
             logger.error('APP', 'Failed to load payment history', err);
             setPaymentHistory([]);
           });
+
+        // Fetch favorites (once on login, then updated via onToggleFavorite)
+        getFavorites()
+          .then(favs => {
+            setFavorites(favs);
+            logger.info('APP', `Loaded ${favs.length} favorite(s)`);
+          })
+          .catch(err => logger.warn('APP', 'Failed to load favorites', err));
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -372,6 +402,7 @@ export function useAppState(): AppStateHook {
     setUser(null);
     setPaymentHistory([]);
     setProgressMap(new Map());
+    setFavorites([]);
     navigate({ type: 'login' });
   }, [navigate]);
 
@@ -628,6 +659,7 @@ export function useAppState(): AppStateHook {
     user,
     paymentHistory,
     progressMap,
+    favorites,
     showRentalModal,
     showExpiredModal,
     expiredMessage,
@@ -638,6 +670,7 @@ export function useAppState(): AppStateHook {
     getProgress,
     updateProgress,
     onPremiumWatch,
+    onToggleFavorite,
     navigate,
     onSplashComplete,
     onOnboardingComplete,
