@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { ENV } from '../constants/env';
 
 interface TermsScreenProps {
   onBack: () => void;
@@ -48,7 +49,8 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
             <Text style={styles.paragraph}>
               Shortsy provides a streaming platform for short films and vertical series. We offer both rental-based and subscription-based access models.
             </Text>
-            <Text style={styles.bulletPoint}>• Individual content rentals valid for 48 hours</Text>
+            <Text style={styles.bulletPoint}>{`• Short film rentals valid for ${ENV.RENTAL_EXPIRY_SHORT_FILM_DAYS} ${ENV.RENTAL_EXPIRY_SHORT_FILM_DAYS === 1 ? 'day' : 'days'}`}</Text>
+            <Text style={styles.bulletPoint}>{`• Vertical series rentals valid for ${ENV.RENTAL_EXPIRY_VERTICAL_SERIES_DAYS} ${ENV.RENTAL_EXPIRY_VERTICAL_SERIES_DAYS === 1 ? 'day' : 'days'}`}</Text>
             <Text style={styles.bulletPoint}>• Premium subscription for unlimited access</Text>
             <Text style={styles.bulletPoint}>• HD quality streaming on mobile devices</Text>
           </View>

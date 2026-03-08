@@ -5,6 +5,7 @@ import {
   Image,
   InteractionManager,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,6 +16,8 @@ import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Content, Episode } from '../data/mockData';
 import { checkRentalStatus } from '../services/rentalService';
+import { getContentDetail } from '../services/contentService';
+import { ENV } from '../constants/env';
 
 const SCREEN_H = Dimensions.get('window').height;
 
@@ -41,6 +44,8 @@ interface ContentDetailScreenProps {
   onWatchNow: () => void;
   isRented: boolean;
   isPremium: boolean;
+  isFavorited: boolean;
+  onToggleFavorite: (contentId: string, currentlyFavorited: boolean) => Promise<void>;
   onEpisodePlay: (ep: Episode, episodeNumber: number) => void;
 }
 
@@ -51,7 +56,7 @@ function TrailerPlayer({ uri }: { uri: string }) {
   const opacity = useRef(new Animated.Value(0)).current;
 
   const player = useVideoPlayer({ uri }, p => {
-    p.muted = true;
+    p.muted = false;
     p.loop = false;
   });
 
@@ -92,11 +97,28 @@ export function ContentDetailScreen({
   onWatchNow,
   isRented,
   isPremium,
+  isFavorited,
+  onToggleFavorite,
   onEpisodePlay,
 }: ContentDetailScreenProps) {
-  const [liked, setLiked] = useState(false);
+  const liked = isFavorited;
+  const handleToggleFavorite = () => onToggleFavorite(content.id, liked);
   // Deferred: mount TrailerPlayer only after navigation transition completes
   const [videoMounted, setVideoMounted] = useState(false);
+
+  // Self-fetch episodeList if the prop came from a list endpoint (episodeList is null there).
+  const [episodeList, setEpisodeList] = useState<Episode[] | null | undefined>(
+    content.episodeList,
+  );
+
+  useEffect(() => {
+    setEpisodeList(content.episodeList);
+    if (content.type === 'vertical-series' && (!content.episodeList || content.episodeList.length === 0)) {
+      getContentDetail(content.id)
+        .then(full => setEpisodeList(full.episodeList ?? null))
+        .catch(() => { /* silently keep null */ });
+    }
+  }, [content.id, content.type, content.episodeList]);
 
   // Start from the prop value (instant, no flicker), then verify against the
   // service layer so ground truth is always from the backend (real or mock).
@@ -126,6 +148,14 @@ export function ContentDetailScreen({
 
   const formatViews = (v: number) =>
     v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
+
+  const handleShare = async () => {
+    const webLink = `${ENV.APP_WEB_URL}/open.html?id=${content.id}&title=${encodeURIComponent(content.title)}`;
+    const message = `🎬 Watch "${content.title}" on Shortsy!\n\n${content.description?.slice(0, 120)}...\n\n${webLink}`;
+    try {
+      await Share.share({ message, title: content.title, url: webLink });
+    } catch (_) { /* user cancelled or share unavailable */ }
+  };
 
   return (
     <View style={styles.container}>
@@ -174,11 +204,11 @@ export function ContentDetailScreen({
           <View style={styles.topActions}>
             <TouchableOpacity
               style={styles.actionBtn}
-              onPress={() => setLiked(v => !v)}
+              onPress={handleToggleFavorite}
               activeOpacity={0.8}>
               <Ionicons name={liked ? 'heart' : 'heart-outline'} size={20} color={liked ? '#ef4444' : '#ffffff'} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={handleShare}>
               <Ionicons name="share-social" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
@@ -239,10 +269,10 @@ export function ContentDetailScreen({
           </View>
 
           {/* Episodes (series only) */}
-          {content.type === 'vertical-series' && content.episodeList && content.episodeList.length > 0 && (
+          {content.type === 'vertical-series' && episodeList && episodeList.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{content.episodeList.length} Episodes · {content.duration} each</Text>
-              {content.episodeList.map((ep: Episode, index: number) => (
+              <Text style={styles.sectionLabel}>{episodeList.length} Episodes · {content.duration} each</Text>
+              {episodeList.map((ep: Episode, index: number) => (
                 <TouchableOpacity
                   key={ep.id}
                   style={epStyles.row}

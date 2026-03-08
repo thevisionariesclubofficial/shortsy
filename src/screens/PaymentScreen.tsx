@@ -18,6 +18,7 @@ import RazorpayCheckout from 'react-native-razorpay';
 import { logger } from '../utils/logger';
 import type { RentalRecord } from '../types/api';
 import { COLORS } from '../constants/colors';
+import { ENV } from '../constants/env';
 
 function Spinner() {
   const spin = useRef(new Animated.Value(0)).current;
@@ -93,7 +94,7 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
         description: `Rental for ${order.contentTitle || content.title}`,
         image: content.thumbnail,
         currency: order.currency ?? 'INR',
-        key: order.gatewayKey ?? 'rzp_test_SLajOeA4k89FaD',
+        key: order.gatewayKey ?? ENV.RAZORPAY_KEY_ID,
         amount: typeof order.amountINR === 'number' && !isNaN(order.amountINR) ? order.amountINR * 100 : content.price * 100,
         order_id: order.gatewayOrderId || order.orderId,
         name: 'Shortsy',
@@ -296,8 +297,8 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
               <Text style={styles.infoTitle}>Access Details</Text>
               <Text style={styles.infoBody}>
                 {content.type === 'vertical-series'
-                  ? 'You will get 7 days unlimited access to all episodes'
-                  : 'You will get 48-hour viewing access'}
+                  ? `You will get ${ENV.RENTAL_EXPIRY_VERTICAL_SERIES_DAYS} ${ENV.RENTAL_EXPIRY_VERTICAL_SERIES_DAYS === 1 ? 'day' : 'days'} unlimited access to all episodes`
+                  : `You will get ${ENV.RENTAL_EXPIRY_SHORT_FILM_DAYS}-day viewing access`}
               </Text>
             </View>
           </View>

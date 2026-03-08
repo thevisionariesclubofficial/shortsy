@@ -47,25 +47,22 @@ import type {
 import { USE_MOCK, ApiClientError, apiClient, mockDelay, setAccessToken } from './apiClient';
 import { logger } from '../utils/logger';
 import { saveAuthTokens, saveAuthUser, saveAuthFlag, clearAuthStorage, getAuthTokens, getAuthUser } from '../utils/storage';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { authorize } from 'react-native-app-auth';
 
-// ── Google Sign-In configuration ─────────────────────────────────────────────
-// Replace with your actual iOS/Android client IDs from Google Cloud Console
-const GOOGLE_IOS_CLIENT_ID     = '411501052320-ctaen736unlri4e0fhapjujnf56b92jv.apps.googleusercontent.com';
-const GOOGLE_WEB_CLIENT_ID     = '411501052320-i88soetdamgrna06pdj00peqsbuaac85.apps.googleusercontent.com';
-const GOOGLE_ANDROID_CLIENT_ID = '411501052320-iicd78lkbp0su75cn5tgdtel35c72jp8.apps.googleusercontent.com';
+// ── Google OAuth configuration (react-native-app-auth, browser-based PKCE) ───
+// Values are loaded from .env via react-native-config → src/constants/env.ts
+import { ENV } from '../constants/env';
 
-/**
- * Call once at app startup (e.g. in App.tsx useEffect or index.js).
- * Safe to call multiple times.
- */
-export function configureGoogleSignIn(): void {
-  GoogleSignin.configure({
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    offlineAccess: false,
-  });
-}
+const GOOGLE_CLIENT_ID      = ENV.GOOGLE_IOS_CLIENT_ID;
+const GOOGLE_REDIRECT        = ENV.GOOGLE_OAUTH_REDIRECT_URI;
+const GOOGLE_WEB_CLIENT_ID  = ENV.GOOGLE_WEB_CLIENT_ID;
+
+const GOOGLE_OAUTH_CONFIG = {
+  issuer:      'https://accounts.google.com',
+  clientId:    GOOGLE_CLIENT_ID,
+  redirectUrl: GOOGLE_REDIRECT,
+  scopes:      ['openid', 'profile', 'email'],
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Session store (module-level → survives component remounts)
@@ -140,6 +137,35 @@ export function clearSession(): void {
   setAccessToken(null);
   clearAuthStorage();
   logger.info('AUTH', 'Session cleared');
+}
+
+// ── Force-logout callback (registered by useAppState) ────────────────────────
+
+/**
+ * Callback registered by useAppState so that apiClient can trigger a full
+ * React-state logout (clear stores + navigate to login) when the refresh
+ * token is found to be expired or invalid.
+ */
+let _forceLogoutCallback: (() => void) | null = null;
+
+/**
+ * Register the callback that will be invoked on a forced logout.
+ * Call this once from useAppState on mount.
+ */
+export function registerForceLogoutCallback(cb: () => void): void {
+  _forceLogoutCallback = cb;
+}
+
+/**
+ * Trigger a forced logout — clears the session and invokes the registered
+ * React-state callback so the UI navigates to the login screen.
+ */
+export function triggerForceLogout(): void {
+  logger.warn('AUTH', 'Force logout triggered — refresh token expired or invalid');
+  clearSession();
+  if (_forceLogoutCallback) {
+    _forceLogoutCallback();
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -516,30 +542,28 @@ export async function googleSignIn(): Promise<LoginResponse> {
     return { user, tokens };
   }
 
-  // 1. Trigger native Google Sign-In
+  // 1. Browser-based Google OAuth 2.0 PKCE (Chrome Custom Tabs / SFSafariViewController)
+  //    No SHA-1 fingerprint, no Firebase SDK, no google-services.json OAuth entry needed.
   let idToken: string;
   try {
-    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    const response = await GoogleSignin.signIn();
-    const token = response.data?.idToken;
-    if (!token) throw new Error('No ID token returned by Google Sign-In');
-    idToken = token;
+    const authResult = await authorize(GOOGLE_OAUTH_CONFIG);
+    if (!authResult.idToken) throw new Error('No ID token returned by Google OAuth');
+    idToken = authResult.idToken;
   } catch (err: any) {
-    const code: string = err?.code ?? '';
-    if (code === statusCodes.SIGN_IN_CANCELLED) {
+    const message: string = err?.message ?? '';
+    if (
+      message.includes('cancel') ||
+      message.includes('Cancel') ||
+      message.includes('dismiss') ||
+      message.includes('user_cancelled_authorize')
+    ) {
       throw new ApiClientError(401, 'GOOGLE_SIGN_IN_CANCELLED', 'Sign in was cancelled');
     }
-    if (code === statusCodes.IN_PROGRESS) {
-      throw new ApiClientError(409, 'GOOGLE_SIGN_IN_IN_PROGRESS', 'Sign in already in progress');
-    }
-    if (code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      throw new ApiClientError(503, 'GOOGLE_PLAY_SERVICES_UNAVAILABLE', 'Google Play Services not available');
-    }
-    logger.error('AUTH', 'Google Sign-In native error', err);
+    logger.error('AUTH', 'Google Sign-In browser error', err);
     throw new ApiClientError(500, 'GOOGLE_SIGN_IN_ERROR', err?.message ?? 'Google Sign-In failed');
   }
 
-  // 2. Exchange ID token with backend
+  // 2. Exchange ID token with backend (Cognito via our API)
   const result = await apiClient.post<LoginResponse>('/auth/google', {
     body: { idToken, googleClientId: GOOGLE_WEB_CLIENT_ID },
   });

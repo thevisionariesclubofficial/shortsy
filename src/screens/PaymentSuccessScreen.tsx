@@ -15,6 +15,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { Content } from '../data/mockData';
 import type { RentalRecord } from '../types/api';
+import { ENV } from '../constants/env';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -52,12 +53,12 @@ function buildShareText(content: Content, rental: RentalRecord): string {
     '',
     '─────────────────────────────',
     `Amount Paid    : ₹${rental.amountPaid}`,
-    `Creator Earns  : ₹${Math.round(rental.amountPaid * 0.7)}  (70%)`,
+    `Creator Earns  : ₹${Math.round(rental.amountPaid * ENV.CREATOR_REVENUE_SHARE)}  (${Math.round(ENV.CREATOR_REVENUE_SHARE * 100)}%)`,
     `Payment Status : CONFIRMED ✓`,
     '─────────────────────────────',
     '',
     'Thank you for supporting independent cinema! 🎬',
-    'shortsy.app',
+    ENV.APP_DOMAIN,
   ].join('\n');
 }
 
@@ -173,8 +174,8 @@ function ReceiptModal({
             {/* Payment breakdown */}
             <Text style={receiptStyles.sectionLabel}>PAYMENT BREAKDOWN</Text>
             <ReceiptRow label="Amount Paid"   value={`₹${rental.amountPaid}`} highlight />
-            <ReceiptRow label="Creator Earns" value={`₹${Math.round(rental.amountPaid * 0.7)}  (70%)`} />
-            <ReceiptRow label="Platform Fee"  value={`₹${Math.round(rental.amountPaid * 0.3)}  (30%)`} />
+            <ReceiptRow label="Creator Earns" value={`₹${Math.round(rental.amountPaid * ENV.CREATOR_REVENUE_SHARE)}  (${Math.round(ENV.CREATOR_REVENUE_SHARE * 100)}%)`} />
+            <ReceiptRow label="Platform Fee"  value={`₹${Math.round(rental.amountPaid * ENV.PLATFORM_FEE_SHARE)}  (${Math.round(ENV.PLATFORM_FEE_SHARE * 100)}%)`} />
             <ReceiptRow label="Payment Mode"  value="UPI / Card" />
 
             {/* Perforated tear line */}
@@ -184,7 +185,7 @@ function ReceiptModal({
             <Text style={receiptStyles.footerNote}>
               {'Thank you for supporting independent cinema! 🎬\nThis receipt is your proof of rental. Keep it safe.'}
             </Text>
-            <Text style={receiptStyles.footerUrl}>shortsy.app</Text>
+            <Text style={receiptStyles.footerUrl}>{ENV.APP_DOMAIN}</Text>
           </View>
 
           {/* Share / Download button */}
@@ -274,6 +275,14 @@ export function PaymentSuccessScreen({
     ]).start();
   }, [cardScale, cardOpacity]);
 
+  const handleShare = async () => {
+    const webLink = `${ENV.APP_WEB_URL}/open.html?id=${content.id}&title=${encodeURIComponent(content.title)}`;
+    const message = `🎬 Watch "${content.title}" on Shortsy!\n\n${content.description?.slice(0, 120)}...\n\n${webLink}`;
+    try {
+      await Share.share({ message, title: content.title, url: webLink });
+    } catch { /* user cancelled or share unavailable */ }
+  };
+
   return (
     <View style={styles.container}>
       {/* Background pulse blob */}
@@ -327,7 +336,7 @@ export function PaymentSuccessScreen({
         {/* ── Creator support banner ── */}
         <View style={styles.creatorBanner}>
           <Text style={styles.creatorText}>
-            70% of your payment goes directly to the creator. Thank you for supporting independent cinema! 🎬
+            {Math.round(ENV.CREATOR_REVENUE_SHARE * 100)}% of your payment goes directly to the creator. Thank you for supporting independent cinema! 🎥
           </Text>
         </View>
 
@@ -351,7 +360,7 @@ export function PaymentSuccessScreen({
               <Ionicons name="download-outline" size={18} color="#ffffff" />
               <Text style={styles.outlineBtnText}>Receipt</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.7} onPress={handleShare}>
               <Ionicons name="share-social-outline" size={18} color="#ffffff" />
               <Text style={styles.outlineBtnText}>Share</Text>
             </TouchableOpacity>

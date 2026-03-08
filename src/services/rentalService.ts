@@ -40,6 +40,7 @@ import type {
 } from '../types/api';
 import { USE_MOCK, ApiClientError, apiClient, mockDelay } from './apiClient';
 import { logger } from '../utils/logger';
+import { ENV } from '../constants/env';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock rental store (module-level → survives component remounts)
@@ -129,11 +130,13 @@ export async function addPremiumRental(contentId: string): Promise<RentalRecord 
 
 function rentalExpiresAt(contentId: string): string {
   const content = mockContent.find(c => c.id === contentId);
-  const durationMs =
+  // Duration driven by .env → RENTAL_EXPIRY_SHORT_FILM_DAYS / RENTAL_EXPIRY_VERTICAL_SERIES_DAYS
+  // Must match the backend's RENTAL_EXPIRY_* config (see RENTAL_EXPIRY_CONFIG.md).
+  const days =
     content?.type === 'vertical-series'
-      ? 7 * 24 * 60 * 60 * 1000   // 7 days for series
-      : 48 * 60 * 60 * 1000;       // 48 hours for short-films
-  return new Date(Date.now() + durationMs).toISOString();
+      ? ENV.RENTAL_EXPIRY_VERTICAL_SERIES_DAYS
+      : ENV.RENTAL_EXPIRY_SHORT_FILM_DAYS;
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -179,7 +182,7 @@ export async function initiateRental(
       amountINR,
       currency,
       gatewayOrderId: orderId,
-      gatewayKey: 'rzp_test_SLajOeA4k89FaD',
+      gatewayKey: ENV.RAZORPAY_KEY_ID,
       expiresAt: orderExpiresAt,
     };
   } else {
@@ -215,7 +218,7 @@ export async function initiateRental(
       amountINR: orderRes.amountINR ?? params.amountINR,
       currency: 'INR',
       gatewayOrderId: orderRes.gatewayOrderId ?? orderRes.orderId,
-      gatewayKey: orderRes.gatewayKey ?? 'rzp_test_SLajOeA4k89FaD',
+      gatewayKey: orderRes.gatewayKey ?? ENV.RAZORPAY_KEY_ID,
       expiresAt: orderRes.expiresAt ?? new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     };
   }

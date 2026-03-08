@@ -21,7 +21,8 @@ import { clearProfileStore, getCurrentUser } from '../services/profileService';
 import { getPaymentHistory } from '../services/rentalService';
 import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
 import { getContentDetail } from '../services/contentService';
-import { getSession, logout as authLogout, restoreSession, googleSignIn, confirmOtp, resendOtp } from '../services/authService';
+import { getFavorites, addFavorite, removeFavorite } from '../services/favoriteService';
+import { getSession, logout as authLogout, restoreSession, googleSignIn, confirmOtp, resendOtp, registerForceLogoutCallback } from '../services/authService';
 import { setAccessToken } from '../services/apiClient';
 import { logger } from '../utils/logger';
 import type { AppScreen } from '../types/navigation';
@@ -39,6 +40,7 @@ export interface AppStateHook {
   user: UserProfile | null;
   paymentHistory: PaymentHistoryRecord[];
   progressMap: Map<string, WatchProgress>;
+  favorites: Content[];
   showRentalModal: boolean;
   showExpiredModal: boolean;
   expiredMessage: string;
@@ -53,6 +55,7 @@ export interface AppStateHook {
   getProgress: (contentId: string) => WatchProgress | null;
   updateProgress: (contentId: string, progress: WatchProgress) => void;
   onPremiumWatch: (content: Content) => Promise<void>;
+  onToggleFavorite: (contentId: string, currentlyFavorited: boolean) => Promise<void>;
 
   // ── Navigation ──
   navigate: (screen: AppScreen) => void;
@@ -100,6 +103,7 @@ export function useAppState(): AppStateHook {
   const [user,             setUser]             = useState<UserProfile | null>(null);
   const [paymentHistory,   setPaymentHistory]   = useState<PaymentHistoryRecord[]>([]);
   const [progressMap,      setProgressMap]      = useState<Map<string, WatchProgress>>(new Map());
+  const [favorites,        setFavorites]        = useState<Content[]>([]);
   const [showRentalModal,  setShowRentalModal]  = useState(false);
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   const [expiredMessage,   setExpiredMessage]   = useState('');
@@ -125,6 +129,24 @@ export function useAppState(): AppStateHook {
       newMap.set(contentId, progress);
       return newMap;
     });
+  }, []);
+
+  const onToggleFavorite = useCallback(async (contentId: string, currentlyFavorited: boolean) => {
+    // Optimistic update
+    if (currentlyFavorited) {
+      setFavorites(prev => prev.filter(c => c.id !== contentId));
+      try { await removeFavorite(contentId); }
+      catch { setFavorites(prev => [...prev]); /* revert handled by re-fetch */ }
+    } else {
+      try {
+        await addFavorite(contentId);
+        // Re-fetch to get the full Content object from the backend
+        const updated = await getFavorites();
+        setFavorites(updated);
+      } catch {
+        // nothing to revert — item was never added visually
+      }
+    }
   }, []);
 
   const addRented = useCallback((c: Content) => {
@@ -330,6 +352,14 @@ export function useAppState(): AppStateHook {
             logger.error('APP', 'Failed to load payment history', err);
             setPaymentHistory([]);
           });
+
+        // Fetch favorites (once on login, then updated via onToggleFavorite)
+        getFavorites()
+          .then(favs => {
+            setFavorites(favs);
+            logger.info('APP', `Loaded ${favs.length} favorite(s)`);
+          })
+          .catch(err => logger.warn('APP', 'Failed to load favorites', err));
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -372,8 +402,15 @@ export function useAppState(): AppStateHook {
     setUser(null);
     setPaymentHistory([]);
     setProgressMap(new Map());
+    setFavorites([]);
     navigate({ type: 'login' });
   }, [navigate]);
+
+  // Keep the force-logout callback up to date so apiClient can trigger it
+  // when the refresh token is found to be expired or invalid.
+  useEffect(() => {
+    registerForceLogoutCallback(onLogout);
+  }, [onLogout]);
 
   const onSignup = useCallback((email: string, password: string) => {
     // Signup succeeded — OTP has been sent, navigate to verification screen
@@ -409,8 +446,19 @@ export function useAppState(): AppStateHook {
 
   // ── Content handlers ────────────────────────────────────────────────────────
   const onContentClick = useCallback(
-    (content: Content) =>
-      navigate(resolveContentScreen(content, isRented(content))),
+    async (content: Content) => {
+      // For vertical series the list endpoint returns episodeList: null.
+      // Fetch full details so the episode list is available on the detail screen.
+      let fullContent = content;
+      if (content.type === 'vertical-series' && (!content.episodeList || content.episodeList.length === 0)) {
+        try {
+          fullContent = await getContentDetail(content.id);
+        } catch (err) {
+          logger.warn('APP', `Failed to fetch full details for ${content.id}, using list data`, err);
+        }
+      }
+      navigate(resolveContentScreen(fullContent, isRented(fullContent)));
+    },
     [navigate, isRented],
   );
 
@@ -611,6 +659,7 @@ export function useAppState(): AppStateHook {
     user,
     paymentHistory,
     progressMap,
+    favorites,
     showRentalModal,
     showExpiredModal,
     expiredMessage,
@@ -621,6 +670,7 @@ export function useAppState(): AppStateHook {
     getProgress,
     updateProgress,
     onPremiumWatch,
+    onToggleFavorite,
     navigate,
     onSplashComplete,
     onOnboardingComplete,

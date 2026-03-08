@@ -49,6 +49,7 @@ import type {
   SearchContentResponse,
 } from '../types/api';
 import { USE_MOCK, apiClient, mockDelay } from './apiClient';
+import { ENV } from '../constants/env';
 import { logger } from '../utils/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,8 +70,8 @@ import { logger } from '../utils/logger';
 //   React Query    → best-in-class but adds a dependency; cache here is equivalent
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** How long a cache entry is valid. Adjust freely. */
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+/** How long a cache entry is valid — configured via CONTENT_CACHE_TTL_MS in .env */
+const CACHE_TTL_MS = ENV.CONTENT_CACHE_TTL_MS;
 
 interface CacheEntry<T> {
   data: T;

@@ -6,6 +6,7 @@ import {
   GestureResponderEvent,
   Image,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -77,6 +78,12 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
   const currentTimeRef  = useRef(0);   // mirrors currentTime state
   const durationRef     = useRef(0);   // mirrors duration state
   const lastSaveRef     = useRef(0);   // Date.now() of last progress save (10s throttle)
+
+  // Double-tap detection
+  const lastTapTimeRef = useRef(0);
+  const lastTapSideRef = useRef<'left' | 'right' | null>(null);
+  const leftShimmerAnim  = useRef(new Animated.Value(0)).current;
+  const rightShimmerAnim = useRef(new Animated.Value(0)).current;
   const hasRestored     = useRef(false); // true once we've attempted to restore progress
 
   // ── Helper: Save progress to backend and update local cache ──────────────────
@@ -257,6 +264,50 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
     showControlsNow();
   };
 
+  const seekBackward = () => {
+    if (!hasRealVideo) { return; }
+    const target = Math.max(0, currentTimeRef.current - 10);
+    epPlayer.seekTo(target);
+    showControlsNow();
+  };
+
+  const seekForward = () => {
+    if (!hasRealVideo) { return; }
+    const target = Math.min(duration > 0 ? duration : currentTimeRef.current + 10, currentTimeRef.current + 10);
+    epPlayer.seekTo(target);
+    showControlsNow();
+  };
+
+  const flashShimmer = (anim: Animated.Value) => {
+    anim.setValue(0);
+    Animated.sequence([
+      Animated.timing(anim, { toValue: 1, duration: 80,  useNativeDriver: true }),
+      Animated.timing(anim, { toValue: 0, duration: 450, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const handleOverlayPress = (e: GestureResponderEvent) => {
+    const side: 'left' | 'right' = e.nativeEvent.locationX < width / 2 ? 'left' : 'right';
+    const now = Date.now();
+    if (now - lastTapTimeRef.current < 300 && lastTapSideRef.current === side) {
+      // Double tap — seek
+      lastTapTimeRef.current = 0;
+      lastTapSideRef.current = null;
+      if (side === 'left') {
+        seekBackward();
+        flashShimmer(leftShimmerAnim);
+      } else {
+        seekForward();
+        flashShimmer(rightShimmerAnim);
+      }
+      return;
+    }
+    // Single tap — toggle controls
+    lastTapTimeRef.current = now;
+    lastTapSideRef.current = side;
+    toggleControls();
+  };
+
   // Save progress then navigate back
   const handleBack = () => {
     if (hasRealVideo && currentTimeRef.current > 0) {
@@ -272,6 +323,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
       saveAndUpdateProgress(req);
     }
     if (isShortFilm) Orientation.lockToPortrait();
+    StatusBar.setHidden(false, 'fade');
     onBack();
   };
 
@@ -549,6 +601,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
   }, []);
   return (
     <View style={styles.container}>
+      <StatusBar hidden translucent backgroundColor="transparent" />
       {/* ── Video area ── */}
       <View style={styles.videoArea}>
         {hasRealVideo ? (
@@ -582,12 +635,26 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
         </View>
       ) : null}
 
-      {/* ── Tap overlay to toggle controls ── */}
-      <TouchableOpacity 
+      {/* ── Tap overlay: single tap → controls, double tap left/right → seek ── */}
+      <TouchableOpacity
         style={styles.tapOverlay}
         activeOpacity={1}
-        onPress={toggleControls}
+        onPress={handleOverlayPress}
       />
+
+      {/* ── Double-tap shimmer overlays ── */}
+      <Animated.View style={[styles.shimmerLeft, { opacity: leftShimmerAnim }]} pointerEvents="none">
+        <View style={styles.shimmerIconWrap}>
+          <Ionicons name="play-back" size={26} color="#ffffff" />
+          <Text style={styles.shimmerLabel}>10s</Text>
+        </View>
+      </Animated.View>
+      <Animated.View style={[styles.shimmerRight, { opacity: rightShimmerAnim }]} pointerEvents="none">
+        <View style={styles.shimmerIconWrap}>
+          <Ionicons name="play-forward" size={26} color="#ffffff" />
+          <Text style={styles.shimmerLabel}>10s</Text>
+        </View>
+      </Animated.View>
 
       {/* ── Controls overlay ── */}
       <Animated.View style={[styles.overlay, styles.controlsLayer, { opacity: controlsOpacity }]} pointerEvents={showControls ? 'box-none' : 'none'}>
@@ -612,14 +679,32 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
             </TouchableOpacity>
           </View>
 
-          {/* Centre play/pause */}
+          {/* Centre play/pause + seek */}
           <View style={styles.centreWrap}>
-            <TouchableOpacity
-              onPress={(e) => { e.stopPropagation?.(); togglePlay(); }}
-              style={[styles.bigPlayBtn, isShortFilm && { width: 52, height: 52, borderRadius: 26 }]}
-              activeOpacity={0.8}>
-              {isPlaying ? <Ionicons name="pause" size={isShortFilm ? 22 : 36} color="#ffffff" /> : <Ionicons name="play" size={isShortFilm ? 22 : 36} color="#ffffff" />}
-            </TouchableOpacity>
+            <View style={styles.centreRow}>
+              <TouchableOpacity
+                onPress={(e) => { e.stopPropagation?.(); seekBackward(); }}
+                style={styles.seekBtn}
+                activeOpacity={0.8}>
+                <Ionicons name="play-back" size={28} color="#ffffff" />
+                <Text style={styles.seekLabel}>10</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={(e) => { e.stopPropagation?.(); togglePlay(); }}
+                style={[styles.bigPlayBtn, isShortFilm && { width: 52, height: 52, borderRadius: 26 }]}
+                activeOpacity={0.8}>
+                {isPlaying ? <Ionicons name="pause" size={isShortFilm ? 22 : 36} color="#ffffff" /> : <Ionicons name="play" size={isShortFilm ? 22 : 36} color="#ffffff" />}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={(e) => { e.stopPropagation?.(); seekForward(); }}
+                style={styles.seekBtn}
+                activeOpacity={0.8}>
+                <Ionicons name="play-forward" size={28} color="#ffffff" />
+                <Text style={styles.seekLabel}>10</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Bottom controls */}
@@ -647,12 +732,14 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
             {/* Playback buttons */}
             <View style={styles.controlRow}>
               <View style={styles.controlLeft}>
+                
                 <TouchableOpacity
                   onPress={(e) => { e.stopPropagation?.(); togglePlay(); }}
                   style={styles.iconBtn}
                   activeOpacity={0.7}>
                   {isPlaying ? <Ionicons name="pause" size={20} color="#ffffff" /> : <Ionicons name="play" size={20} color="#ffffff" />}
                 </TouchableOpacity>
+                
                 <TouchableOpacity
                   onPress={(e) => {
                     e.stopPropagation?.();
@@ -665,6 +752,20 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
                   style={styles.iconBtn}
                   activeOpacity={0.7}>
                   <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={22} color="#ffffff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={(e) => { e.stopPropagation?.(); seekBackward(); }}
+                  style={styles.iconBtn}
+                  activeOpacity={0.7}>
+                  <Ionicons name="play-back" size={18} color="#ffffff" />
+                  <Text style={styles.iconBtnLabel}>10s</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={(e) => { e.stopPropagation?.(); seekForward(); }}
+                  style={styles.iconBtn}
+                  activeOpacity={0.7}>
+                  <Ionicons name="play-forward" size={18} color="#ffffff" />
+                  <Text style={styles.iconBtnLabel}>10s</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -733,6 +834,39 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
 
+  shimmerLeft: {
+    position: 'absolute',
+    left: 0, top: 0, bottom: 0,
+    width: '50%',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderTopRightRadius: 120,
+    borderBottomRightRadius: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 15,
+  },
+  shimmerRight: {
+    position: 'absolute',
+    right: 0, top: 0, bottom: 0,
+    width: '50%',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderTopLeftRadius: 120,
+    borderBottomLeftRadius: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 15,
+  },
+  shimmerIconWrap: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  shimmerLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
+
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
@@ -758,6 +892,24 @@ const styles = StyleSheet.create({
 
   // Centre
   centreWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 28,
+  },
+  seekBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 52,
+    height: 52,
+  },
+  seekLabel: {
+    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: '700',
+    marginTop: 1,
+    letterSpacing: 0.3,
+  },
   bigPlayBtn: {
     width: 80, height: 80,
     borderRadius: 40,
@@ -797,7 +949,8 @@ const styles = StyleSheet.create({
   controlRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   controlLeft: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
-  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
+  iconBtnLabel: { fontSize: 9, color: '#ffffff', fontWeight: '700', marginTop: 1, letterSpacing: 0.2 },
   backBtn: {
     width: 38,
     height: 38,

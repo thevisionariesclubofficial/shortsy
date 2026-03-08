@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { MoodCard } from '../components/MoodCard';
@@ -176,6 +177,7 @@ function HeroCard({
   rentedContent,
   progressRecord,
   onWatchNow,
+  safeTop,
 }: {
   hero: FeaturedHero;
   onPress: () => void;
@@ -183,6 +185,7 @@ function HeroCard({
   rentedContent: Content[];
   progressRecord: Record<string, WatchProgress>;
   onWatchNow: () => void;
+  safeTop: number;
 }) {
   const [showVideo, setShowVideo] = useState(false);
   const [imageOpacity] = useState(new Animated.Value(1));
@@ -254,7 +257,7 @@ function HeroCard({
       />
 
       {/* App bar */}
-      <View style={heroStyles.appBar}>
+      <View style={[heroStyles.appBar, { top: safeTop + 8 }]}>
         <View style={heroStyles.appBarBrand}>
           <Image
             source={require('../assets/logo.png')}
@@ -310,6 +313,7 @@ interface HomePageProps {
 }
 
 export function HomePage({ onContentClick, onSearchClick, rentedContent = [], progressMap = new Map(), onRentedClick, onRefreshRentals, onGenreClick }: HomePageProps) {
+  const { top: safeTop } = useSafeAreaInsets();
   // ── Service-fetched state ─────────────────────────────────────────────────
   const [allContent,       setAllContent]       = useState<Content[]>([]);
   const [featuredContent,  setFeaturedContent]  = useState<Content[]>([]);
@@ -426,7 +430,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
   
   const player = useVideoPlayer(videoSource, p => {
     p.loop = false;
-    p.muted = true;
+    p.muted = false;
     p.play();
   });
   
@@ -445,7 +449,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
       {/* Fixed search button floating top-right over hero */}
       <TouchableOpacity
         onPress={onSearchClick}
-        style={styles.searchFab}
+        style={[styles.searchFab, { top: safeTop + 8 }]}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Ionicons name="search" size={20} color={COLORS.icon.white} />
       </TouchableOpacity>
@@ -487,6 +491,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
             player={player}
             rentedContent={rentedContent}
             progressRecord={progressRecord}
+            safeTop={safeTop}
             onWatchNow={() => {
               // Find the actual rented content to preserve all properties and progress
               const rentedHeroContent = rentedContent.find(c => c.id === hero.id);
@@ -644,7 +649,7 @@ const styles = StyleSheet.create({
   },
   searchFab: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 18,
+    top: 0,
     right: 16,
     zIndex: 20,
     width: 38,
@@ -734,7 +739,7 @@ const heroStyles = StyleSheet.create({
   },
   appBar: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 52 : 16,
+    top: 0,
     left: 16,
     right: 64,
     flexDirection: 'row',

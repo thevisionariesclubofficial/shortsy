@@ -20,6 +20,7 @@ import {
   initiatePremiumSubscription,
 } from '../services/premiumService';
 import { logger } from '../utils/logger';
+import { ENV } from '../constants/env';
 import type { PremiumSubscription } from '../services/premiumService';
 
 const { width } = Dimensions.get('window');
@@ -77,7 +78,7 @@ function PriceCard() {
 
       <View style={styles.priceAmountRow}>
         <Text style={styles.priceCurrency}>₹</Text>
-        <Text style={styles.priceAmount}>199</Text>
+        <Text style={styles.priceAmount}>{ENV.PREMIUM_PRICE_INR}</Text>
         <View style={styles.pricePeriodStack}>
           <Text style={styles.pricePer}>per</Text>
           <Text style={styles.pricePeriod}>month</Text>
@@ -308,7 +309,7 @@ export function PremiumPaymentScreen({
             ) : (
               <>
                 <Ionicons name="lock-closed" size={15} color="rgba(255,255,255,0.75)" />
-                <Text style={styles.payBtnText}>Subscribe · ₹199 / month</Text>
+                <Text style={styles.payBtnText}>Subscribe · ₹{ENV.PREMIUM_PRICE_INR} / month</Text>
               </>
             )}
           </View>

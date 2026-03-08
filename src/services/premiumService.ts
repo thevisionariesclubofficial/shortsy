@@ -5,6 +5,7 @@
 
 import { apiClient, USE_MOCK, mockDelay } from './apiClient';
 import { logger } from '../utils/logger';
+import { ENV } from '../constants/env';
 
 export interface PremiumOrder {
   orderId: string;
@@ -42,8 +43,8 @@ export async function initiatePremiumSubscription(): Promise<PremiumOrder> {
     return {
       orderId: `mock_premium_order_${Date.now()}`,
       gatewayOrderId: `mock_rzp_order_${Date.now()}`,
-      gatewayKey: 'rzp_test_mock',
-      amountINR: 199,
+      gatewayKey: ENV.RAZORPAY_KEY_ID,
+      amountINR: ENV.PREMIUM_PRICE_INR,
       currency: 'INR',
     };
   }
@@ -79,7 +80,7 @@ export async function confirmPremiumSubscription(params: {
         subscriptionId: params.orderId,
         orderId: params.orderId,
         gatewayPaymentId: params.gatewayPaymentId,
-        amountINR: 199,
+        amountINR: ENV.PREMIUM_PRICE_INR,
         currency: 'INR',
         status: 'active',
         subscribedAt: now.toISOString(),

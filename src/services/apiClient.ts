@@ -15,17 +15,18 @@
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 import { logger } from '../utils/logger';
+import { ENV } from '../constants/env';
 
 /**
- * Flip this to `false` to make all service calls hit the real REST API.
- * Can also be driven by an env var: process.env.USE_MOCK_API !== 'false'
+ * Driven by .env → USE_MOCK_API=true|false.
+ * Flip to true in .env to use in-memory mock data instead of the live API.
  */
-export const USE_MOCK = false;
+export const USE_MOCK = ENV.USE_MOCK_API;
 
-export const BASE_URL = 'https://2tngsao13b.execute-api.ap-south-1.amazonaws.com/v1';
+export const BASE_URL = ENV.API_BASE_URL;
 
 /** Simulated network latency in milliseconds (mock mode only). */
-const MOCK_DELAY_MS = 300;
+const MOCK_DELAY_MS = ENV.MOCK_DELAY_MS;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -141,7 +142,11 @@ async function request<T>(
         }
       } catch (refreshError) {
         logger.error('API', 'Token refresh failed', refreshError);
-        // If refresh fails, throw the original 401 error
+        // Refresh token is expired/invalid — force logout the user
+        try {
+          const { triggerForceLogout } = await import('./authService');
+          triggerForceLogout();
+        } catch (_) {}
       }
     }
     

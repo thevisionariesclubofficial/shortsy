@@ -1,43 +1,26 @@
 {
   "project_info": {
-    "project_number": "411501052320",
-    "project_id": "shortsy-app",
-    "storage_bucket": ""
+    "project_number": "431180594705",
+    "project_id": "shortsy-7c19f",
+    "storage_bucket": "shortsy-7c19f.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:411501052320:android:000000000000",
-        "android_info": {
+        "mobilesdk_app_id": "1:431180594705:android:920aec057a8b582f9f7bb0",
+        "android_client_info": {
           "package_name": "com.shortsy"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "411501052320-iicd78lkbp0su75cn5tgdtel35c72jp8.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.shortsy"
-          }
-        },
-        {
-          "client_id": "411501052320-i88soetdamgrna06pdj00peqsbuaac85.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": ""
+          "current_key": "AIzaSyA4wFnNpzUGrJc2j4PS0BI89Rpg2Kjrl_U"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "411501052320-i88soetdamgrna06pdj00peqsbuaac85.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
