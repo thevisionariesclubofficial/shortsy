@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 const LOGO = require('../assets/logo.png');
 
@@ -190,19 +191,19 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   return (
     <LinearGradient
-      colors={['#581c87', '#000000', '#831843']}
+      colors={[COLORS.brand.purple900, COLORS.bg.black, COLORS.accent.pink900]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.root}>
       {/* ── Animated background blobs ── */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <PulsingBlob
-          color="#a855f7"
+          color={COLORS.brand.violet}
           delay={0}
           style={blobStyles.blobTopLeft}
         />
         <PulsingBlob
-          color="#ec4899"
+          color={COLORS.brand.pink}
           delay={700}
           style={blobStyles.blobBottomRight}
         />
@@ -214,14 +215,14 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         <View style={styles.logoWrapper}>
           {/* top-right sparkle */}
           <View style={styles.sparkleTopRight}>
-            <PingSparkle size={24} color="#facc15" delay={0} />
+            <PingSparkle size={24} color={COLORS.accent.yellow400} delay={0} />
           </View>
 
           <BouncingLogo />
 
           {/* bottom-left sparkle */}
           <View style={styles.sparkleBottomLeft}>
-            <PingSparkle size={20} color="#c084fc" delay={300} />
+            <PingSparkle size={20} color={COLORS.brand.violetMuted} delay={300} />
           </View>
         </View>
 
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     // drop shadow on iOS
-    shadowColor: '#a855f7',
+    shadowColor: COLORS.brand.violet,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
     shadowRadius: 24,
@@ -290,12 +291,12 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 48,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: -1,
   },
   tagline: {
     fontSize: 12,
-    color: '#d8b4fe',
+    color: COLORS.brand.violetLight,
     letterSpacing: 4,
     textTransform: 'uppercase',
   },
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#a855f7',
+    backgroundColor: COLORS.brand.violet,
   },
 });
 

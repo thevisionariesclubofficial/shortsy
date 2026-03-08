@@ -90,6 +90,12 @@ export const ENV = {
   /** Monthly subscription price in INR — set PREMIUM_PRICE_INR in .env */
   PREMIUM_PRICE_INR: int('PREMIUM_PRICE_INR', 199),
 
+  // ── Home Page Section Limits ──────────────────────────────────────────────
+  /** Max Vertical Series cards shown on Home (0 = show all) — set HOME_VERTICAL_SERIES_COUNT in .env */
+  HOME_VERTICAL_SERIES_COUNT: int('HOME_VERTICAL_SERIES_COUNT', 6),
+  /** Max Festival Winners cards shown on Home (0 = show all) — set HOME_FESTIVAL_WINNERS_COUNT in .env */
+  HOME_FESTIVAL_WINNERS_COUNT: int('HOME_FESTIVAL_WINNERS_COUNT', 6),
+
   // ── Content Cache ──────────────────────────────────────────────────────────
   /** Cache TTL in ms — set CONTENT_CACHE_TTL_MS in .env */
   CONTENT_CACHE_TTL_MS: int('CONTENT_CACHE_TTL_MS', 300_000),

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -16,23 +16,25 @@ import { VideoView, useVideoPlayer } from 'react-native-video';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Content, Episode } from '../data/mockData';
 import { checkRentalStatus } from '../services/rentalService';
-import { getContentDetail } from '../services/contentService';
+import { getContentDetail, listContent } from '../services/contentService';
+import { ContentCard } from '../components/ContentCard';
 import { ENV } from '../constants/env';
+import { COLORS } from '../constants/colors';
 
 const SCREEN_H = Dimensions.get('window').height;
 
 // ─── Genre colours (mirrors ContentCard) ─────────────────────────────────────
 const GENRE_BG: Record<string, [string, string, string]> = {
-  Drama:          ['#2e1065', '#4c1d95', '#7c3aed'],
-  Thriller:       ['#0c0a09', '#1c1917', '#78350f'],
-  'Musical Drama':['#4a0d2e', '#831843', '#be185d'],
-  Comedy:         ['#052e16', '#14532d', '#16a34a'],
-  Romance:        ['#4c0519', '#881337', '#e11d48'],
-  'Sci-Fi':       ['#082f49', '#0c4a6e', '#0284c7'],
-  Family:         ['#1c1917', '#292524', '#f97316'],
-  Documentary:    ['#042f2e', '#134e4a', '#0d9488'],
-  Experimental:   ['#1e1b4b', '#312e81', '#6366f1'],
-  default:        ['#0f0e30', '#1e1b4b', '#4338ca'],
+  Drama:          [COLORS.accent.violet950, COLORS.accent.violet900, COLORS.brand.primaryDark],
+  Thriller:       [COLORS.bg.stoneBlack, COLORS.bg.stone900, COLORS.accent.amber900],
+  'Musical Drama':[COLORS.accent.pinkDark, COLORS.accent.pink900, COLORS.accent.rose700],
+  Comedy:         [COLORS.accent.greenDark, COLORS.accent.green900, COLORS.accent.green700],
+  Romance:        [COLORS.accent.rose950, COLORS.accent.rose900, COLORS.accent.rose600],
+  'Sci-Fi':       [COLORS.accent.sky950, COLORS.accent.sky900, COLORS.accent.sky600],
+  Family:         [COLORS.bg.stone900, COLORS.bg.stone800, COLORS.accent.orange],
+  Documentary:    [COLORS.accent.teal950, COLORS.accent.teal900, COLORS.accent.teal],
+  Experimental:   [COLORS.accent.indigoDark, COLORS.accent.indigo900, COLORS.accent.indigo],
+  default:        [COLORS.bg.splash, COLORS.accent.indigoDark, COLORS.accent.indigo700],
 };
 
 
@@ -47,6 +49,7 @@ interface ContentDetailScreenProps {
   isFavorited: boolean;
   onToggleFavorite: (contentId: string, currentlyFavorited: boolean) => Promise<void>;
   onEpisodePlay: (ep: Episode, episodeNumber: number) => void;
+  onContentClick: (content: Content) => void;
 }
 
 // ─── TrailerPlayer ───────────────────────────────────────────────────────────
@@ -100,9 +103,11 @@ export function ContentDetailScreen({
   isFavorited,
   onToggleFavorite,
   onEpisodePlay,
+  onContentClick,
 }: ContentDetailScreenProps) {
   const liked = isFavorited;
   const handleToggleFavorite = () => onToggleFavorite(content.id, liked);
+  const scrollRef = useRef<ScrollView>(null);
   // Deferred: mount TrailerPlayer only after navigation transition completes
   const [videoMounted, setVideoMounted] = useState(false);
 
@@ -137,6 +142,40 @@ export function ContentDetailScreen({
   }, [content.id, isPremium]);
   const [bg1, bg2, bg3] = GENRE_BG[content.genre] ?? GENRE_BG.default;
 
+  // ── More Like This ───────────────────────────────────────────────────────
+  const [moreLikeThis, setMoreLikeThis] = useState<Content[]>([]);
+
+  const fetchMoreLikeThis = useCallback(async (c: Content) => {
+    try {
+      // Primary filter: same type via API — verticals stay with verticals, short films with short films
+      const res = await listContent({ type: c.type, genre: c.genre, limit: 12 });
+      const filtered = res.data
+        // Safety net: enforce same type on client in case API ignores the param
+        .filter(item => item.id !== c.id && item.type === c.type)
+        // Rank by similarity: same language → festival winner → rest
+        .sort((a, b) => {
+          const langA = a.language === c.language ? -2 : 0;
+          const langB = b.language === c.language ? -2 : 0;
+          const fwA   = a.festivalWinner ? -1 : 0;
+          const fwB   = b.festivalWinner ? -1 : 0;
+          return (langA + fwA) - (langB + fwB);
+        })
+        .slice(0, 6);
+      setMoreLikeThis(filtered);
+    } catch {
+      setMoreLikeThis([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMoreLikeThis(content);
+  }, [content.id, fetchMoreLikeThis]);
+
+  // Scroll to top whenever the displayed content changes (e.g. More Like This tap)
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [content.id]);
+
   // Gate: mount TrailerPlayer only after the navigation push animation finishes
   useEffect(() => {
     if (!content.trailer) { return; }
@@ -160,6 +199,7 @@ export function ContentDetailScreen({
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
@@ -190,14 +230,14 @@ export function ContentDetailScreen({
           ) : null}
           {/* Bottom fade */}
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.6)', '#000000']}
+            colors={['transparent', COLORS.overlay.playBtn, COLORS.bg.black]}
             style={styles.heroFade}
             pointerEvents="none"
           />
 
           {/* Back button */}
           <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.8}>
-            <Ionicons name="chevron-back" size={22} color="#ffffff" />
+            <Ionicons name="chevron-back" size={22} color={COLORS.text.primary} />
           </TouchableOpacity>
 
           {/* Top-right actions */}
@@ -206,10 +246,10 @@ export function ContentDetailScreen({
               style={styles.actionBtn}
               onPress={handleToggleFavorite}
               activeOpacity={0.8}>
-              <Ionicons name={liked ? 'heart' : 'heart-outline'} size={20} color={liked ? '#ef4444' : '#ffffff'} />
+              <Ionicons name={liked ? 'heart' : 'heart-outline'} size={20} color={liked ? COLORS.accent.red : COLORS.text.primary} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={handleShare}>
-              <Ionicons name="share-social" size={20} color="#ffffff" />
+              <Ionicons name="share-social" size={20} color={COLORS.text.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -221,7 +261,7 @@ export function ContentDetailScreen({
           <View style={styles.badgeRow}>
             {content.festivalWinner && (
               <View style={[styles.badge, styles.badgeAmber]}>
-                <Ionicons name="trophy" size={12} color="#ffffff" />
+                <Ionicons name="trophy" size={12} color={COLORS.text.primary} />
                 <Text style={[styles.badgeText, { marginLeft: 4 }]}>Festival Winner</Text>
               </View>
             )}
@@ -241,15 +281,15 @@ export function ContentDetailScreen({
           {/* Stats row */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Ionicons name="star" size={14} color="#f59e0b" />
+              <Ionicons name="star" size={14} color={COLORS.accent.gold} />
               <Text style={styles.statHighlight}>{content.rating}</Text>
             </View>
             <View style={styles.statItem}>
-              <Ionicons name="people" size={14} color="#737373" />
+              <Ionicons name="people" size={14} color={COLORS.text.muted} />
               <Text style={styles.statDim}>{formatViews(content.views)} views</Text>
             </View>
             <View style={styles.statItem}>
-              <Ionicons name="time-outline" size={14} color="#737373" />
+              <Ionicons name="time-outline" size={14} color={COLORS.text.muted} />
               <Text style={styles.statDim}>{content.duration}</Text>
             </View>
           </View>
@@ -289,14 +329,14 @@ export function ContentDetailScreen({
                   <View style={epStyles.meta}>
                     <Text style={epStyles.title} numberOfLines={1}>{ep.title}</Text>
                     <View style={epStyles.durationRow}>
-                      <Ionicons name="time-outline" size={12} color="#737373" />
+                      <Ionicons name="time-outline" size={12} color={COLORS.text.muted} />
                       <Text style={epStyles.duration}>{ep.duration}</Text>
                     </View>
                   </View>
                   <View style={[epStyles.playBtn, !rentalActive && epStyles.lockBtn]}>
                     {rentalActive
-                      ? <Ionicons name="play" size={16} color="#7c3aed" />
-                      : <Ionicons name="lock-closed" size={14} color="#a3a3a3" />}
+                      ? <Ionicons name="play" size={16} color={COLORS.brand.primaryDark} />
+                      : <Ionicons name="lock-closed" size={14} color={COLORS.text.tertiary} />}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -311,6 +351,27 @@ export function ContentDetailScreen({
             </View>
           </View>
 
+          {/* More Like This */}
+          {moreLikeThis.length > 0 && (
+            <View style={styles.moreLikeThisSection}>
+              <View style={styles.moreLikeThisHeader}>
+                <Ionicons name="sparkles" size={16} color={COLORS.brand.violet} />
+                <Text style={styles.moreLikeThisTitle}>More Like This</Text>
+              </View>
+              <Text style={styles.moreLikeThisSubtitle}>{content.genre} · {content.language}</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.moreLikeThisRow}>
+                {moreLikeThis.map(item => (
+                  <View key={item.id} style={styles.moreLikeThisItem}>
+                    <ContentCard content={item} onClick={() => onContentClick(item)} />
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Bottom spacer so CTA doesn't cover content */}
           <View style={{ height: 140 }} />
         </View>
@@ -319,13 +380,13 @@ export function ContentDetailScreen({
       {/* ── Fixed CTA ── */}
       <View style={styles.cta}>
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.95)', '#000000']}
+          colors={['transparent', COLORS.overlay.ctaFadeEnd, COLORS.bg.black]}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
         {rentalActive ? (
           <TouchableOpacity style={styles.watchBtn} activeOpacity={0.85} onPress={onWatchNow}>
-            <Ionicons name="play" size={18} color="#ffffff" />
+            <Ionicons name="play" size={18} color={COLORS.text.primary} />
             <Text style={styles.watchBtnText}>Watch Now</Text>
           </TouchableOpacity>
         ) : (
@@ -354,7 +415,7 @@ export function ContentDetailScreen({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: COLORS.bg.black },
   scroll:    { flex: 1 },
   scrollContent: { paddingBottom: 0 },
 
@@ -362,7 +423,7 @@ const styles = StyleSheet.create({
   hero: {
     height: 340,
     overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
   },
   heroImage: {
     ...StyleSheet.absoluteFillObject,
@@ -379,7 +440,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: COLORS.overlay.controlBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -394,7 +455,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: COLORS.overlay.controlBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -410,31 +471,60 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 20,
   },
-  badgeAmber:       { backgroundColor: '#d97706' },
-  badgePurple:      { backgroundColor: '#7c3aed' },
-  badgeOutline:     { borderWidth: 1, borderColor: '#404040' },
-  badgeText:        { fontSize: 12, fontWeight: '600', color: '#ffffff' },
-  badgeOutlineText: { color: '#d4d4d4' },
+  badgeAmber:       { backgroundColor: COLORS.accent.amber600 },
+  badgePurple:      { backgroundColor: COLORS.brand.primaryDark },
+  badgeOutline:     { borderWidth: 1, borderColor: COLORS.border.medium },
+  badgeText:        { fontSize: 12, fontWeight: '600', color: COLORS.text.primary },
+  badgeOutlineText: { color: COLORS.text.secondary },
 
-  title: { fontSize: 28, fontWeight: '800', color: '#ffffff', marginBottom: 14, lineHeight: 34 },
+  title: { fontSize: 28, fontWeight: '800', color: COLORS.text.primary, marginBottom: 14, lineHeight: 34 },
 
   statsRow:     { flexDirection: 'row', gap: 20, marginBottom: 12 },
   statItem:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  statHighlight:{ fontSize: 14, color: '#ffffff', fontWeight: '600' },
-  statDim:      { fontSize: 13, color: '#737373' },
+  statHighlight:{ fontSize: 14, color: COLORS.text.primary, fontWeight: '600' },
+  statDim:      { fontSize: 13, color: COLORS.text.muted },
 
   dirRow:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 },
-  dirLabel:{ fontSize: 13, color: '#737373' },
-  dirValue:{ fontSize: 13, color: '#ffffff' },
-  bullet:  { fontSize: 13, color: '#404040' },
+  dirLabel:{ fontSize: 13, color: COLORS.text.muted },
+  dirValue:{ fontSize: 13, color: COLORS.text.primary },
+  bullet:  { fontSize: 13, color: COLORS.border.medium },
 
   section:     { marginBottom: 20 },
-  sectionLabel:{ fontSize: 12, fontWeight: '600', color: '#737373', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
-  synopsis:    { fontSize: 15, color: '#ffffff', lineHeight: 24 },
-  synopsisDim: { fontSize: 13, color: '#737373', lineHeight: 20 },
+  sectionLabel:{ fontSize: 12, fontWeight: '600', color: COLORS.text.muted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  synopsis:    { fontSize: 15, color: COLORS.text.primary, lineHeight: 24 },
+  synopsisDim: { fontSize: 13, color: COLORS.text.muted, lineHeight: 20 },
 
-  moodBadge:    { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: '#7c3aed' },
-  moodBadgeText:{ fontSize: 13, color: '#a855f7', fontWeight: '500' },
+  moodBadge:    { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: COLORS.brand.primaryDark },
+  moodBadgeText:{ fontSize: 13, color: COLORS.brand.violet, fontWeight: '500' },
+
+  // More Like This
+  moreLikeThisSection: {
+    marginBottom: 20,
+    marginTop: 4,
+  },
+  moreLikeThisHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  moreLikeThisTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  moreLikeThisSubtitle: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 14,
+  },
+  moreLikeThisRow: {
+    gap: 12,
+    paddingRight: 4,
+  },
+  moreLikeThisItem: {
+    width: 140,
+  },
 
   // CTA
   cta: {
@@ -451,23 +541,23 @@ const styles = StyleSheet.create({
     gap: 10,
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#7c3aed',
+    backgroundColor: COLORS.brand.primaryDark,
   },
-  watchBtnText: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
+  watchBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.text.primary },
 
   rentWrap: { gap: 10 },
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
-  priceLabel:{ fontSize: 13, color: '#737373' },
-  priceValue:{ fontSize: 26, fontWeight: '800', color: '#ffffff' },
+  priceLabel:{ fontSize: 13, color: COLORS.text.muted },
+  priceValue:{ fontSize: 26, fontWeight: '800', color: COLORS.text.primary },
   rentBtn: {
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.text.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rentBtnText: { fontSize: 16, fontWeight: '700', color: '#000000' },
-  rentNote:    { fontSize: 12, color: '#525252', textAlign: 'center' },
+  rentBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.bg.black },
+  rentNote:    { fontSize: 12, color: COLORS.text.dimmed, textAlign: 'center' },
 });
 
 
@@ -479,7 +569,7 @@ const epStyles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#1f1f1f',
+    borderBottomColor: COLORS.bg.modal,
     gap: 12,
   },
   numWrap: {
@@ -488,14 +578,14 @@ const epStyles = StyleSheet.create({
   },
   num: {
     fontSize: 13,
-    color: '#525252',
+    color: COLORS.text.dimmed,
     fontWeight: '600',
   },
   thumb: {
     width: 100,
     height: 62,
     borderRadius: 8,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
   },
   meta: {
     flex: 1,
@@ -504,7 +594,7 @@ const epStyles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     lineHeight: 18,
   },
   durationRow: {
@@ -514,20 +604,20 @@ const epStyles = StyleSheet.create({
   },
   duration: {
     fontSize: 12,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   playBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(124,58,237,0.25)',
+    backgroundColor: COLORS.overlay.brandTint25,
     borderWidth: 1,
-    borderColor: '#7c3aed',
+    borderColor: COLORS.brand.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
   lockBtn: {
-    backgroundColor: 'rgba(82,82,82,0.2)',
-    borderColor: '#404040',
+    backgroundColor: COLORS.overlay.neutral20,
+    borderColor: COLORS.border.medium,
   },
 });

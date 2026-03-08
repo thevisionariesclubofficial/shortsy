@@ -16,6 +16,7 @@ import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { searchContent } from '../services/contentService';
 import { getPopularContent } from '../services/discoveryService';
+import { COLORS } from '../constants/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -106,19 +107,19 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
       {/* ── Sticky header ── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={22} color="#ffffff" />
+          <Ionicons name="chevron-back" size={22} color={COLORS.text.primary} />
         </TouchableOpacity>
 
         <View style={styles.inputWrap}>
           <View style={styles.inputIcon}>
-            <Ionicons name="search" size={18} color="#737373" />
+            <Ionicons name="search" size={18} color={COLORS.text.muted} />
           </View>
           <TextInput
             ref={inputRef}
             value={query}
             onChangeText={setQuery}
             placeholder="Search films, directors, genres..."
-            placeholderTextColor="#525252"
+            placeholderTextColor={COLORS.text.dimmed}
             style={styles.input}
             returnKeyType="search"
             onSubmitEditing={() => handleSearch(query)}
@@ -129,7 +130,7 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
               onPress={() => setQuery('')}
               style={styles.clearBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close-circle" size={18} color="#525252" />
+              <Ionicons name="close-circle" size={18} color={COLORS.text.dimmed} />
             </TouchableOpacity>
           )}
         </View>
@@ -150,7 +151,7 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
               }
             </Text>
             {searching ? (
-              <ActivityIndicator size="small" color="#a855f7" style={{ marginTop: 8 }} />
+              <ActivityIndicator size="small" color={COLORS.brand.violet} style={{ marginTop: 8 }} />
             ) : results.length > 0 ? (
               <View style={styles.grid}>
                 {results.map(c => (
@@ -163,7 +164,7 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
               /* ── Empty state ── */
               <View style={styles.empty}>
                 <View style={styles.emptyIcon}>
-                  <Ionicons name="search" size={32} color="#525252" />
+                  <Ionicons name="search" size={32} color={COLORS.text.dimmed} />
                 </View>
                 <Text style={styles.emptyTitle}>No results found</Text>
                 <Text style={styles.emptySubtitle}>Try searching for different keywords</Text>
@@ -180,7 +181,7 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
               <View style={styles.section}>
                 <View style={styles.sectionRow}>
                   <View style={styles.sectionRowLeft}>
-                    <Ionicons name="time-outline" size={16} color="#737373" />
+                    <Ionicons name="time-outline" size={16} color={COLORS.text.muted} />
                     <Text style={styles.sectionLabel}>Recent Searches</Text>
                   </View>
                   <TouchableOpacity onPress={() => setHistory([])} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -194,12 +195,12 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
                     style={styles.historyRow}
                     onPress={() => handleSearch(item)}
                     activeOpacity={0.7}>
-                    <Ionicons name="time-outline" size={16} color="#737373" />
+                    <Ionicons name="time-outline" size={16} color={COLORS.text.muted} />
                     <Text style={styles.historyText}>{item}</Text>
                     <TouchableOpacity
                       onPress={() => removeFromHistory(idx)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Ionicons name="close" size={14} color="#525252" />
+                      <Ionicons name="close" size={14} color={COLORS.text.dimmed} />
                     </TouchableOpacity>
                   </TouchableOpacity>
                 ))}
@@ -209,7 +210,7 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
             {/* Trending searches */}
             <View style={styles.section}>
               <View style={styles.sectionRowLeft}>
-                <Ionicons name="trending-up" size={16} color="#737373" />
+                <Ionicons name="trending-up" size={16} color={COLORS.text.muted} />
                 <Text style={styles.sectionLabel}>Trending Searches</Text>
               </View>
               <View style={styles.trendWrap}>
@@ -244,7 +245,7 @@ const CARD_W   = (width - 32 - CARD_GAP) / 2;
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   // header
   header: {
@@ -254,9 +255,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 56,
     paddingBottom: 14,
-    backgroundColor: 'rgba(0,0,0,0.97)',
+    backgroundColor: COLORS.overlay.headerBg,
     borderBottomWidth: 1,
-    borderBottomColor: '#262626',
+    borderBottomColor: COLORS.border.default,
   },
   backBtn: {
     width: 36,
@@ -264,16 +265,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 18,
-    backgroundColor: '#171717',
+    backgroundColor: COLORS.bg.card,
   },
   inputWrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#171717',
+    backgroundColor: COLORS.bg.card,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: COLORS.border.default,
     height: 48,
     paddingHorizontal: 12,
   },
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 15,
     paddingVertical: 0,
   },
@@ -313,12 +314,12 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
     letterSpacing: 0.2,
   },
   clearText: {
     fontSize: 12,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   // history rows
   historyRow: {
@@ -326,12 +327,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 12,
-    backgroundColor: '#171717',
+    backgroundColor: COLORS.bg.card,
     borderRadius: 10,
   },
   historyText: {
     flex: 1,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 14,
   },
   // trending badges
@@ -343,13 +344,13 @@ const styles = StyleSheet.create({
   trendBadge: {
     paddingVertical: 6,
     paddingHorizontal: 14,
-    backgroundColor: '#171717',
+    backgroundColor: COLORS.bg.card,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: COLORS.border.default,
   },
   trendBadgeText: {
-    color: '#d4d4d4',
+    color: COLORS.text.secondary,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -372,7 +373,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#171717',
+    backgroundColor: COLORS.bg.card,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -380,11 +381,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
 });
 

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { ENV } from '../constants/env';
+import { COLORS } from '../constants/colors';
 
 interface TermsScreenProps {
   onBack: () => void;
@@ -17,7 +18,7 @@ interface TermsScreenProps {
 export function TermsScreen({ onBack }: TermsScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.gradient}>
+      <LinearGradient colors={[COLORS.bg.legal, COLORS.bg.legalEnd]} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -167,7 +168,7 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: COLORS.bg.legal,
   },
   gradient: {
     flex: 1,
@@ -179,19 +180,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: COLORS.overlay.white10,
   },
   backButton: {
     padding: 8,
   },
   backIcon: {
     fontSize: 24,
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
     flex: 1,
     textAlign: 'center',
     marginRight: 40,
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
   },
   lastUpdated: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: COLORS.overlay.white50,
     fontStyle: 'italic',
   },
   section: {
@@ -224,34 +225,34 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#3b82f6',
+    color: COLORS.accent.blue500,
     marginBottom: 12,
   },
   paragraph: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: COLORS.overlay.white80,
     lineHeight: 22,
     marginBottom: 8,
   },
   bulletPoint: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     lineHeight: 22,
     marginLeft: 16,
     marginBottom: 6,
   },
   footer: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: COLORS.overlay.infoBg,
     borderRadius: 12,
     padding: 16,
     marginTop: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderColor: COLORS.overlay.infoBorderStrong,
   },
   footerText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     textAlign: 'center',
     lineHeight: 20,
   },

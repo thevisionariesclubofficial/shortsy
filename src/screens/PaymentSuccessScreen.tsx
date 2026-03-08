@@ -16,6 +16,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { Content } from '../data/mockData';
 import type { RentalRecord } from '../types/api';
 import { ENV } from '../constants/env';
+import { COLORS } from '../constants/colors';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -117,7 +118,7 @@ function ReceiptModal({
             onPress={onClose}
             style={receiptStyles.closeBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close" size={16} color="#a3a3a3" />
+            <Ionicons name="close" size={16} color={COLORS.text.tertiary} />
           </TouchableOpacity>
         </View>
 
@@ -130,7 +131,7 @@ function ReceiptModal({
 
             {/* Brand header */}
             <LinearGradient
-              colors={['#7c3aed', '#db2777']}
+              colors={[COLORS.brand.primaryDark, COLORS.brand.pinkDeep]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={receiptStyles.paperHeader}>
               <Text style={receiptStyles.brandName}>SHORTSY</Text>
@@ -148,7 +149,7 @@ function ReceiptModal({
             {/* Content thumbnail + title */}
             <View style={receiptStyles.contentRow}>
               <View style={receiptStyles.thumbBox}>
-                <LinearGradient colors={['#1e1b4b', '#4338ca']} style={StyleSheet.absoluteFill} />
+                <LinearGradient colors={[COLORS.accent.indigoDark, COLORS.accent.indigo700]} style={StyleSheet.absoluteFill} />
                 {content.thumbnail ? (
                   <Image source={{ uri: content.thumbnail }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
                 ) : null}
@@ -194,11 +195,11 @@ function ReceiptModal({
             onPress={handleShare}
             activeOpacity={0.85}>
             <LinearGradient
-              colors={['#7c3aed', '#db2777']}
+              colors={[COLORS.brand.primaryDark, COLORS.brand.pinkDeep]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={[StyleSheet.absoluteFill, { borderRadius: 14 }]}
             />
-            <Ionicons name="download-outline" size={18} color="#ffffff" />
+            <Ionicons name="download-outline" size={18} color={COLORS.text.primary} />
             <Text style={receiptStyles.shareBtnText}>Download / Share Receipt</Text>
           </TouchableOpacity>
 
@@ -301,7 +302,7 @@ export function PaymentSuccessScreen({
         <View style={styles.iconWrap}>
           <RippleRing />
           <View style={styles.iconCircle}>
-            <Ionicons name="checkmark-circle" size={44} color="#22c55e" />
+            <Ionicons name="checkmark-circle" size={44} color={COLORS.accent.green} />
           </View>
         </View>
 
@@ -314,7 +315,7 @@ export function PaymentSuccessScreen({
         {/* ── Content info card ── */}
         <View style={styles.contentCard}>
           <View style={styles.thumbWrap}>
-            <LinearGradient colors={['#1e1b4b', '#4338ca']} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={[COLORS.accent.indigoDark, COLORS.accent.indigo700]} style={StyleSheet.absoluteFill} />
             {content.thumbnail ? (
               <Image source={{ uri: content.thumbnail }} style={styles.thumbImg} resizeMode="cover" />
             ) : null}
@@ -345,23 +346,23 @@ export function PaymentSuccessScreen({
           {/* Watch Now */}
           <TouchableOpacity onPress={onWatchNow} activeOpacity={0.85} style={styles.watchBtn}>
             <LinearGradient
-              colors={['#7c3aed', '#db2777']}
+              colors={[COLORS.brand.primaryDark, COLORS.brand.pinkDeep]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[StyleSheet.absoluteFill, { borderRadius: 14 }]}
             />
-            <Ionicons name="play" size={20} color="#ffffff" />
+            <Ionicons name="play" size={20} color={COLORS.text.primary} />
             <Text style={styles.watchBtnText}>Watch Now</Text>
           </TouchableOpacity>
 
           {/* Receipt + Share */}
           <View style={styles.secondRow}>
             <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.7} onPress={() => setShowReceipt(true)}>
-              <Ionicons name="download-outline" size={18} color="#ffffff" />
+              <Ionicons name="download-outline" size={18} color={COLORS.text.primary} />
               <Text style={styles.outlineBtnText}>Receipt</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.7} onPress={handleShare}>
-              <Ionicons name="share-social-outline" size={18} color="#ffffff" />
+              <Ionicons name="share-social-outline" size={18} color={COLORS.text.primary} />
               <Text style={styles.outlineBtnText}>Share</Text>
             </TouchableOpacity>
           </View>
@@ -381,7 +382,7 @@ export function PaymentSuccessScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -392,14 +393,14 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: 'rgba(34,197,94,0.4)',
+    borderColor: COLORS.overlay.greenTint40,
   },
   blob: {
     position: 'absolute',
     width: 360,
     height: 360,
     borderRadius: 180,
-    backgroundColor: '#7c3aed',
+    backgroundColor: COLORS.brand.primaryDark,
     top: '50%',
     left: '50%',
     marginLeft: -180,
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(34,197,94,0.15)',
+    backgroundColor: COLORS.overlay.greenTint15,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
@@ -432,38 +433,38 @@ const styles = StyleSheet.create({
 
   // Message
   msgWrap:  { alignItems: 'center', gap: 6 },
-  msgTitle: { fontSize: 28, fontWeight: '800', color: '#ffffff', textAlign: 'center' },
-  msgSub:   { fontSize: 14, color: '#737373', textAlign: 'center', lineHeight: 20 },
+  msgTitle: { fontSize: 28, fontWeight: '800', color: COLORS.text.primary, textAlign: 'center' },
+  msgSub:   { fontSize: 14, color: COLORS.text.muted, textAlign: 'center', lineHeight: 20 },
 
   // Content card
   contentCard: {
     width: '100%',
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderRadius: 20,
     padding: 16,
     flexDirection: 'row',
     gap: 14,
   },
-  thumbWrap: { width: 72, height: 100, borderRadius: 10, overflow: 'hidden', backgroundColor: '#1a1a1a' },
+  thumbWrap: { width: 72, height: 100, borderRadius: 10, overflow: 'hidden', backgroundColor: COLORS.bg.elevated },
   thumbImg:  { ...StyleSheet.absoluteFillObject },
   contentInfo: { flex: 1, gap: 4 },
-  contentTitle: { fontSize: 15, fontWeight: '600', color: '#ffffff', lineHeight: 20 },
-  contentDir:   { fontSize: 12, color: '#737373', marginBottom: 6 },
+  contentTitle: { fontSize: 15, fontWeight: '600', color: COLORS.text.primary, lineHeight: 20 },
+  contentDir:   { fontSize: 12, color: COLORS.text.muted, marginBottom: 6 },
   receiptRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  receiptLabel: { fontSize: 12, color: '#525252' },
-  receiptGreen: { fontSize: 13, fontWeight: '700', color: '#22c55e' },
-  receiptValue: { fontSize: 13, color: '#ffffff' },
+  receiptLabel: { fontSize: 12, color: COLORS.text.dimmed },
+  receiptGreen: { fontSize: 13, fontWeight: '700', color: COLORS.accent.green },
+  receiptValue: { fontSize: 13, color: COLORS.text.primary },
 
   // Creator banner
   creatorBanner: {
     width: '100%',
-    backgroundColor: 'rgba(168,85,247,0.1)',
+    backgroundColor: COLORS.overlay.violetTint10,
     borderWidth: 1,
-    borderColor: 'rgba(168,85,247,0.2)',
+    borderColor: COLORS.overlay.violetTint20,
     borderRadius: 14,
     padding: 14,
   },
-  creatorText: { fontSize: 13, color: '#c084fc', textAlign: 'center', lineHeight: 19 },
+  creatorText: { fontSize: 13, color: COLORS.brand.violetMuted, textAlign: 'center', lineHeight: 19 },
 
   // Actions
   actions: { width: '100%', gap: 10 },
@@ -476,7 +477,7 @@ const styles = StyleSheet.create({
     gap: 10,
     overflow: 'hidden',
   },
-  watchBtnText: { fontSize: 18, fontWeight: '700', color: '#ffffff', zIndex: 1 },
+  watchBtnText: { fontSize: 18, fontWeight: '700', color: COLORS.text.primary, zIndex: 1 },
 
   secondRow:  { flexDirection: 'row', gap: 10 },
   outlineBtn: {
@@ -484,29 +485,29 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
-    backgroundColor: '#111111',
+    borderColor: COLORS.border.muted,
+    backgroundColor: COLORS.bg.subtle,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
   },
-  outlineBtnText: { fontSize: 14, color: '#ffffff', fontWeight: '500' },
+  outlineBtnText: { fontSize: 14, color: COLORS.text.primary, fontWeight: '500' },
 
   ghostBtn:     { height: 44, alignItems: 'center', justifyContent: 'center' },
-  ghostBtnText: { fontSize: 14, color: '#737373' },
+  ghostBtnText: { fontSize: 14, color: COLORS.text.muted },
 });
 ;
 
 const receiptStyles = StyleSheet.create({
   modalRoot: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: COLORS.bg.dark,
     paddingTop: 12,
   },
   handle: {
     width: 40, height: 4, borderRadius: 2,
-    backgroundColor: '#333333',
+    backgroundColor: COLORS.border.handle,
     alignSelf: 'center',
     marginBottom: 16,
   },
@@ -516,17 +517,17 @@ const receiptStyles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: COLORS.bg.elevated,
   },
   modalTitle: {
     flex: 1,
     fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   closeBtn: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#1f1f1f',
+    backgroundColor: COLORS.bg.modal,
     alignItems: 'center', justifyContent: 'center',
   },
   scroll: {
@@ -538,7 +539,7 @@ const receiptStyles = StyleSheet.create({
 
   // ── Paper ──
   paper: {
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.text.primary,
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 16,
@@ -552,12 +553,12 @@ const receiptStyles = StyleSheet.create({
   brandName: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 4,
   },
   brandTagline: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.75)',
+    color: COLORS.overlay.brandTagline,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -565,9 +566,9 @@ const receiptStyles = StyleSheet.create({
   statusWrap: {
     alignItems: 'center',
     paddingVertical: 14,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: COLORS.receipt.statusPaidBg,
     borderBottomWidth: 1,
-    borderBottomColor: '#dcfce7',
+    borderBottomColor: COLORS.receipt.statusPaidBorder,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -576,12 +577,12 @@ const receiptStyles = StyleSheet.create({
   },
   statusDot: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#22c55e',
+    backgroundColor: COLORS.accent.green,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#16a34a',
+    color: COLORS.accent.green700,
     letterSpacing: 1,
   },
 
@@ -589,23 +590,23 @@ const receiptStyles = StyleSheet.create({
     flexDirection: 'row',
     gap: 14,
     padding: 16,
-    backgroundColor: '#fafafa',
+    backgroundColor: COLORS.receipt.bgLight,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.receipt.divider,
   },
   thumbBox: {
     width: 60, height: 84, borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
   },
   contentMeta: { flex: 1, justifyContent: 'center', gap: 3 },
-  contentTitle: { fontSize: 15, fontWeight: '700', color: '#111111', lineHeight: 20 },
-  contentDir:   { fontSize: 12, color: '#666666' },
-  contentGenre: { fontSize: 11, color: '#999999', marginTop: 2 },
+  contentTitle: { fontSize: 15, fontWeight: '700', color: COLORS.bg.subtle, lineHeight: 20 },
+  contentDir:   { fontSize: 12, color: COLORS.receipt.textMid },
+  contentGenre: { fontSize: 11, color: COLORS.receipt.textLight, marginTop: 2 },
 
   divider: {
     height: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: COLORS.receipt.divider,
     marginHorizontal: 16,
     marginVertical: 4,
   },
@@ -613,7 +614,7 @@ const receiptStyles = StyleSheet.create({
   sectionLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
     letterSpacing: 1.5,
     paddingHorizontal: 16,
     paddingTop: 14,
@@ -628,9 +629,9 @@ const receiptStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 7,
   },
-  rowLabel: { fontSize: 13, color: '#6b7280' },
-  rowValue: { fontSize: 13, fontWeight: '600', color: '#111111', textAlign: 'right', flex: 1, marginLeft: 8 },
-  rowValueGreen: { color: '#16a34a', fontSize: 15 },
+  rowLabel: { fontSize: 13, color: COLORS.text.gray500 },
+  rowValue: { fontSize: 13, fontWeight: '600', color: COLORS.bg.subtle, textAlign: 'right', flex: 1, marginLeft: 8 },
+  rowValueGreen: { color: COLORS.accent.green700, fontSize: 15 },
 
   // Perforation
   perfWrap: {
@@ -641,7 +642,7 @@ const receiptStyles = StyleSheet.create({
   },
   perfHoleL: {
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: COLORS.bg.dark,
     marginLeft: -11,
   },
   perfDashes: {
@@ -652,19 +653,19 @@ const receiptStyles = StyleSheet.create({
   },
   perfDash: {
     width: 6, height: 2,
-    backgroundColor: '#d1d5db',
+    backgroundColor: COLORS.border.gray300,
     borderRadius: 1,
   },
   perfHoleR: {
     width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: COLORS.bg.dark,
     marginRight: -11,
   },
 
   // Footer
   footerNote: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
     textAlign: 'center',
     lineHeight: 18,
     paddingHorizontal: 20,
@@ -672,7 +673,7 @@ const receiptStyles = StyleSheet.create({
   },
   footerUrl: {
     fontSize: 11,
-    color: '#c084fc',
+    color: COLORS.brand.violetMuted,
     textAlign: 'center',
     paddingTop: 4,
     paddingBottom: Platform.OS === 'ios' ? 20 : 16,
@@ -692,7 +693,7 @@ const receiptStyles = StyleSheet.create({
   shareBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     zIndex: 1,
   },
 });

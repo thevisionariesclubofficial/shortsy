@@ -13,6 +13,7 @@ import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { clearContentCache, listContent } from '../services/contentService';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS } from '../constants/colors';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TypeFilter = 'all' | 'short-film' | 'vertical-series';
@@ -104,7 +105,7 @@ export function GenreDetailScreen({ genre, onBack, onContentClick }: GenreDetail
             style={styles.backBtn}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="chevron-back" size={22} color="#ffffff" />
+            <Ionicons name="chevron-back" size={22} color={COLORS.text.primary} />
           </TouchableOpacity>
           <View style={styles.headerTitleRow}>
             <Text style={styles.headerEmoji}>{genre.emoji}</Text>
@@ -131,14 +132,14 @@ export function GenreDetailScreen({ genre, onBack, onContentClick }: GenreDetail
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#a855f7"
-            colors={['#a855f7']}
+            tintColor={COLORS.brand.violet}
+            colors={[COLORS.brand.violet]}
           />
         }>
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#a855f7" />
+            <ActivityIndicator size="large" color={COLORS.brand.violet} />
           </View>
         ) : (
           <>
@@ -178,7 +179,7 @@ export function GenreDetailScreen({ genre, onBack, onContentClick }: GenreDetail
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   loadingContainer: {
     paddingVertical: 80,
@@ -186,9 +187,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
-    backgroundColor: 'rgba(0,0,0,0.97)',
+    backgroundColor: COLORS.overlay.headerBg,
     borderBottomWidth: 1,
-    borderBottomColor: '#262626',
+    borderBottomColor: COLORS.border.default,
     zIndex: 10,
   },
   headerTop: {
@@ -210,13 +211,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -229,21 +230,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: COLORS.border.default,
   },
   pillActive: {
-    backgroundColor: '#a855f7',
-    borderColor: '#a855f7',
+    backgroundColor: COLORS.brand.violet,
+    borderColor: COLORS.brand.violet,
   },
   pillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   pillTextActive: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   scroll: {
     paddingHorizontal: 16,
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: 13,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   row: {
     flexDirection: 'row',
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#525252',
+    color: COLORS.text.dimmed,
   },
 });
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { COLORS } from '../constants/colors';
 
 interface BackButtonProps {
   onPress: () => void;
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#00000088',
+    backgroundColor: COLORS.overlay.fab,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -41,6 +42,6 @@ const styles = StyleSheet.create({
 
 const iconStyles = StyleSheet.create({
   arrowWrap:     { width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
-  chevronTop:    { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, top: 6, transform: [{ rotate: '-45deg' }] },
-  chevronBottom: { position: 'absolute', width: 10, height: 2.5, backgroundColor: '#ffffff', borderRadius: 1.5, right: 6, bottom: 6, transform: [{ rotate: '45deg' }] },
+  chevronTop:    { position: 'absolute', width: 10, height: 2.5, backgroundColor: COLORS.text.primary, borderRadius: 1.5, right: 6, top: 6, transform: [{ rotate: '-45deg' }] },
+  chevronBottom: { position: 'absolute', width: 10, height: 2.5, backgroundColor: COLORS.text.primary, borderRadius: 1.5, right: 6, bottom: 6, transform: [{ rotate: '45deg' }] },
 });

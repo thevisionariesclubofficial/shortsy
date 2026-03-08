@@ -22,6 +22,7 @@ import {
 import { logger } from '../utils/logger';
 import { ENV } from '../constants/env';
 import type { PremiumSubscription } from '../services/premiumService';
+import { COLORS } from '../constants/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -40,7 +41,7 @@ function HeroSection() {
 
   return (
     <LinearGradient
-      colors={['#1e0a3c', '#7c3aed', '#c026d3']}
+      colors={[COLORS.bg.premiumDark, COLORS.brand.primaryDark, COLORS.brand.fuchsia]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.hero}>
@@ -48,9 +49,9 @@ function HeroSection() {
 
       <View style={styles.heroIconWrap}>
         <LinearGradient
-          colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.08)']}
+          colors={[COLORS.overlay.white22, COLORS.overlay.white08]}
           style={styles.heroIconBg}>
-          <Ionicons name="diamond" size={30} color="#fde047" />
+          <Ionicons name="diamond" size={30} color={COLORS.accent.yellow} />
         </LinearGradient>
       </View>
 
@@ -58,7 +59,7 @@ function HeroSection() {
       <Text style={styles.heroTagline}>Creator-owned cinema, unlimited.</Text>
 
       <View style={styles.heroPill}>
-        <Ionicons name="star" size={11} color="#fde047" />
+        <Ionicons name="star" size={11} color={COLORS.accent.yellow} />
         <Text style={styles.heroPillText}>Most Popular Plan</Text>
       </View>
     </LinearGradient>
@@ -88,7 +89,7 @@ function PriceCard() {
       <View style={styles.priceDivider} />
 
       <View style={styles.priceInfoRow}>
-        <Ionicons name="checkmark-circle" size={14} color="#22c55e" />
+        <Ionicons name="checkmark-circle" size={14} color={COLORS.accent.green} />
         <Text style={styles.priceInfoText}>
           Activates immediately · Valid for 30 days
         </Text>
@@ -118,10 +119,10 @@ function BenefitsList() {
         {BENEFITS.map(({ icon, label }) => (
           <View key={label} style={styles.benefitRow}>
             <View style={styles.benefitIconBox}>
-              <Ionicons name={icon as any} size={18} color="#a855f7" />
+              <Ionicons name={icon as any} size={18} color={COLORS.brand.violet} />
             </View>
             <Text style={styles.benefitText}>{label}</Text>
-            <Ionicons name="checkmark" size={14} color="#22c55e" />
+            <Ionicons name="checkmark" size={14} color={COLORS.accent.green} />
           </View>
         ))}
       </View>
@@ -143,7 +144,7 @@ function TrustRow() {
         <React.Fragment key={label}>
           <View style={styles.trustItem}>
             <View style={styles.trustIconBox}>
-              <Ionicons name={icon as any} size={18} color="#6b7280" />
+              <Ionicons name={icon as any} size={18} color={COLORS.text.gray500} />
             </View>
             <Text style={styles.trustLabel}>{label}</Text>
           </View>
@@ -193,7 +194,7 @@ export function PremiumPaymentScreen({
         order_id: order.gatewayOrderId,
         name: 'Shortsy Premium',
         prefill: { email: userEmail || '', contact: '', name: userName || '' },
-        theme: { color: '#7c3aed' },
+        theme: { color: COLORS.brand.primaryDark },
       };
 
       logger.info('PremiumPaymentScreen', 'Launching Razorpay', { orderId: order.orderId });
@@ -258,7 +259,7 @@ export function PremiumPaymentScreen({
             style={styles.backBtn}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="chevron-back" size={22} color="#ffffff" />
+            <Ionicons name="chevron-back" size={22} color={COLORS.text.primary} />
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Go Premium</Text>
@@ -284,7 +285,7 @@ export function PremiumPaymentScreen({
       {/* ── Sticky pay button ── */}
       <View style={styles.ctaWrap}>
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.92)', '#000000']}
+          colors={['transparent', COLORS.overlay.dark92, COLORS.bg.black]}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
@@ -295,7 +296,7 @@ export function PremiumPaymentScreen({
           disabled={processing}
           style={styles.payBtn}>
           <LinearGradient
-            colors={['#7c3aed', '#db2777']}
+            colors={[COLORS.brand.primaryDark, COLORS.brand.pinkDeep]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
@@ -303,12 +304,12 @@ export function PremiumPaymentScreen({
           <View style={styles.payBtnInner}>
             {processing ? (
               <>
-                <ActivityIndicator size="small" color="#ffffff" />
+                <ActivityIndicator size="small" color={COLORS.text.primary} />
                 <Text style={styles.payBtnText}>Processing…</Text>
               </>
             ) : (
               <>
-                <Ionicons name="lock-closed" size={15} color="rgba(255,255,255,0.75)" />
+                <Ionicons name="lock-closed" size={15} color={COLORS.overlay.brandTagline} />
                 <Text style={styles.payBtnText}>Subscribe · ₹{ENV.PREMIUM_PRICE_INR} / month</Text>
               </>
             )}
@@ -316,7 +317,7 @@ export function PremiumPaymentScreen({
         </TouchableOpacity>
 
         <View style={styles.ctaFooter}>
-          <Ionicons name="shield-checkmark-outline" size={12} color="#3f3f46" />
+          <Ionicons name="shield-checkmark-outline" size={12} color={COLORS.text.zinc600} />
           <Text style={styles.ctaFooterText}>Secured by Razorpay · Cancel anytime</Text>
         </View>
       </View>
@@ -326,10 +327,10 @@ export function PremiumPaymentScreen({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: COLORS.bg.black },
 
   // Header
-  safeHeader: { backgroundColor: '#000000' },
+  safeHeader: { backgroundColor: COLORS.bg.black },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -337,20 +338,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#1c1c1e',
+    borderBottomColor: COLORS.bg.modalIOS,
   },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: COLORS.overlay.white07,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 0.2,
   },
 
@@ -377,13 +378,13 @@ const styles = StyleSheet.create({
     width: width * 0.9,
     height: width * 0.9,
     borderRadius: width * 0.45,
-    backgroundColor: 'rgba(192,38,211,0.3)',
+    backgroundColor: COLORS.overlay.fuchsiaTint,
     top: -width * 0.3,
     right: -width * 0.2,
   },
   heroIconWrap: {
     marginBottom: 6,
-    shadowColor: '#fde047',
+    shadowColor: COLORS.accent.yellow,
     shadowOpacity: 0.5,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 4 },
@@ -399,12 +400,12 @@ const styles = StyleSheet.create({
   heroLabel: {
     fontSize: 21,
     fontWeight: '900',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 3.5,
   },
   heroTagline: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.65)',
+    color: COLORS.overlay.white65,
     letterSpacing: 0.3,
   },
   heroPill: {
@@ -412,26 +413,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     marginBottom: 10,
-    backgroundColor: 'rgba(253,224,71,0.12)',
+    backgroundColor: COLORS.overlay.yellowTint12,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: 'rgba(253,224,71,0.28)',
+    borderColor: COLORS.overlay.yellowTint28,
   },
   heroPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#fde047',
+    color: COLORS.accent.yellow,
     letterSpacing: 0.6,
   },
 
   // Price card
   priceCard: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: COLORS.bg.nearBlack,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#2a1d4e',
+    borderColor: COLORS.border.premiumCard,
     padding: 22,
   },
   priceLabelRow: {
@@ -443,22 +444,22 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6b7280',
+    color: COLORS.text.gray500,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
   bestValueTag: {
-    backgroundColor: 'rgba(168,85,247,0.14)',
+    backgroundColor: COLORS.overlay.violetTint14,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: 'rgba(168,85,247,0.3)',
+    borderColor: COLORS.overlay.violetTint30,
   },
   bestValueText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#a855f7',
+    color: COLORS.brand.violet,
     letterSpacing: 0.8,
   },
   priceAmountRow: {
@@ -470,13 +471,13 @@ const styles = StyleSheet.create({
   priceCurrency: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     marginBottom: 10,
   },
   priceAmount: {
     fontSize: 68,
     fontWeight: '800',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     lineHeight: 72,
     letterSpacing: -2,
   },
@@ -486,18 +487,18 @@ const styles = StyleSheet.create({
   },
   pricePer: {
     fontSize: 12,
-    color: '#4b5563',
+    color: COLORS.text.gray600,
     lineHeight: 16,
   },
   pricePeriod: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6b7280',
+    color: COLORS.text.gray500,
     lineHeight: 18,
   },
   priceDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#1c1c1e',
+    backgroundColor: COLORS.bg.modalIOS,
     marginBottom: 14,
   },
   priceInfoRow: {
@@ -507,15 +508,15 @@ const styles = StyleSheet.create({
   },
   priceInfoText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: COLORS.text.gray500,
   },
 
   // Benefits
   benefitsCard: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: COLORS.bg.nearBlack,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#1c1c1e',
+    borderColor: COLORS.bg.modalIOS,
     padding: 20,
   },
   benefitsHeader: {
@@ -528,12 +529,12 @@ const styles = StyleSheet.create({
     width: 3,
     height: 18,
     borderRadius: 2,
-    backgroundColor: '#a855f7',
+    backgroundColor: COLORS.brand.violet,
   },
   benefitsTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   benefitsGrid: { gap: 12 },
   benefitRow: {
@@ -545,14 +546,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: 'rgba(168,85,247,0.1)',
+    backgroundColor: COLORS.overlay.violetTint10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   benefitText: {
     flex: 1,
     fontSize: 14,
-    color: '#d4d4d4',
+    color: COLORS.text.secondary,
     lineHeight: 20,
   },
 
@@ -560,10 +561,10 @@ const styles = StyleSheet.create({
   trustRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#080808',
+    backgroundColor: COLORS.bg.nearBlack,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1c1c1e',
+    borderColor: COLORS.bg.modalIOS,
     paddingVertical: 16,
     paddingHorizontal: 8,
   },
@@ -576,13 +577,13 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   trustLabel: {
     fontSize: 11,
-    color: '#4b5563',
+    color: COLORS.text.gray600,
     textAlign: 'center',
     lineHeight: 15,
     fontWeight: '500',
@@ -590,7 +591,7 @@ const styles = StyleSheet.create({
   trustSep: {
     width: StyleSheet.hairlineWidth,
     height: 36,
-    backgroundColor: '#1c1c1e',
+    backgroundColor: COLORS.bg.modalIOS,
   },
 
   // CTA
@@ -620,7 +621,7 @@ const styles = StyleSheet.create({
   payBtnText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 0.2,
   },
   ctaFooter: {
@@ -631,6 +632,6 @@ const styles = StyleSheet.create({
   },
   ctaFooterText: {
     fontSize: 11,
-    color: '#3f3f46',
+    color: COLORS.text.zinc600,
   },
 });

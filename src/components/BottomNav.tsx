@@ -1,9 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COLORS } from '../constants/colors';
 
 // ─── Home icon ────────────────────────────────────────────────────────────────
 function HomeIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#737373';
+  const c = active ? COLORS.brand.violet : COLORS.text.muted;
   return (
     <View style={iconStyles.homeWrap}>
       {/* Roof triangle: two diagonal bars */}
@@ -20,13 +21,13 @@ function HomeIcon({ active }: { active: boolean }) {
 
 // ─── Compass icon ─────────────────────────────────────────────────────────────
 function CompassIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#737373';
+  const c = active ? COLORS.brand.violet : COLORS.text.muted;
   return (
     <View style={[iconStyles.compassOuter, { borderColor: c }]}>
       {/* North-East needle */}
       <View style={[iconStyles.compassNeedle, iconStyles.compassNE, { backgroundColor: c }]} />
       {/* South-West needle (dimmer) */}
-      <View style={[iconStyles.compassNeedle, iconStyles.compassSW, { backgroundColor: active ? '#7c3aed' : '#525252' }]} />
+      <View style={[iconStyles.compassNeedle, iconStyles.compassSW, { backgroundColor: active ? COLORS.brand.primaryDark : COLORS.text.dimmed }]} />
       {/* Centre dot */}
       <View style={[iconStyles.compassDot, { backgroundColor: c }]} />
     </View>
@@ -35,7 +36,7 @@ function CompassIcon({ active }: { active: boolean }) {
 
 // ─── User icon ────────────────────────────────────────────────────────────────
 function UserIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#737373';
+  const c = active ? COLORS.brand.violet : COLORS.text.muted;
   return (
     <View style={iconStyles.userWrap}>
       {/* Head */}
@@ -92,9 +93,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.97)',
+    backgroundColor: COLORS.overlay.headerBg,
     borderTopWidth: 1,
-    borderTopColor: '#262626',
+    borderTopColor: COLORS.border.default,
     zIndex: 40,
   },
   inner: {
@@ -113,11 +114,11 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    color: '#737373',
+    color: COLORS.text.muted,
     marginTop: 3,
   },
   labelActive: {
-    color: '#a855f7',
+    color: COLORS.brand.violet,
   },
 });
 

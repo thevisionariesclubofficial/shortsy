@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { confirmOtp, resendOtp } from '../services/authService';
+import { COLORS } from '../constants/colors';
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 function Spinner() {
@@ -215,7 +216,7 @@ export function OtpScreen({ email, password, onVerified, onBack }: OtpScreenProp
     <View style={styles.root}>
       {/* Background gradient */}
       <LinearGradient
-        colors={['#1a0533', '#000000', '#1a0519']}
+        colors={[COLORS.bg.heroStart, COLORS.bg.black, COLORS.bg.heroEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -231,7 +232,7 @@ export function OtpScreen({ email, password, onVerified, onBack }: OtpScreenProp
         onPress={onBack}
         style={styles.backBtn}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-        <Ionicons name="chevron-back" size={22} color="#ffffff" />
+        <Ionicons name="chevron-back" size={22} color={COLORS.text.primary} />
       </TouchableOpacity>
 
       <KeyboardAvoidingView
@@ -242,11 +243,11 @@ export function OtpScreen({ email, password, onVerified, onBack }: OtpScreenProp
           {/* Mail icon */}
           <View style={styles.iconWrap}>
             <LinearGradient
-              colors={['#9333ea', '#ec4899']}
+              colors={[COLORS.brand.primary, COLORS.brand.pink]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.iconGradient}>
-              <Ionicons name="mail" size={32} color="#ffffff" />
+              <Ionicons name="mail" size={32} color={COLORS.text.primary} />
             </LinearGradient>
           </View>
 
@@ -289,7 +290,7 @@ export function OtpScreen({ email, password, onVerified, onBack }: OtpScreenProp
           {/* Success message */}
           {resendSuccess && !error && (
             <View style={styles.successWrap}>
-              <Ionicons name="checkmark" size={16} color="#34d399" />
+              <Ionicons name="checkmark" size={16} color={COLORS.accent.emerald400} />
               <Text style={styles.successText}>New code sent to your email</Text>
             </View>
           )}
@@ -301,7 +302,7 @@ export function OtpScreen({ email, password, onVerified, onBack }: OtpScreenProp
             disabled={!isComplete || isLoading}
             style={[styles.verifyBtn, !isComplete && styles.verifyBtnDisabled]}>
             <LinearGradient
-              colors={isComplete ? ['#9333ea', '#ec4899'] : ['#374151', '#374151']}
+              colors={isComplete ? [COLORS.brand.primary, COLORS.brand.pink] : [COLORS.text.gray700, COLORS.text.gray700]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.verifyGradient}>
@@ -350,7 +351,7 @@ export function OtpScreen({ email, password, onVerified, onBack }: OtpScreenProp
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   orb1: {
     position: 'absolute',
@@ -359,7 +360,7 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 130,
-    backgroundColor: 'rgba(147,51,234,0.12)',
+    backgroundColor: COLORS.overlay.primaryTint12,
   },
   orb2: {
     position: 'absolute',
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(236,72,153,0.08)',
+    backgroundColor: COLORS.overlay.pinkTint,
   },
   backBtn: {
     position: 'absolute',
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: COLORS.overlay.white08,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -394,7 +395,7 @@ const styles = StyleSheet.create({
   // Icon
   iconWrap: {
     marginBottom: 28,
-    shadowColor: '#9333ea',
+    shadowColor: COLORS.brand.primary,
     shadowOpacity: 0.5,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 6 },
@@ -412,21 +413,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     textAlign: 'center',
     letterSpacing: -0.5,
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 15,
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
     textAlign: 'center',
     lineHeight: 22,
   },
   email: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#c084fc',
+    color: COLORS.brand.violetMuted,
     marginTop: 4,
     marginBottom: 36,
   },
@@ -452,18 +453,18 @@ const styles = StyleSheet.create({
 
   // Error / Success
   errorWrap: {
-    backgroundColor: 'rgba(239,68,68,0.12)',
+    backgroundColor: COLORS.overlay.redTint12,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.25)',
+    borderColor: COLORS.overlay.redTint25,
     maxWidth: 320,
     width: '100%',
   },
   errorText: {
-    color: '#f87171',
+    color: COLORS.accent.red400,
     fontSize: 13,
     textAlign: 'center',
     fontWeight: '500',
@@ -475,7 +476,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   successText: {
-    color: '#34d399',
+    color: COLORS.accent.emerald400,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 22,
-    shadowColor: '#9333ea',
+    shadowColor: COLORS.brand.primary,
     shadowOpacity: 0.45,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 5 },
@@ -506,11 +507,11 @@ const styles = StyleSheet.create({
   verifyText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 0.3,
   },
   verifyTextDisabled: {
-    color: '#6b7280',
+    color: COLORS.text.gray500,
   },
 
   // Resend
@@ -521,17 +522,17 @@ const styles = StyleSheet.create({
   },
   resendLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: COLORS.text.gray500,
   },
   countdownText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
   },
   resendLink: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#a855f7',
+    color: COLORS.brand.violet,
   },
   resendSpinnerWrap: {
     flexDirection: 'row',
@@ -541,7 +542,7 @@ const styles = StyleSheet.create({
   // Help
   helpText: {
     fontSize: 12,
-    color: '#4b5563',
+    color: COLORS.text.gray600,
     textAlign: 'center',
     lineHeight: 18,
     maxWidth: 280,
@@ -554,28 +555,28 @@ const digitStyles = StyleSheet.create({
     height: 56,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#2a2a2a',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: COLORS.border.muted,
+    backgroundColor: COLORS.overlay.white04,
     alignItems: 'center',
     justifyContent: 'center',
   },
   boxFocused: {
-    borderColor: '#9333ea',
-    backgroundColor: 'rgba(147,51,234,0.08)',
+    borderColor: COLORS.brand.primary,
+    backgroundColor: COLORS.overlay.primaryTint08,
   },
   boxFilled: {
-    borderColor: '#7c3aed',
-    backgroundColor: 'rgba(124,58,237,0.12)',
+    borderColor: COLORS.brand.primaryDark,
+    backgroundColor: COLORS.overlay.brandTint12,
   },
   digit: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   cursor: {
     width: 2,
     height: 22,
-    backgroundColor: '#a855f7',
+    backgroundColor: COLORS.brand.violet,
     borderRadius: 1,
   },
 });
@@ -586,7 +587,7 @@ const spinnerStyles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2.5,
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderTopColor: '#ffffff',
+    borderColor: COLORS.overlay.white20,
+    borderTopColor: COLORS.text.primary,
   },
 });

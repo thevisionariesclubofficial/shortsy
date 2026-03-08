@@ -27,6 +27,7 @@ import {
 import type { WatchProgress, FeaturedHero } from '../types/api';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { COLORS } from '../constants/colors';
+import { ENV } from '../constants/env';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
@@ -315,7 +316,7 @@ interface HomePageProps {
 export function HomePage({ onContentClick, onSearchClick, rentedContent = [], progressMap = new Map(), onRentedClick, onRefreshRentals, onGenreClick }: HomePageProps) {
   const { top: safeTop } = useSafeAreaInsets();
   // ── Service-fetched state ─────────────────────────────────────────────────
-  const [allContent,       setAllContent]       = useState<Content[]>([]);
+  const [shortFilms,        setShortFilms]        = useState<Content[]>([]);
   const [featuredContent,  setFeaturedContent]  = useState<Content[]>([]);
   const [festivalWinners,  setFestivalWinners]  = useState<Content[]>([]);
   const [verticalSeries,   setVerticalSeries]   = useState<Content[]>([]);
@@ -342,10 +343,14 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         await onRefreshRentals();
       }
       
-      const [featuredRes, metaRes, allRes] = await Promise.all([
+      const vsLimit   = ENV.HOME_VERTICAL_SERIES_COUNT  > 0 ? ENV.HOME_VERTICAL_SERIES_COUNT  : undefined;
+      const fwLimit   = ENV.HOME_FESTIVAL_WINNERS_COUNT > 0 ? ENV.HOME_FESTIVAL_WINNERS_COUNT : undefined;
+      const [featuredRes, metaRes, sfRes, vsRes, fwRes] = await Promise.all([
         getFeaturedContent(),
         getContentMetadata(),
-        listContent(),
+        listContent({ type: 'short-film' }),
+        listContent({ type: 'vertical-series', limit: vsLimit }),
+        listContent({ festivalWinner: true,    limit: fwLimit }),
       ]);
       setHero(featuredRes.hero);
       setFeaturedContent(featuredRes.featured);
@@ -368,10 +373,10 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
             emoji: genreIcons[g] || '🎬',
           }))
       );
-      const all = allRes.data;
-      setAllContent(all);
-      setFestivalWinners(all.filter((c: Content) => c.festivalWinner));
-      setVerticalSeries(all.filter((c: Content) => c.type === 'vertical-series'));
+      // Apply local filters as safety net in case API ignores query params
+      setShortFilms(sfRes.data.filter((c: Content) => c.type === 'short-film'));
+      setVerticalSeries(vsRes.data.filter((c: Content) => c.type === 'vertical-series'));
+      setFestivalWinners(fwRes.data.filter((c: Content) => c.festivalWinner));
     } catch (err) {
       console.error('[HomePage] Pull-to-refresh failed:', err);
     } finally {
@@ -382,11 +387,15 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
   useEffect(() => {
     async function fetchHomeData() {
       try {
-        // All three calls fire in parallel
-        const [featuredRes, metaRes, allRes] = await Promise.all([
+        // All five calls fire in parallel — section limits come from ENV
+        const vsLimit = ENV.HOME_VERTICAL_SERIES_COUNT  > 0 ? ENV.HOME_VERTICAL_SERIES_COUNT  : undefined;
+        const fwLimit = ENV.HOME_FESTIVAL_WINNERS_COUNT > 0 ? ENV.HOME_FESTIVAL_WINNERS_COUNT : undefined;
+        const [featuredRes, metaRes, sfRes, vsRes, fwRes] = await Promise.all([
           getFeaturedContent(),
           getContentMetadata(),
-          listContent(),
+          listContent({ type: 'short-film' }),
+          listContent({ type: 'vertical-series', limit: vsLimit }),
+          listContent({ festivalWinner: true,    limit: fwLimit }),
         ]);
 
         setHero(featuredRes.hero);
@@ -411,10 +420,10 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
             }))
         );
 
-        const all = allRes.data;
-        setAllContent(all);
-        setFestivalWinners(all.filter(c => c.festivalWinner));
-        setVerticalSeries(all.filter(c => c.type === 'vertical-series'));
+        // Apply local filters as safety net in case API ignores query params
+        setShortFilms(sfRes.data.filter((c: Content) => c.type === 'short-film'));
+        setVerticalSeries(vsRes.data.filter((c: Content) => c.type === 'vertical-series'));
+        setFestivalWinners(fwRes.data.filter((c: Content) => c.festivalWinner));
       } catch (err) {
         console.error('[HomePage] Failed to fetch home data:', err);
       } finally {
@@ -574,7 +583,10 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.hRow}>
-            {verticalSeries.map(content => (
+            {(ENV.HOME_VERTICAL_SERIES_COUNT > 0
+              ? verticalSeries.slice(0, ENV.HOME_VERTICAL_SERIES_COUNT)
+              : verticalSeries
+            ).map(content => (
               <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}
@@ -595,7 +607,10 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.hRow}>
-            {festivalWinners.map(content => (
+            {(ENV.HOME_FESTIVAL_WINNERS_COUNT > 0
+              ? festivalWinners.slice(0, ENV.HOME_FESTIVAL_WINNERS_COUNT)
+              : festivalWinners
+            ).map(content => (
               <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}
@@ -606,17 +621,18 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
           </ScrollView>
         </View>
 
-        {/* ── All Content ── */}
+        {/* ── Short Films ── */}
         <View style={styles.section}>
           <SectionHeader
             Icon={<Ionicons name="film" size={18} color={COLORS.icon.brand} />}
-            title="All Content"
+            title="Short Films"
+            subtitle="Curated cinema under 40 minutes"
           />
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.hRow}>
-            {allContent.map(content => (
+            {shortFilms.map(content => (
               <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 interface MoodCardProps {
   name: string;
@@ -10,19 +11,19 @@ interface MoodCardProps {
 
 // Per-genre gradient palettes — cycles for genres without an explicit entry
 const GENRE_GRADIENTS: Record<string, [string, string]> = {
-  Drama:        ['#7c3aed', '#4f46e5'],
-  Thriller:     ['#dc2626', '#991b1b'],
-  Romance:      ['#ec4899', '#be185d'],
-  Comedy:       ['#f59e0b', '#d97706'],
-  Documentary:  ['#0ea5e9', '#0369a1'],
-  Experimental: ['#10b981', '#065f46'],
-  Family:       ['#8b5cf6', '#6d28d9'],
-  Action:       ['#ef4444', '#b91c1c'],
-  Horror:       ['#6b21a8', '#3b0764'],
-  SciFi:        ['#06b6d4', '#0e7490'],
+  Drama:        [COLORS.brand.primaryDark, COLORS.accent.indigo600],
+  Thriller:     [COLORS.accent.red600, COLORS.accent.red800],
+  Romance:      [COLORS.brand.pink, COLORS.accent.rose700],
+  Comedy:       [COLORS.accent.gold, COLORS.accent.amber600],
+  Documentary:  [COLORS.accent.sky400, COLORS.accent.sky700],
+  Experimental: [COLORS.accent.emerald, COLORS.accent.emerald800],
+  Family:       [COLORS.brand.violet500, COLORS.brand.violet700],
+  Action:       [COLORS.accent.red, COLORS.accent.red700],
+  Horror:       [COLORS.accent.purple800, COLORS.accent.purple950],
+  SciFi:        [COLORS.accent.cyan, COLORS.accent.cyan700],
 };
 
-const FALLBACK_GRADIENT: [string, string] = ['#6366f1', '#4338ca'];
+const FALLBACK_GRADIENT: [string, string] = [COLORS.accent.indigo, COLORS.accent.indigo700];
 
 export function MoodCard({ name, emoji, onClick }: MoodCardProps) {
   const colors = GENRE_GRADIENTS[name] ?? FALLBACK_GRADIENT;
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignSelf: 'flex-start',
     // iOS shadow
-    shadowColor: '#ffffff',
+    shadowColor: COLORS.text.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 10,
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: '#ffffff18',
+    backgroundColor: COLORS.overlay.surfaceLight,
     top: -20,
     right: -10,
   },
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#ffffff12',
+    backgroundColor: COLORS.overlay.surfaceFaint,
     bottom: -16,
     left: 20,
   },
@@ -110,9 +111,9 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 0.4,
-    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowColor: COLORS.overlay.bgDim,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },

@@ -21,6 +21,7 @@ import { getWatchProgress, saveWatchProgress, getStreamUrl, getEpisodeStreamUrl 
 import { USE_MOCK } from '../services/apiClient';
 import { logger } from '../utils/logger';
 import type { SaveProgressRequest, WatchProgress } from '../types/api';
+import { COLORS } from '../constants/colors';
 
 // ─── Loading spinner ─────────────────────────────────────────────────────────
 function LoadingSpinner() {
@@ -645,13 +646,13 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
       {/* ── Double-tap shimmer overlays ── */}
       <Animated.View style={[styles.shimmerLeft, { opacity: leftShimmerAnim }]} pointerEvents="none">
         <View style={styles.shimmerIconWrap}>
-          <Ionicons name="play-back" size={26} color="#ffffff" />
+          <Ionicons name="play-back" size={26} color={COLORS.text.primary} />
           <Text style={styles.shimmerLabel}>10s</Text>
         </View>
       </Animated.View>
       <Animated.View style={[styles.shimmerRight, { opacity: rightShimmerAnim }]} pointerEvents="none">
         <View style={styles.shimmerIconWrap}>
-          <Ionicons name="play-forward" size={26} color="#ffffff" />
+          <Ionicons name="play-forward" size={26} color={COLORS.text.primary} />
           <Text style={styles.shimmerLabel}>10s</Text>
         </View>
       </Animated.View>
@@ -668,14 +669,14 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
               onPress={(e) => { e.stopPropagation?.(); handleBack(); }}
               style={styles.backBtn}
               activeOpacity={0.8}>
-              <Ionicons name="chevron-back" size={22} color="#ffffff" />
+              <Ionicons name="chevron-back" size={22} color={COLORS.text.primary} />
             </TouchableOpacity>
             <View style={styles.topTitleWrap}>
               <Text style={[styles.topTitle, isShortFilm && { fontSize: 13 }]} numberOfLines={1}>{content.title}</Text>
               {/* <Text style={[styles.topDir,   isShortFilm && { fontSize: 11 }]}>{content.director}</Text> */}
             </View>
             <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7}>
-              <Ionicons name="ellipsis-vertical" size={20} color="#ffffff" />
+              <Ionicons name="ellipsis-vertical" size={20} color={COLORS.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -686,7 +687,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
                 onPress={(e) => { e.stopPropagation?.(); seekBackward(); }}
                 style={styles.seekBtn}
                 activeOpacity={0.8}>
-                <Ionicons name="play-back" size={28} color="#ffffff" />
+                <Ionicons name="play-back" size={28} color={COLORS.text.primary} />
                 <Text style={styles.seekLabel}>10</Text>
               </TouchableOpacity>
 
@@ -694,14 +695,14 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
                 onPress={(e) => { e.stopPropagation?.(); togglePlay(); }}
                 style={[styles.bigPlayBtn, isShortFilm && { width: 52, height: 52, borderRadius: 26 }]}
                 activeOpacity={0.8}>
-                {isPlaying ? <Ionicons name="pause" size={isShortFilm ? 22 : 36} color="#ffffff" /> : <Ionicons name="play" size={isShortFilm ? 22 : 36} color="#ffffff" />}
+                {isPlaying ? <Ionicons name="pause" size={isShortFilm ? 22 : 36} color={COLORS.text.primary} /> : <Ionicons name="play" size={isShortFilm ? 22 : 36} color={COLORS.text.primary} />}
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={(e) => { e.stopPropagation?.(); seekForward(); }}
                 style={styles.seekBtn}
                 activeOpacity={0.8}>
-                <Ionicons name="play-forward" size={28} color="#ffffff" />
+                <Ionicons name="play-forward" size={28} color={COLORS.text.primary} />
                 <Text style={styles.seekLabel}>10</Text>
               </TouchableOpacity>
             </View>
@@ -737,7 +738,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
                   onPress={(e) => { e.stopPropagation?.(); togglePlay(); }}
                   style={styles.iconBtn}
                   activeOpacity={0.7}>
-                  {isPlaying ? <Ionicons name="pause" size={20} color="#ffffff" /> : <Ionicons name="play" size={20} color="#ffffff" />}
+                  {isPlaying ? <Ionicons name="pause" size={20} color={COLORS.text.primary} /> : <Ionicons name="play" size={20} color={COLORS.text.primary} />}
                 </TouchableOpacity>
                 
                 <TouchableOpacity
@@ -751,20 +752,20 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
                   }}
                   style={styles.iconBtn}
                   activeOpacity={0.7}>
-                  <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={22} color="#ffffff" />
+                  <Ionicons name={isMuted ? "volume-mute" : "volume-high"} size={22} color={COLORS.text.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={(e) => { e.stopPropagation?.(); seekBackward(); }}
                   style={styles.iconBtn}
                   activeOpacity={0.7}>
-                  <Ionicons name="play-back" size={18} color="#ffffff" />
+                  <Ionicons name="play-back" size={18} color={COLORS.text.primary} />
                   <Text style={styles.iconBtnLabel}>10s</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={(e) => { e.stopPropagation?.(); seekForward(); }}
                   style={styles.iconBtn}
                   activeOpacity={0.7}>
-                  <Ionicons name="play-forward" size={18} color="#ffffff" />
+                  <Ionicons name="play-forward" size={18} color={COLORS.text.primary} />
                   <Text style={styles.iconBtnLabel}>10s</Text>
                 </TouchableOpacity>
               </View>
@@ -807,16 +808,16 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: COLORS.bg.black },
 
   videoArea:  { ...StyleSheet.absoluteFillObject },
   bgBlur:     { ...StyleSheet.absoluteFillObject, opacity: 0.35 },
-  bgDim:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  bgDim:      { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.overlay.bgDim },
   mainImage:  { flex: 1, width: '100%' },
 
   videoLoadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
@@ -826,7 +827,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: COLORS.overlay.card,
   },
 
   tapOverlay: {
@@ -838,7 +839,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0, top: 0, bottom: 0,
     width: '50%',
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: COLORS.overlay.white18,
     borderTopRightRadius: 120,
     borderBottomRightRadius: 120,
     alignItems: 'center',
@@ -849,7 +850,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0, top: 0, bottom: 0,
     width: '50%',
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: COLORS.overlay.white18,
     borderTopLeftRadius: 120,
     borderBottomLeftRadius: 120,
     alignItems: 'center',
@@ -863,7 +864,7 @@ const styles = StyleSheet.create({
   shimmerLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 0.3,
   },
 
@@ -884,11 +885,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     gap: 12,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: COLORS.overlay.controlBg,
   },
   topTitleWrap: { flex: 1 },
-  topTitle: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
-  topDir:   { fontSize: 12, color: '#d4d4d4', marginTop: 1 },
+  topTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary },
+  topDir:   { fontSize: 12, color: COLORS.text.secondary, marginTop: 1 },
 
   // Centre
   centreWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -905,7 +906,7 @@ const styles = StyleSheet.create({
   },
   seekLabel: {
     fontSize: 10,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontWeight: '700',
     marginTop: 1,
     letterSpacing: 0.3,
@@ -913,7 +914,7 @@ const styles = StyleSheet.create({
   bigPlayBtn: {
     width: 80, height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: COLORS.overlay.white20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -924,24 +925,24 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
     paddingTop: 12,
     gap: 10,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: COLORS.overlay.controlBg,
   },
   timeRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  timeText: { fontSize: 12, color: '#ffffff', fontWeight: '500' },
-  timeSep:  { fontSize: 12, color: '#737373' },
-  timeDim:  { fontSize: 12, color: '#737373' },
+  timeText: { fontSize: 12, color: COLORS.text.primary, fontWeight: '500' },
+  timeSep:  { fontSize: 12, color: COLORS.text.muted },
+  timeDim:  { fontSize: 12, color: COLORS.text.muted },
 
   track: {
     height: 20,
     justifyContent: 'center',
   },
-  trackBg:    { position: 'absolute', left: 0, right: 0, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
-  trackFill:  { position: 'absolute', left: 0, height: 3, borderRadius: 2, backgroundColor: '#a855f7' },
+  trackBg:    { position: 'absolute', left: 0, right: 0, height: 3, borderRadius: 2, backgroundColor: COLORS.overlay.white20 },
+  trackFill:  { position: 'absolute', left: 0, height: 3, borderRadius: 2, backgroundColor: COLORS.brand.violet },
   trackThumb: {
     position: 'absolute',
     width: 12, height: 12,
     borderRadius: 6,
-    backgroundColor: '#a855f7',
+    backgroundColor: COLORS.brand.violet,
     marginLeft: -6,
     top: 4,
   },
@@ -950,12 +951,12 @@ const styles = StyleSheet.create({
   controlLeft: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
   iconBtn: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
-  iconBtnLabel: { fontSize: 9, color: '#ffffff', fontWeight: '700', marginTop: 1, letterSpacing: 0.2 },
+  iconBtnLabel: { fontSize: 9, color: COLORS.text.primary, fontWeight: '700', marginTop: 1, letterSpacing: 0.2 },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: COLORS.overlay.controlBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -967,15 +968,15 @@ const styles = StyleSheet.create({
     top: '25%',
     maxHeight: '55%',
     width: 56,
-    backgroundColor: 'rgba(0,0,0,0.82)',
+    backgroundColor: COLORS.overlay.dark82,
     borderRadius: 14,
     padding: 8,
   },
-  sidebarLabel: { fontSize: 9, fontWeight: '600', color: '#737373', textTransform: 'uppercase', textAlign: 'center', marginBottom: 6 },
+  sidebarLabel: { fontSize: 9, fontWeight: '600', color: COLORS.text.muted, textTransform: 'uppercase', textAlign: 'center', marginBottom: 6 },
   epBtn:        { paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  epBtnActive:  { backgroundColor: 'rgba(168,85,247,0.25)' },
-  epText:       { fontSize: 13, color: '#a3a3a3', fontWeight: '500' },
-  epTextActive: { color: '#a855f7', fontWeight: '700' },
+  epBtnActive:  { backgroundColor: COLORS.overlay.violetTint25 },
+  epText:       { fontSize: 13, color: COLORS.text.tertiary, fontWeight: '500' },
+  epTextActive: { color: COLORS.brand.violet, fontWeight: '700' },
 });
 
 const spinnerStyles = StyleSheet.create({
@@ -984,7 +985,7 @@ const spinnerStyles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     borderWidth: 4,
-    borderColor: 'rgba(168,85,247,0.25)',
-    borderTopColor: '#a855f7',
+    borderColor: COLORS.overlay.violetTint25,
+    borderTopColor: COLORS.brand.violet,
   },
 });
