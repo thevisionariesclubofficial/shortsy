@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 // ─── Animated button ─────────────────────────────────────────────────────────
 function AnimBtn({
@@ -36,7 +37,7 @@ function AnimBtn({
         activeOpacity={1}>
         {gradient ? (
           <LinearGradient
-            colors={['#9333ea', '#ec4899']}
+            colors={[COLORS.brand.primary, COLORS.brand.pink]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.btn}>
@@ -74,7 +75,7 @@ export function ErrorScreen({
       <View style={styles.card}>
         {/* Icon bubble */}
         <View style={styles.iconBubble}>
-          <Ionicons name="alert-circle" size={40} color="#ef4444" />
+          <Ionicons name="alert-circle" size={40} color={COLORS.accent.red} />
         </View>
 
         {/* Text */}
@@ -89,7 +90,7 @@ export function ErrorScreen({
             <AnimBtn
               onPress={onRetry}
               gradient
-              icon={<Ionicons name="refresh" size={18} color="#ffffff" />}
+              icon={<Ionicons name="refresh" size={18} color={COLORS.text.primary} />}
               label="Try Again"
             />
           )}
@@ -97,7 +98,7 @@ export function ErrorScreen({
             <AnimBtn
               onPress={onGoHome}
               outline
-              icon={<Ionicons name="home" size={18} color="#ffffff" />}
+              icon={<Ionicons name="home" size={18} color={COLORS.text.primary} />}
               label="Go to Home"
             />
           )}
@@ -111,7 +112,7 @@ export function ErrorScreen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(239,68,68,0.15)',
+    backgroundColor: COLORS.overlay.redTint15,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -137,12 +138,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     textAlign: 'center',
   },
   message: {
     fontSize: 14,
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -160,16 +161,16 @@ const styles = StyleSheet.create({
   },
   btnOutline: {
     borderWidth: 1,
-    borderColor: '#404040',
+    borderColor: COLORS.border.medium,
     backgroundColor: 'transparent',
   },
   btnText: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 15,
     fontWeight: '600',
   },
   btnTextLight: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 15,
     fontWeight: '600',
   },

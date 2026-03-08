@@ -37,6 +37,7 @@ import { SplashScreen } from '../screens/SplashScreen';
 import { TermsScreen } from '../screens/TermsScreen';
 import { WelcomeChoice } from '../screens/WelcomeChoice';
 import { resolveWatchNowScreen } from '../services/navigationService';
+import { COLORS } from '../constants/colors';
 
 function App() {
   const {
@@ -291,6 +292,7 @@ function App() {
             navigate(resolveWatchNowScreen(screen.content));
           }}
           onEpisodePlay={(ep, epNum) => onEpisodePlay(ep, screen.content, epNum)}
+          onContentClick={(item) => navigate({ type: 'detail', content: item })}
         />
       )}
 
@@ -394,40 +396,40 @@ function App() {
 const styles = StyleSheet.create({
   main: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: COLORS.overlay.dark80,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
     borderRadius: 16,
     padding: 24,
     width: '100%',
     maxWidth: 340,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: COLORS.border.muted,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 12,
     textAlign: 'center',
   },
   modalMessage: {
     fontSize: 15,
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
     lineHeight: 22,
     marginBottom: 24,
     textAlign: 'center',
   },
   modalButton: {
-    backgroundColor: '#a855f7',
+    backgroundColor: COLORS.brand.violet,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -435,7 +437,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
 });
 

@@ -20,6 +20,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { signup } from '../services/authService';
 import { LEGAL_LINKS } from '../constants/legalLinks';
+import { COLORS } from '../constants/colors';
 
 
 
@@ -38,7 +39,7 @@ function Checkbox({ checked, onPress }: { checked: boolean; onPress: () => void 
 }
 
 // ─── Spinning loader ────────────────────────────────────────────────────────────
-function Spinner({ color = '#ffffff' }: { color?: string }) {
+function Spinner({ color = COLORS.text.primary }: { color?: string }) {
   const rotation = useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
     Animated.loop(
@@ -91,7 +92,7 @@ function Field({
         <TextInput
           style={fieldStyles.input}
           placeholder={placeholder}
-          placeholderTextColor="#737373"
+          placeholderTextColor={COLORS.text.muted}
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
@@ -181,7 +182,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
     <View style={styles.root}>
       {/* Background gradient */}
       <LinearGradient
-        colors={['#1a0533', '#000000', '#1a0519']}
+        colors={[COLORS.bg.heroStart, COLORS.bg.black, COLORS.bg.heroEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -194,7 +195,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
           onPress={onBack}
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={COLORS.text.primary} />
         </TouchableOpacity>
       )}
 
@@ -209,11 +210,11 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
           {/* Logo */}
           <View style={styles.logoWrap}>
             <LinearGradient
-              colors={['#9333ea', '#ec4899']}
+              colors={[COLORS.brand.primary, COLORS.brand.pink]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.logoBox}>
-              <Ionicons name="person" size={32} color="#fff" />
+              <Ionicons name="person" size={32} color={COLORS.text.primary} />
             </LinearGradient>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Join the indie cinema revolution</Text>
@@ -227,7 +228,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               placeholder="John Doe"
               value={name}
               onChangeText={setName}
-              leftIcon={<Ionicons name="person" size={18} color="#737373" />}
+              leftIcon={<Ionicons name="person" size={18} color={COLORS.text.muted} />}
             />
 
             {/* Email */}
@@ -237,7 +238,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
-              leftIcon={<Ionicons name="mail" size={18} color="#737373" />}
+              leftIcon={<Ionicons name="mail" size={18} color={COLORS.text.muted} />}
             />
 
             {/* Password */}
@@ -248,12 +249,12 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
               hint="At least 8 characters"
-              leftIcon={<Ionicons name="lock-closed" size={18} color="#737373" />}
+              leftIcon={<Ionicons name="lock-closed" size={18} color={COLORS.text.muted} />}
               RightSlot={
                 <TouchableOpacity
                   onPress={() => setShowPassword(p => !p)}
                   style={fieldStyles.rightIcon}>
-                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color="#737373" />
+                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color={COLORS.text.muted} />
                 </TouchableOpacity>
               }
             />
@@ -265,7 +266,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showPassword}
-              leftIcon={<Ionicons name="lock-closed" size={18} color="#737373" />}
+              leftIcon={<Ionicons name="lock-closed" size={18} color={COLORS.text.muted} />}
             />
 
             {/* Terms */}
@@ -294,9 +295,9 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
             <Pressable
               onPress={handleSubmit}
               disabled={!canSubmit}
-              android_ripple={{ color: '#ffffff20' }}>
+              android_ripple={{ color: COLORS.overlay.ripple }}>
               <LinearGradient
-                colors={canSubmit ? ['#9333ea', '#ec4899'] : ['#4a1f6e', '#7c2453']}
+                colors={canSubmit ? [COLORS.brand.primary, COLORS.brand.pink] : [COLORS.brand.primaryDeep, COLORS.brand.pinkDark]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.submitBtn}>
@@ -324,7 +325,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
               activeOpacity={0.8}
               onPress={handleGoogleSignIn}
               disabled={isGoogleLoading || isLoading}>
-              {isGoogleLoading ? <Spinner color="#3c4043" /> : <Image source={require('../assets/google.png')} style={{ width: 22, height: 22, borderRadius: 10 }} resizeMode="contain" />}
+              {isGoogleLoading ? <Spinner color={COLORS.text.googleDark} /> : <Image source={require('../assets/google.png')} style={{ width: 22, height: 22, borderRadius: 10 }} resizeMode="contain" />}
               <Text style={styles.googleText}>
                 {isGoogleLoading ? 'Signing in...' : 'Sign up with Google'}
               </Text>
@@ -348,7 +349,7 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   backBtn: {
     position: 'absolute',
@@ -379,7 +380,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    shadowColor: '#9333ea',
+    shadowColor: COLORS.brand.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -388,12 +389,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 15,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   form: {
     width: '100%',
@@ -408,11 +409,11 @@ const styles = StyleSheet.create({
   termsText: {
     flex: 1,
     fontSize: 13,
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
     lineHeight: 20,
   },
   termsLink: {
-    color: '#c084fc',
+    color: COLORS.brand.violetMuted,
   },
   submitBtn: {
     height: 52,
@@ -427,7 +428,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   submitText: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -440,10 +441,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#262626',
+    backgroundColor: COLORS.border.default,
   },
   dividerText: {
-    color: '#737373',
+    color: COLORS.text.muted,
     fontSize: 13,
   },
   googleBtn: {
@@ -454,16 +455,16 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#dadce0',
-    backgroundColor: '#ffffff',
-    shadowColor: '#000000',
+    borderColor: COLORS.border.google,
+    backgroundColor: COLORS.text.primary,
+    shadowColor: COLORS.bg.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 2,
   },
   googleText: {
-    color: '#3c4043',
+    color: COLORS.text.googleDark,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -474,11 +475,11 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   loginPrompt: {
-    color: '#737373',
+    color: COLORS.text.muted,
     fontSize: 15,
   },
   loginLink: {
-    color: '#c084fc',
+    color: COLORS.brand.violetMuted,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -490,20 +491,20 @@ const fieldStyles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#171717',
+    backgroundColor: COLORS.bg.card,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: COLORS.border.default,
     borderRadius: 12,
     height: 52,
     paddingHorizontal: 4,
   },
   rowFocused: {
-    borderColor: '#7c3aed',
+    borderColor: COLORS.brand.primaryDark,
   },
   leftIcon: {
     width: 44,
@@ -512,7 +513,7 @@ const fieldStyles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 15,
     paddingRight: 12,
   },
@@ -523,7 +524,7 @@ const fieldStyles = StyleSheet.create({
   },
   hint: {
     fontSize: 11,
-    color: '#737373',
+    color: COLORS.text.muted,
     marginTop: 2,
   },
 });
@@ -534,8 +535,8 @@ const checkboxStyles = StyleSheet.create({
     height: 20,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: '#9333ea',
-    backgroundColor: '#1a0533',
+    borderColor: COLORS.brand.primary,
+    backgroundColor: COLORS.bg.heroStart,
     marginTop: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -544,7 +545,7 @@ const checkboxStyles = StyleSheet.create({
     position: 'absolute',
     width: 3,
     height: 8,
-    backgroundColor: '#c084fc',
+    backgroundColor: COLORS.brand.violetMuted,
     borderRadius: 1.5,
     bottom: 3,
     left: 5,
@@ -554,7 +555,7 @@ const checkboxStyles = StyleSheet.create({
     position: 'absolute',
     width: 3,
     height: 12,
-    backgroundColor: '#c084fc',
+    backgroundColor: COLORS.brand.violetMuted,
     borderRadius: 1.5,
     bottom: 3,
     right: 4,
@@ -568,8 +569,8 @@ const spinnerStyles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2.5,
-    borderColor: '#ffffff40',
-    borderTopColor: '#ffffff',
+    borderColor: COLORS.overlay.spinnerBorder,
+    borderTopColor: COLORS.text.primary,
   },
 });
 
@@ -581,14 +582,14 @@ const _iconStyles = StyleSheet.create({
     height: 30,
     borderRadius: 4,
     borderWidth: 2.5,
-    borderColor: '#fff',
+    borderColor: COLORS.text.primary,
     flexDirection: 'row',
     overflow: 'hidden',
   },
   filmStripLeft: {
     width: 9,
     borderRightWidth: 2,
-    borderRightColor: '#fff',
+    borderRightColor: COLORS.text.primary,
     justifyContent: 'space-evenly',
     alignItems: 'center',
     paddingVertical: 2,
@@ -596,7 +597,7 @@ const _iconStyles = StyleSheet.create({
   filmStripRight: {
     width: 9,
     borderLeftWidth: 2,
-    borderLeftColor: '#fff',
+    borderLeftColor: COLORS.text.primary,
     justifyContent: 'space-evenly',
     alignItems: 'center',
     paddingVertical: 2,
@@ -605,7 +606,7 @@ const _iconStyles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.text.primary,
   },
 
   // Mail
@@ -614,7 +615,7 @@ const _iconStyles = StyleSheet.create({
     height: 16,
     borderRadius: 3,
     borderWidth: 1.5,
-    borderColor: '#737373',
+    borderColor: COLORS.text.muted,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -623,7 +624,7 @@ const _iconStyles = StyleSheet.create({
     position: 'absolute',
     width: 26,
     height: 1.5,
-    backgroundColor: '#737373',
+    backgroundColor: COLORS.text.muted,
     top: 3,
     transform: [{ rotate: '30deg' }],
   },
@@ -631,7 +632,7 @@ const _iconStyles = StyleSheet.create({
     position: 'absolute',
     width: 26,
     height: 1.5,
-    backgroundColor: '#737373',
+    backgroundColor: COLORS.text.muted,
     top: 3,
     transform: [{ rotate: '-30deg' }],
   },
@@ -640,7 +641,7 @@ const _iconStyles = StyleSheet.create({
     bottom: 0,
     width: 20,
     height: 7,
-    backgroundColor: '#737373',
+    backgroundColor: COLORS.text.muted,
     opacity: 0,
   },
 
@@ -654,7 +655,7 @@ const _iconStyles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#737373',
+    backgroundColor: COLORS.text.muted,
     marginBottom: 1,
   },
   userBody: {
@@ -662,7 +663,7 @@ const _iconStyles = StyleSheet.create({
     height: 8,
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
-    backgroundColor: '#737373',
+    backgroundColor: COLORS.text.muted,
   },
 
   // Lock
@@ -677,7 +678,7 @@ const _iconStyles = StyleSheet.create({
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
     borderWidth: 2,
-    borderColor: '#737373',
+    borderColor: COLORS.text.muted,
     borderBottomWidth: 0,
     marginBottom: -1,
   },
@@ -685,7 +686,7 @@ const _iconStyles = StyleSheet.create({
     width: 18,
     height: 12,
     borderRadius: 4,
-    backgroundColor: '#737373',
+    backgroundColor: COLORS.text.muted,
   },
 
   // Eye
@@ -700,20 +701,20 @@ const _iconStyles = StyleSheet.create({
     height: 11,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: '#737373',
+    borderColor: COLORS.text.muted,
   },
   eyePupil: {
     position: 'absolute',
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#737373',
+    backgroundColor: COLORS.text.muted,
   },
   eyeSlash: {
     position: 'absolute',
     width: 22,
     height: 2,
-    backgroundColor: '#737373',
+    backgroundColor: COLORS.text.muted,
     borderRadius: 1,
     transform: [{ rotate: '-45deg' }],
   },
@@ -729,14 +730,14 @@ const _iconStyles = StyleSheet.create({
     position: 'absolute',
     width: 14,
     height: 2.5,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.text.primary,
     borderRadius: 1.5,
   },
   arrowTop: {
     position: 'absolute',
     width: 8,
     height: 2.5,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.text.primary,
     borderRadius: 1.5,
     left: 3,
     top: 5,
@@ -746,7 +747,7 @@ const _iconStyles = StyleSheet.create({
     position: 'absolute',
     width: 8,
     height: 2.5,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.text.primary,
     borderRadius: 1.5,
     left: 3,
     bottom: 5,
@@ -770,7 +771,7 @@ const _iconStyles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
     top: 6,
     left: 6,
   },

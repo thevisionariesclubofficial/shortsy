@@ -15,11 +15,12 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { forgotPassword, confirmResetPassword } from '../services/authService';
+import { COLORS } from '../constants/colors';
 
 type Step = 'email' | 'code' | 'newPassword' | 'success';
 
 // ─── Spinner ──────────────────────────────────────────────────────────────────
-function Spinner({ color = '#ffffff' }: { color?: string }) {
+function Spinner({ color = COLORS.text.primary }: { color?: string }) {
   const rotation = useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
     Animated.loop(
@@ -44,7 +45,7 @@ function Spinner({ color = '#ffffff' }: { color?: string }) {
 function GradientBg() {
   return (
     <LinearGradient
-      colors={['#1a0533', '#000000', '#1a0519']}
+      colors={[COLORS.bg.heroStart, COLORS.bg.black, COLORS.bg.heroEnd]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={StyleSheet.absoluteFill}
@@ -78,7 +79,7 @@ function SuccessView({ onBack }: { onBack: () => void }) {
     <View style={successStyles.root}>
       <GradientBg />
       <View style={successStyles.iconWrap}>
-        <Ionicons name="checkmark-circle" size={64} color="#22c55e" />
+        <Ionicons name="checkmark-circle" size={64} color={COLORS.accent.green} />
       </View>
       <View style={successStyles.textBlock}>
         <Text style={successStyles.title}>Password Updated!</Text>
@@ -178,19 +179,19 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
   const stepMeta = {
     email: {
       icon: 'mail' as const,
-      iconColor: '#a855f7',
+      iconColor: COLORS.brand.violet,
       title: 'Forgot Password?',
       subtitle: "Enter your email and we'll send you a reset code.",
     },
     code: {
       icon: 'key' as const,
-      iconColor: '#f59e0b',
+      iconColor: COLORS.accent.gold,
       title: 'Enter Reset Code',
       subtitle: `We sent a 6-digit code to ${email}. Enter it below.`,
     },
     newPassword: {
       icon: 'lock-closed' as const,
-      iconColor: '#22c55e',
+      iconColor: COLORS.accent.green,
       title: 'Set New Password',
       subtitle: 'Choose a strong password with at least 8 characters.',
     },
@@ -227,7 +228,7 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
               onPress={handleBack}
               style={styles.backBtn}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="arrow-back" size={22} color="#fff" />
+              <Ionicons name="arrow-back" size={22} color={COLORS.text.primary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{headerTitle}</Text>
           </View>
@@ -252,12 +253,12 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
                   <Text style={styles.label}>Email Address</Text>
                   <View style={[styles.inputRow, focusedField === 'email' && styles.inputRowFocused]}>
                     <View style={styles.inputIcon}>
-                      <Ionicons name="mail" size={20} color="#737373" />
+                      <Ionicons name="mail" size={20} color={COLORS.text.muted} />
                     </View>
                     <TextInput
                       style={styles.input}
                       placeholder="your@email.com"
-                      placeholderTextColor="#737373"
+                      placeholderTextColor={COLORS.text.muted}
                       value={email}
                       onChangeText={setEmail}
                       keyboardType="email-address"
@@ -273,10 +274,10 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
                 <Pressable
                   onPress={handleSendCode}
                   disabled={isLoading || !email.trim()}
-                  android_ripple={{ color: '#ffffff20' }}
+                  android_ripple={{ color: COLORS.overlay.ripple }}
                   style={{ width: '100%' }}>
                   <LinearGradient
-                    colors={isLoading || !email.trim() ? ['#4a1f6e', '#7c2453'] : ['#9333ea', '#ec4899']}
+                    colors={isLoading || !email.trim() ? [COLORS.brand.primaryDeep, COLORS.brand.pinkDark] : [COLORS.brand.primary, COLORS.brand.pink]}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                     style={styles.primaryBtn}>
                     {isLoading
@@ -294,12 +295,12 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
                   <Text style={styles.label}>Reset Code</Text>
                   <View style={[styles.inputRow, focusedField === 'code' && styles.inputRowFocused]}>
                     <View style={styles.inputIcon}>
-                      <Ionicons name="keypad" size={20} color="#737373" />
+                      <Ionicons name="keypad" size={20} color={COLORS.text.muted} />
                     </View>
                     <TextInput
                       style={styles.input}
                       placeholder="6-digit code"
-                      placeholderTextColor="#737373"
+                      placeholderTextColor={COLORS.text.muted}
                       value={code}
                       onChangeText={t => setCode(t.replace(/\D/g, '').slice(0, 6))}
                       keyboardType="number-pad"
@@ -315,10 +316,10 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
                 <Pressable
                   onPress={handleVerifyCode}
                   disabled={!code.trim()}
-                  android_ripple={{ color: '#ffffff20' }}
+                  android_ripple={{ color: COLORS.overlay.ripple }}
                   style={{ width: '100%' }}>
                   <LinearGradient
-                    colors={!code.trim() ? ['#4a1f6e', '#7c2453'] : ['#9333ea', '#ec4899']}
+                    colors={!code.trim() ? [COLORS.brand.primaryDeep, COLORS.brand.pinkDark] : [COLORS.brand.primary, COLORS.brand.pink]}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                     style={styles.primaryBtn}>
                     <Text style={styles.primaryBtnText}>Continue</Text>
@@ -341,12 +342,12 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
                   <Text style={styles.label}>New Password</Text>
                   <View style={[styles.inputRow, focusedField === 'new' && styles.inputRowFocused]}>
                     <View style={styles.inputIcon}>
-                      <Ionicons name="lock-closed" size={20} color="#737373" />
+                      <Ionicons name="lock-closed" size={20} color={COLORS.text.muted} />
                     </View>
                     <TextInput
                       style={styles.input}
                       placeholder="At least 8 characters"
-                      placeholderTextColor="#737373"
+                      placeholderTextColor={COLORS.text.muted}
                       value={newPassword}
                       onChangeText={setNewPassword}
                       secureTextEntry={!showNew}
@@ -355,7 +356,7 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
                       onBlur={() => setFocusedField('')}
                     />
                     <TouchableOpacity onPress={() => setShowNew(v => !v)} style={styles.eyeBtn}>
-                      <Ionicons name={showNew ? 'eye-off' : 'eye'} size={20} color="#737373" />
+                      <Ionicons name={showNew ? 'eye-off' : 'eye'} size={20} color={COLORS.text.muted} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -364,12 +365,12 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
                   <Text style={styles.label}>Confirm Password</Text>
                   <View style={[styles.inputRow, focusedField === 'confirm' && styles.inputRowFocused]}>
                     <View style={styles.inputIcon}>
-                      <Ionicons name="lock-closed" size={20} color="#737373" />
+                      <Ionicons name="lock-closed" size={20} color={COLORS.text.muted} />
                     </View>
                     <TextInput
                       style={styles.input}
                       placeholder="Repeat your password"
-                      placeholderTextColor="#737373"
+                      placeholderTextColor={COLORS.text.muted}
                       value={confirmPwd}
                       onChangeText={setConfirmPwd}
                       secureTextEntry={!showConfirm}
@@ -378,7 +379,7 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
                       onBlur={() => setFocusedField('')}
                     />
                     <TouchableOpacity onPress={() => setShowConfirm(v => !v)} style={styles.eyeBtn}>
-                      <Ionicons name={showConfirm ? 'eye-off' : 'eye'} size={20} color="#737373" />
+                      <Ionicons name={showConfirm ? 'eye-off' : 'eye'} size={20} color={COLORS.text.muted} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -388,10 +389,10 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
                 <Pressable
                   onPress={handleUpdatePassword}
                   disabled={isLoading || !newPassword || !confirmPwd}
-                  android_ripple={{ color: '#ffffff20' }}
+                  android_ripple={{ color: COLORS.overlay.ripple }}
                   style={{ width: '100%' }}>
                   <LinearGradient
-                    colors={isLoading || !newPassword || !confirmPwd ? ['#4a1f6e', '#7c2453'] : ['#9333ea', '#ec4899']}
+                    colors={isLoading || !newPassword || !confirmPwd ? [COLORS.brand.primaryDeep, COLORS.brand.pinkDark] : [COLORS.brand.primary, COLORS.brand.pink]}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                     style={styles.primaryBtn}>
                     {isLoading
@@ -412,7 +413,7 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
 function ErrorBox({ message }: { message: string }) {
   return (
     <View style={errorStyles.wrap}>
-      <Ionicons name="alert-circle" size={16} color="#fca5a5" style={{ marginTop: 1 }} />
+      <Ionicons name="alert-circle" size={16} color={COLORS.accent.redSoft} style={{ marginTop: 1 }} />
       <Text style={errorStyles.text}>{message}</Text>
     </View>
   );
@@ -422,7 +423,7 @@ function ErrorBox({ message }: { message: string }) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   scroll: {
     flexGrow: 1,
@@ -442,12 +443,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   centre: {
     flex: 1,
@@ -466,13 +467,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     textAlign: 'center',
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 14,
-    color: '#737373',
+    color: COLORS.text.muted,
     textAlign: 'center',
     lineHeight: 22,
     maxWidth: 300,
@@ -484,20 +485,20 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#171717',
+    backgroundColor: COLORS.bg.card,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: COLORS.border.default,
     borderRadius: 12,
     height: 52,
     paddingHorizontal: 4,
   },
   inputRowFocused: {
-    borderColor: '#7c3aed',
+    borderColor: COLORS.brand.primaryDark,
   },
   inputIcon: {
     width: 44,
@@ -506,7 +507,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 15,
   },
   eyeBtn: {
@@ -527,7 +528,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   primaryBtnText: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -537,11 +538,11 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 14,
-    color: '#737373',
+    color: COLORS.text.muted,
     textAlign: 'center',
   },
   resendLink: {
-    color: '#c084fc',
+    color: COLORS.brand.violetMuted,
     fontWeight: '600',
   },
 });
@@ -556,14 +557,14 @@ const stepStyles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#262626',
+    backgroundColor: COLORS.border.default,
   },
   dotActive: {
-    backgroundColor: '#9333ea',
+    backgroundColor: COLORS.brand.primary,
     width: 24,
   },
   dotDone: {
-    backgroundColor: '#7c3aed',
+    backgroundColor: COLORS.brand.primaryDark,
   },
 });
 
@@ -579,7 +580,7 @@ const successStyles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#052e16',
+    backgroundColor: COLORS.accent.greenDark,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -591,12 +592,12 @@ const successStyles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     textAlign: 'center',
   },
   body: {
     fontSize: 15,
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -604,13 +605,13 @@ const successStyles = StyleSheet.create({
     width: '100%',
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.text.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
   backBtnText: {
-    color: '#000000',
+    color: COLORS.bg.black,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -622,16 +623,16 @@ const errorStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#3b0a0a',
+    backgroundColor: COLORS.accent.redDark,
     borderWidth: 1,
-    borderColor: '#7f1d1d',
+    borderColor: COLORS.accent.redBorder,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
   text: {
     flex: 1,
-    color: '#fca5a5',
+    color: COLORS.accent.redSoft,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -643,8 +644,8 @@ const spinnerStyles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2.5,
-    borderColor: '#ffffff40',
-    borderTopColor: '#ffffff',
+    borderColor: COLORS.overlay.spinnerBorder,
+    borderTopColor: COLORS.text.primary,
   },
 });
 

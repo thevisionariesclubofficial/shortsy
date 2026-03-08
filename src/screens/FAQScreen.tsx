@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 interface FAQScreenProps {
   onBack: () => void;
@@ -88,7 +89,7 @@ export function FAQScreen({ onBack }: FAQScreenProps) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.gradient}>
+      <LinearGradient colors={[COLORS.bg.legal, COLORS.bg.legalEnd]} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -162,7 +163,7 @@ export function FAQScreen({ onBack }: FAQScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: COLORS.bg.legal,
   },
   gradient: {
     flex: 1,
@@ -174,19 +175,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: COLORS.overlay.white10,
   },
   backButton: {
     padding: 8,
   },
   backIcon: {
     fontSize: 24,
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
     flex: 1,
     textAlign: 'center',
     marginRight: 40,
@@ -211,12 +212,12 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 8,
   },
   introSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     textAlign: 'center',
   },
   categorySection: {
@@ -225,16 +226,16 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#3b82f6',
+    color: COLORS.accent.blue500,
     marginBottom: 12,
   },
   faqCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: COLORS.overlay.white05,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: COLORS.overlay.white10,
   },
   faqHeader: {
     flexDirection: 'row',
@@ -244,46 +245,46 @@ const styles = StyleSheet.create({
   faqQuestion: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
     flex: 1,
     marginRight: 12,
     lineHeight: 22,
   },
   faqIcon: {
     fontSize: 24,
-    color: '#3b82f6',
+    color: COLORS.accent.blue500,
     fontWeight: '300',
   },
   faqAnswer: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     marginTop: 12,
     lineHeight: 20,
   },
   helpSection: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: COLORS.overlay.emeraldBg,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
     marginTop: 20,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: COLORS.overlay.emeraldBorder,
   },
   helpTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#10b981',
+    color: COLORS.accent.emerald,
     marginBottom: 8,
   },
   helpText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
   },
   contactButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: COLORS.accent.emerald,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -291,6 +292,6 @@ const styles = StyleSheet.create({
   contactButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
 });

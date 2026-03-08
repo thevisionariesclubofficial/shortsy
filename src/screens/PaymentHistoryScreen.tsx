@@ -17,6 +17,7 @@ import { captureRef } from 'react-native-view-shot';
 import type { Content } from '../data/mockData';
 import { getContentDetail } from '../services/contentService';
 import type { PaymentHistoryRecord } from '../types/api';
+import { COLORS } from '../constants/colors';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmt(iso: string): string {
@@ -28,10 +29,10 @@ function fmt(iso: string): string {
 
 function resolveStatus(status: string): { color: string; label: string; dotColor: string } {
   switch (status) {
-    case 'paid':    return { color: '#16a34a', label: 'PAYMENT CONFIRMED', dotColor: '#22c55e' };
-    case 'pending': return { color: '#d97706', label: 'PAYMENT PENDING',   dotColor: '#f59e0b' };
-    case 'failed':  return { color: '#dc2626', label: 'PAYMENT FAILED',    dotColor: '#ef4444' };
-    default:        return { color: '#6b7280', label: status.toUpperCase(), dotColor: '#6b7280' };
+    case 'paid':    return { color: COLORS.accent.green700, label: 'PAYMENT CONFIRMED', dotColor: COLORS.accent.green };
+    case 'pending': return { color: COLORS.accent.amber600, label: 'PAYMENT PENDING',   dotColor: COLORS.accent.gold };
+    case 'failed':  return { color: COLORS.accent.red600, label: 'PAYMENT FAILED',    dotColor: COLORS.accent.red };
+    default:        return { color: COLORS.text.gray500, label: status.toUpperCase(), dotColor: COLORS.text.gray500 };
   }
 }
 
@@ -146,7 +147,7 @@ function ReceiptModal({ visible, onClose, order, content }: ReceiptModalProps) {
           <Text style={receiptStyles.modalTitle}>Receipt</Text>
           <TouchableOpacity onPress={onClose} style={receiptStyles.closeBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close" size={16} color="#a3a3a3" />
+            <Ionicons name="close" size={16} color={COLORS.text.tertiary} />
           </TouchableOpacity>
         </View>
 
@@ -155,7 +156,7 @@ function ReceiptModal({ visible, onClose, order, content }: ReceiptModalProps) {
           <View ref={paperRef} style={receiptStyles.paper}>
 
             {/* Brand header */}
-            <LinearGradient colors={['#7c3aed', '#db2777']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={receiptStyles.paperHeader}>
+            <LinearGradient colors={[COLORS.brand.primaryDark, COLORS.brand.pinkDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={receiptStyles.paperHeader}>
               <Text style={receiptStyles.brandName}>SHORTSY</Text>
               <Text style={receiptStyles.brandTagline}>Indie Cinema Platform</Text>
             </LinearGradient>
@@ -171,7 +172,7 @@ function ReceiptModal({ visible, onClose, order, content }: ReceiptModalProps) {
             {/* Content thumbnail + info */}
             <View style={receiptStyles.contentRow}>
               <View style={receiptStyles.thumbBox}>
-                <LinearGradient colors={['#1e1b4b', '#4338ca']} style={StyleSheet.absoluteFill} />
+                <LinearGradient colors={[COLORS.accent.indigoDark, COLORS.accent.indigo700]} style={StyleSheet.absoluteFill} />
                 {content?.thumbnail
                   ? <Image source={{ uri: content.thumbnail }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
                   : null}
@@ -211,9 +212,9 @@ function ReceiptModal({ visible, onClose, order, content }: ReceiptModalProps) {
 
           {/* PDF share button */}
           <TouchableOpacity style={receiptStyles.shareBtn} onPress={handleShare} activeOpacity={0.85} disabled={sharing}>
-            <LinearGradient colors={['#7c3aed', '#db2777']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            <LinearGradient colors={[COLORS.brand.primaryDark, COLORS.brand.pinkDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={[StyleSheet.absoluteFill, { borderRadius: 14 }]} />
-            <Ionicons name="image-outline" size={18} color="#ffffff" />
+            <Ionicons name="image-outline" size={18} color={COLORS.text.primary} />
             <Text style={receiptStyles.shareBtnText}>{sharing ? 'Capturing…' : 'Save / Share as Image'}</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -264,19 +265,19 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'paid':    return <Ionicons name="checkmark-circle" size={16} color="#10b981" />;
-      case 'pending': return <Ionicons name="time-outline"     size={16} color="#f59e0b" />;
-      case 'failed':  return <Ionicons name="close-circle"     size={16} color="#ef4444" />;
+      case 'paid':    return <Ionicons name="checkmark-circle" size={16} color={COLORS.accent.emerald} />;
+      case 'pending': return <Ionicons name="time-outline"     size={16} color={COLORS.accent.gold} />;
+      case 'failed':  return <Ionicons name="close-circle"     size={16} color={COLORS.accent.red} />;
       default:        return null;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid':    return '#10b981';
-      case 'pending': return '#f59e0b';
-      case 'failed':  return '#ef4444';
-      default:        return '#6b7280';
+      case 'paid':    return COLORS.accent.emerald;
+      case 'pending': return COLORS.accent.gold;
+      case 'failed':  return COLORS.accent.red;
+      default:        return COLORS.text.gray500;
     }
   };
 
@@ -302,7 +303,7 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
           onPress={onBack}
           style={styles.backButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="chevron-back" size={22} color="#ffffff" />
+          <Ionicons name="chevron-back" size={22} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment History</Text>
         <View style={styles.headerSpacer} />
@@ -316,8 +317,8 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#a855f7"
-              colors={['#a855f7']}
+              tintColor={COLORS.brand.violet}
+              colors={[COLORS.brand.violet]}
             />
           }>
           <Text style={styles.emptyText}>No payment history yet</Text>
@@ -335,8 +336,8 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#a855f7"
-              colors={['#a855f7']}
+              tintColor={COLORS.brand.violet}
+              colors={[COLORS.brand.violet]}
             />
           }>
           <Text style={styles.countText}>
@@ -354,7 +355,7 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
                 <Image source={{ uri: content.thumbnail }} style={styles.heroThumb} resizeMode="cover" />
               ) : (
                 <View style={styles.heroPlaceholder}>
-                  <Ionicons name="film-outline" size={40} color="#374151" />
+                  <Ionicons name="film-outline" size={40} color={COLORS.text.gray700} />
                 </View>
               )}
 
@@ -421,7 +422,7 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
                   style={styles.receiptBtn}
                   onPress={() => setActiveReceipt({ order, content })}
                   activeOpacity={0.75}>
-                  <Ionicons name="receipt-outline" size={15} color="#a855f7" />
+                  <Ionicons name="receipt-outline" size={15} color={COLORS.brand.violet} />
                   <Text style={styles.receiptBtnText}>View &amp; Download Receipt</Text>
                 </TouchableOpacity>
               </View>
@@ -438,7 +439,7 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.bg.black,
   },
   header: {
     flexDirection: 'row',
@@ -447,7 +448,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.bg.black,
   },
   backButton: {
     width: 40,
@@ -458,7 +459,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
     letterSpacing: 0.3,
   },
   headerSpacer: {
@@ -473,39 +474,39 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
   },
   errorText: {
     fontSize: 16,
-    color: '#ef4444',
+    color: COLORS.accent.red,
     textAlign: 'center',
     marginBottom: 20,
   },
   retryButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#a855f7',
+    backgroundColor: COLORS.brand.violet,
     borderRadius: 8,
   },
   retryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
     textAlign: 'center',
   },
   pullToRefreshHint: {
     fontSize: 12,
-    color: '#6b7280',
+    color: COLORS.text.gray500,
     textAlign: 'center',
     marginTop: 12,
     fontStyle: 'italic',
@@ -519,15 +520,15 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
     marginBottom: 16,
   },
   card: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: COLORS.border.muted,
     overflow: 'hidden',
   },
   heroThumb: {
@@ -537,7 +538,7 @@ const styles = StyleSheet.create({
   heroPlaceholder: {
     width: '100%',
     height: 170,
-    backgroundColor: '#111827',
+    backgroundColor: COLORS.bg.slate,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -557,13 +558,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     lineHeight: 21,
   },
   amountText: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   metaRow: {
     flexDirection: 'row',
@@ -573,7 +574,7 @@ const styles = StyleSheet.create({
   },
   contentMeta: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
     flex: 1,
   },
   statusBadge: {
@@ -588,12 +589,12 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 11,
-    color: '#6b7280',
+    color: COLORS.text.gray500,
     marginBottom: 2,
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: COLORS.border.muted,
     marginVertical: 10,
   },
   idsBlock: {
@@ -605,7 +606,7 @@ const styles = StyleSheet.create({
   },
   idLabel: {
     fontSize: 10,
-    color: '#6b7280',
+    color: COLORS.text.gray500,
     width: 54,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -614,7 +615,7 @@ const styles = StyleSheet.create({
   idValue: {
     flex: 1,
     fontSize: 10,
-    color: '#9ca3af',
+    color: COLORS.text.gray400,
     textAlign: 'right',
   },
   receiptBtn: {
@@ -625,74 +626,74 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#7c3aed',
-    backgroundColor: 'rgba(168,85,247,0.08)',
+    borderColor: COLORS.brand.primaryDark,
+    backgroundColor: COLORS.overlay.violetTint08,
   },
   receiptBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#a855f7',
+    color: COLORS.brand.violet,
   },
 });
 
 // ─── Receipt Modal Styles ─────────────────────────────────────────────────────
 const receiptStyles = StyleSheet.create({
-  modalRoot: { flex: 1, backgroundColor: '#0a0a0a', paddingTop: 12 },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#333', alignSelf: 'center', marginBottom: 16 },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
-  modalTitle: { flex: 1, fontSize: 20, fontWeight: '700', color: '#fff' },
-  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1f1f1f', alignItems: 'center', justifyContent: 'center' },
+  modalRoot: { flex: 1, backgroundColor: COLORS.bg.dark, paddingTop: 12 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.border.handle, alignSelf: 'center', marginBottom: 16 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: COLORS.bg.elevated },
+  modalTitle: { flex: 1, fontSize: 20, fontWeight: '700', color: COLORS.text.primary },
+  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.bg.modal, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48, gap: 16 },
 
   // Paper
-  paper: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
+  paper: { backgroundColor: COLORS.text.primary, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
   paperHeader: { paddingVertical: 20, paddingHorizontal: 20, alignItems: 'center', gap: 4 },
-  brandName: { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: 4 },
-  brandTagline: { fontSize: 11, color: 'rgba(255,255,255,0.75)', letterSpacing: 1, textTransform: 'uppercase' },
+  brandName: { fontSize: 24, fontWeight: '900', color: COLORS.text.primary, letterSpacing: 4 },
+  brandTagline: { fontSize: 11, color: COLORS.overlay.brandTagline, letterSpacing: 1, textTransform: 'uppercase' },
 
   // Status
   statusWrap: { alignItems: 'center', paddingVertical: 14 },
-  statusPaid:    { backgroundColor: '#f0fdf4', borderBottomWidth: 1, borderBottomColor: '#dcfce7' },
-  statusPending: { backgroundColor: '#fffbeb', borderBottomWidth: 1, borderBottomColor: '#fef3c7' },
-  statusFailed:  { backgroundColor: '#fef2f2', borderBottomWidth: 1, borderBottomColor: '#fee2e2' },
+  statusPaid:    { backgroundColor: COLORS.receipt.statusPaidBg, borderBottomWidth: 1, borderBottomColor: COLORS.receipt.statusPaidBorder },
+  statusPending: { backgroundColor: COLORS.receipt.statusPendingBg, borderBottomWidth: 1, borderBottomColor: COLORS.receipt.statusPendingBorder },
+  statusFailed:  { backgroundColor: COLORS.receipt.statusFailedBg, borderBottomWidth: 1, borderBottomColor: COLORS.receipt.statusFailedBorder },
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 12, fontWeight: '700', letterSpacing: 1 },
 
   // Content row
-  contentRow: { flexDirection: 'row', gap: 14, padding: 16, backgroundColor: '#fafafa', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  thumbBox: { width: 60, height: 84, borderRadius: 8, overflow: 'hidden', backgroundColor: '#1a1a1a' },
+  contentRow: { flexDirection: 'row', gap: 14, padding: 16, backgroundColor: COLORS.receipt.bgLight, borderBottomWidth: 1, borderBottomColor: COLORS.receipt.divider },
+  thumbBox: { width: 60, height: 84, borderRadius: 8, overflow: 'hidden', backgroundColor: COLORS.bg.elevated },
   contentMeta: { flex: 1, justifyContent: 'center', gap: 3 },
-  contentTitle: { fontSize: 15, fontWeight: '700', color: '#111', lineHeight: 20 },
-  contentDir: { fontSize: 12, color: '#666' },
-  contentGenre: { fontSize: 11, color: '#999', marginTop: 2 },
+  contentTitle: { fontSize: 15, fontWeight: '700', color: COLORS.bg.subtle, lineHeight: 20 },
+  contentDir: { fontSize: 12, color: COLORS.receipt.textMid },
+  contentGenre: { fontSize: 11, color: COLORS.receipt.textLight, marginTop: 2 },
 
   // Amount
-  amountBanner: { alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  amountVal: { fontSize: 34, fontWeight: '900', color: '#111' },
-  amountLbl: { fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
+  amountBanner: { alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.receipt.divider },
+  amountVal: { fontSize: 34, fontWeight: '900', color: COLORS.bg.subtle },
+  amountLbl: { fontSize: 10, color: COLORS.text.gray400, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
 
-  divider: { height: 1, backgroundColor: '#f0f0f0', marginHorizontal: 16, marginVertical: 4 },
-  sectionLabel: { fontSize: 10, fontWeight: '700', color: '#9ca3af', letterSpacing: 1.5, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 },
+  divider: { height: 1, backgroundColor: COLORS.receipt.divider, marginHorizontal: 16, marginVertical: 4 },
+  sectionLabel: { fontSize: 10, fontWeight: '700', color: COLORS.text.gray400, letterSpacing: 1.5, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 },
 
   // Rows
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 7 },
-  rowLabel: { fontSize: 13, color: '#6b7280' },
-  rowValue: { fontSize: 13, fontWeight: '600', color: '#111', textAlign: 'right', flex: 1, marginLeft: 8 },
-  rowMono: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 10, color: '#4b5563' },
+  rowLabel: { fontSize: 13, color: COLORS.text.gray500 },
+  rowValue: { fontSize: 13, fontWeight: '600', color: COLORS.bg.subtle, textAlign: 'right', flex: 1, marginLeft: 8 },
+  rowMono: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 10, color: COLORS.text.gray600 },
 
   // Perforation
   perfWrap: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 4 },
-  perfHoleL: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#0a0a0a', marginLeft: -11 },
+  perfHoleL: { width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.bg.dark, marginLeft: -11 },
   perfDashes: { flex: 1, flexDirection: 'row', justifyContent: 'space-evenly', paddingHorizontal: 4 },
-  perfDash: { width: 6, height: 2, backgroundColor: '#d1d5db', borderRadius: 1 },
-  perfHoleR: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#0a0a0a', marginRight: -11 },
+  perfDash: { width: 6, height: 2, backgroundColor: COLORS.border.gray300, borderRadius: 1 },
+  perfHoleR: { width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.bg.dark, marginRight: -11 },
 
   // Footer
-  footerNote: { fontSize: 12, color: '#9ca3af', textAlign: 'center', lineHeight: 18, paddingHorizontal: 20, paddingTop: 14 },
-  footerUrl: { fontSize: 11, color: '#c084fc', textAlign: 'center', paddingTop: 4, paddingBottom: Platform.OS === 'ios' ? 20 : 16, fontWeight: '600' },
+  footerNote: { fontSize: 12, color: COLORS.text.gray400, textAlign: 'center', lineHeight: 18, paddingHorizontal: 20, paddingTop: 14 },
+  footerUrl: { fontSize: 11, color: COLORS.brand.violetMuted, textAlign: 'center', paddingTop: 4, paddingBottom: Platform.OS === 'ios' ? 20 : 16, fontWeight: '600' },
 
   // Share button
   shareBtn: { height: 52, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' },
-  shareBtnText: { fontSize: 16, fontWeight: '700', color: '#fff', zIndex: 1 },
+  shareBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.text.primary, zIndex: 1 },
 });

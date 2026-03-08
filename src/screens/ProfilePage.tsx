@@ -17,6 +17,7 @@ import { Content } from '../data/mockData';
 import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
 import { logger } from '../utils/logger';
 import type { UserProfile, PaymentHistoryRecord } from '../types/api';
+import { COLORS } from '../constants/colors';
 
 
 // ─── SettingsModal ────────────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClo
             onPress={onClose}
             style={modalStyles.closeBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={16} color="#a3a3a3" />
+            <Ionicons name="close" size={16} color={COLORS.text.tertiary} />
           </TouchableOpacity>
         </View>
 
@@ -87,7 +88,7 @@ function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClo
                     }}
                     activeOpacity={0.7}>
                     <View style={modalStyles.itemIconWrap}>
-                      <Ionicons name={iconName as any} size={20} color="#a855f7" />
+                      <Ionicons name={iconName as any} size={20} color={COLORS.brand.violet} />
                     </View>
                     <Text style={modalStyles.itemLabel}>{label}</Text>
                     <View style={modalStyles.itemChevron} />
@@ -160,11 +161,11 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         {/* ── Avatar + name ── */}
         <View style={styles.avatarRow}>
           <LinearGradient
-            colors={['#a855f7', '#ec4899']}
+            colors={[COLORS.brand.violet, COLORS.brand.pink]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.avatarCircle}>
-            <Ionicons name="person" size={32} color="#ffffff" />
+            <Ionicons name="person" size={32} color={COLORS.text.primary} />
           </LinearGradient>
           <View style={styles.avatarInfo}>
             <Text style={styles.userName}>{user?.displayName ?? 'Film Lover'}</Text>
@@ -194,7 +195,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         {!isPremium && (
           <View style={styles.upgradeWrap}>
             <LinearGradient
-              colors={['#4f1fa3', '#7c3aed', '#c026d3']}
+              colors={[COLORS.accent.violetBg, COLORS.brand.primaryDark, COLORS.brand.fuchsia]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.upgradeCard}>
@@ -207,7 +208,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                 <View style={styles.upgradeLeft}>
                   {/* Badge row */}
                   <View style={styles.upgradePill}>
-                    <Ionicons name="diamond" size={12} color="#fde047" />
+                    <Ionicons name="diamond" size={12} color={COLORS.accent.yellow} />
                     <Text style={styles.upgradePillText}>SHORTSY+</Text>
                   </View>
 
@@ -222,14 +223,14 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                       handleUpgradePress();
                     }}>
                     <Text style={styles.upgradeBtnText}>Get Started</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#7c3aed" />
+                    <Ionicons name="arrow-forward" size={14} color={COLORS.brand.primaryDark} />
                   </TouchableOpacity>
                 </View>
 
                 {/* Right: decorative icon stack */}
                 <View style={styles.upgradeRight}>
                   <View style={styles.upgradeIconRing}>
-                    <Ionicons name="diamond" size={36} color="rgba(253,224,71,0.9)" />
+                    <Ionicons name="diamond" size={36} color={COLORS.overlay.yellowStrong} />
                   </View>
                   
                 </View>
@@ -240,7 +241,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         {isPremium && premiumSubscription && (
           <View style={styles.upgradeWrap}>
             <LinearGradient
-              colors={['#064e35', '#10b981', '#059669']}
+              colors={[COLORS.accent.emerald900, COLORS.accent.emerald, COLORS.accent.emerald600]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.upgradeCard}>
@@ -251,7 +252,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                 {/* Left */}
                 <View style={styles.upgradeLeft}>
                   <View style={[styles.upgradePill, styles.upgradePillGreen]}>
-                    <Ionicons name="checkmark-circle" size={12} color="#6ee7b7" />
+                    <Ionicons name="checkmark-circle" size={12} color={COLORS.accent.emerald300} />
                     <Text style={[styles.upgradePillText, styles.upgradePillTextGreen]}>ACTIVE</Text>
                   </View>
 
@@ -259,7 +260,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                   <Text style={styles.upgradePrice}>Unlimited premium access{"\n\n"}</Text>
 
                   <View style={styles.premiumExpiryRow}>
-                    <Ionicons name="calendar-outline" size={13} color="rgba(255,255,255,0.6)" />
+                    <Ionicons name="calendar-outline" size={13} color={COLORS.overlay.white60} />
                     <Text style={styles.premiumExpiryLabel}>Valid until </Text>
                     <Text style={styles.premiumExpiryDate}>
                       {new Date(premiumSubscription.expiresAt).toLocaleDateString('en-US', {
@@ -274,7 +275,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                 {/* Right */}
                 <View style={styles.upgradeRight}>
                   <View style={[styles.upgradeIconRing, styles.upgradeIconRingGreen]}>
-                    <Ionicons name="shield-checkmark" size={36} color="rgba(110,231,183,0.9)" />
+                    <Ionicons name="shield-checkmark" size={36} color={COLORS.overlay.emeraldStrong} />
                   </View>
                 </View>
               </View>
@@ -284,7 +285,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         {/* ── My Favorites ── */}
         <View style={styles.favSection}>
           <View style={styles.favHeader}>
-            <Ionicons name="heart" size={16} color="#ef4444" />
+            <Ionicons name="heart" size={16} color={COLORS.accent.red} />
             <Text style={styles.favTitle}>My Favorites</Text>
             <Text style={styles.favCount}>
               {`${favorites.length}`}
@@ -292,7 +293,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
           </View>
           {favorites.length === 0 ? (
             <View style={styles.favEmpty}>
-              <Ionicons name="heart-outline" size={32} color="#404040" />
+              <Ionicons name="heart-outline" size={32} color={COLORS.border.medium} />
               <Text style={styles.favEmptyText}>No favorites yet</Text>
               <Text style={styles.favEmptyHint}>Tap ♥ on any content to save it here</Text>
             </View>
@@ -316,7 +317,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                       />
                     ) : null}
                     <LinearGradient
-                      colors={['transparent', 'rgba(0,0,0,0.75)']}
+                      colors={['transparent', COLORS.overlay.dark75]}
                       style={styles.favGradient}
                     />
                     {item.type === 'vertical-series' && (
@@ -336,13 +337,13 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         <View style={styles.menuSection}>
           {menuItems.map(({ iconName, label, onPress }) => (
             <TouchableOpacity key={label} style={styles.menuItem} activeOpacity={0.7} onPress={onPress}>
-              <Ionicons name={iconName as any} size={20} color="#a3a3a3" />
+              <Ionicons name={iconName as any} size={20} color={COLORS.text.tertiary} />
               <Text style={styles.menuLabel}>{label}</Text>
               <View style={styles.menuChevron} />
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setShowLogoutConfirm(true)}>
-            <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+            <Ionicons name="log-out-outline" size={20} color={COLORS.accent.red} />
             <Text style={[styles.menuLabel, styles.menuDanger]}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -359,7 +360,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
           <View style={styles.logoutModal}>
             {/* Icon */}
             <View style={styles.logoutIconWrap}>
-              <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+              <Ionicons name="log-out-outline" size={24} color={COLORS.accent.red} />
             </View>
             <Text style={styles.logoutTitle}>Log Out?</Text>
             <Text style={styles.logoutSubtitle}>
@@ -390,11 +391,11 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   scroll: {
     paddingBottom: 100,
@@ -404,12 +405,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: COLORS.bg.elevated,
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     paddingBottom: 14,
   },
   avatarRow: {
@@ -433,11 +434,11 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   userEmail: {
     fontSize: 13,
-    color: '#737373',
+    color: COLORS.text.muted,
     marginTop: 2,
   },
   statsRow: {
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -456,11 +457,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#a855f7',
+    color: COLORS.brand.violet,
   },
   statLabel: {
     fontSize: 11,
-    color: '#737373',
+    color: COLORS.text.muted,
     marginTop: 4,
   },
   upgradeWrap: {
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: COLORS.overlay.white07,
     top: -50,
     left: -40,
   },
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: COLORS.overlay.white07,
     bottom: -30,
     right: -20,
   },
@@ -511,45 +512,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: COLORS.overlay.progress,
     borderRadius: 20,
     paddingVertical: 4,
     paddingHorizontal: 10,
     alignSelf: 'flex-start',
   },
   upgradePillGreen: {
-    backgroundColor: 'rgba(110,231,183,0.2)',
+    backgroundColor: COLORS.overlay.emeraldLight20,
   },
   upgradePillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#fde68a',
+    color: COLORS.accent.yellowLight,
     letterSpacing: 0.8,
   },
   upgradePillTextGreen: {
-    color: '#6ee7b7',
+    color: COLORS.accent.emerald300,
   },
   upgradeTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     lineHeight: 28,
   },
   upgradePrice: {
     fontSize: 15,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.95)',
+    color: COLORS.overlay.white95,
   },
   upgradeSub: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.55)',
+    color: COLORS.overlay.white55,
     marginTop: -2,
   },
   upgradeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.text.primary,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -559,21 +560,21 @@ const styles = StyleSheet.create({
   upgradeBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#7c3aed',
+    color: COLORS.brand.primaryDark,
   },
   upgradeIconRing: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: COLORS.overlay.white12,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: COLORS.overlay.white20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   upgradeIconRingGreen: {
-    backgroundColor: 'rgba(110,231,183,0.15)',
-    borderColor: 'rgba(110,231,183,0.3)',
+    backgroundColor: COLORS.overlay.emeraldLight15,
+    borderColor: COLORS.overlay.emeraldLight30,
   },
   upgradeFeatureTags: {
     gap: 5,
@@ -582,18 +583,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.overlay.white10,
     borderRadius: 6,
     paddingVertical: 3,
     paddingHorizontal: 7,
   },
   featureTagGreen: {
-    backgroundColor: 'rgba(52,211,153,0.15)',
+    backgroundColor: COLORS.overlay.emeraldTint,
   },
   featureTagText: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
+    color: COLORS.overlay.white80,
   },
   premiumExpiryRow: {
     flexDirection: 'row',
@@ -602,16 +603,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.15)',
+    borderTopColor: COLORS.overlay.progress,
   },
   premiumExpiryLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
+    color: COLORS.overlay.white60,
     fontWeight: '500',
   },
   premiumExpiryDate: {
     fontSize: 13,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontWeight: '700',
   },
   menuSection: {
@@ -635,11 +636,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   favCount: {
     fontSize: 13,
-    color: '#737373',
+    color: COLORS.text.muted,
     fontWeight: '500',
   },
   favScroll: {
@@ -654,7 +655,7 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
     marginBottom: 6,
   },
   favGradient: {
@@ -664,7 +665,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 6,
     left: 6,
-    backgroundColor: 'rgba(168,85,247,0.85)',
+    backgroundColor: COLORS.overlay.violetStrong,
     borderRadius: 4,
     paddingVertical: 2,
     paddingHorizontal: 5,
@@ -672,18 +673,18 @@ const styles = StyleSheet.create({
   favBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: 0.3,
   },
   favCardTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     lineHeight: 16,
   },
   favCardMeta: {
     fontSize: 10,
-    color: '#737373',
+    color: COLORS.text.muted,
     marginTop: 2,
   },
   favEmpty: {
@@ -691,24 +692,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 28,
     gap: 6,
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderRadius: 14,
   },
   favEmptyText: {
     fontSize: 14,
-    color: '#525252',
+    color: COLORS.text.dimmed,
     fontWeight: '500',
   },
   favEmptyHint: {
     fontSize: 12,
-    color: '#404040',
+    color: COLORS.border.medium,
     textAlign: 'center',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -716,45 +717,45 @@ const styles = StyleSheet.create({
   menuLabel: {
     flex: 1,
     fontSize: 15,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontWeight: '500',
   },
   menuDanger: {
-    color: '#ef4444',
+    color: COLORS.accent.red,
   },
   menuChevron: {
     width: 6,
     height: 6,
     borderTopWidth: 2,
     borderRightWidth: 2,
-    borderColor: '#525252',
+    borderColor: COLORS.text.dimmed,
     transform: [{ rotate: '45deg' }],
   },
 
   // Logout confirmation modal
   logoutOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: COLORS.overlay.dark70,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
   },
   logoutModal: {
     width: '100%',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
     borderRadius: 20,
     paddingTop: 28,
     paddingBottom: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: COLORS.border.muted,
   },
   logoutIconWrap: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: 'rgba(239,68,68,0.12)',
+    backgroundColor: COLORS.overlay.redTint12,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -763,12 +764,12 @@ const styles = StyleSheet.create({
   logoutTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     marginBottom: 8,
   },
   logoutSubtitle: {
     fontSize: 13,
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
     textAlign: 'center',
     lineHeight: 19,
     marginBottom: 24,
@@ -786,34 +787,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoutBtnCancel: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: COLORS.border.muted,
   },
   logoutBtnConfirm: {
-    backgroundColor: '#ef4444',
+    backgroundColor: COLORS.accent.red,
   },
   logoutBtnCancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   logoutBtnConfirmText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
 });
 
 const modalStyles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
     paddingTop: 12,
   },
   handle: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#333333',
+    backgroundColor: COLORS.border.handle,
     alignSelf: 'center',
     marginBottom: 16,
   },
@@ -823,19 +824,19 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: COLORS.bg.elevated,
   },
   headerTitle: {
     flex: 1,
     fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#1f1f1f',
+    backgroundColor: COLORS.bg.modal,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -849,13 +850,13 @@ const modalStyles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#525252',
+    color: COLORS.text.dimmed,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 8,
   },
   sectionCard: {
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -868,20 +869,20 @@ const modalStyles = StyleSheet.create({
   },
   itemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: COLORS.bg.elevated,
   },
   itemIconWrap: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: '#1a0533',
+    backgroundColor: COLORS.bg.heroStart,
     alignItems: 'center',
     justifyContent: 'center',
   },
   itemLabel: {
     flex: 1,
     fontSize: 15,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontWeight: '500',
   },
   itemChevron: {
@@ -889,7 +890,7 @@ const modalStyles = StyleSheet.create({
     height: 6,
     borderTopWidth: 2,
     borderRightWidth: 2,
-    borderColor: '#525252',
+    borderColor: COLORS.text.dimmed,
     transform: [{ rotate: '45deg' }],
   },
   footer: {
@@ -901,11 +902,11 @@ const modalStyles = StyleSheet.create({
   },
   footerVersion: {
     fontSize: 13,
-    color: '#525252',
+    color: COLORS.text.dimmed,
     fontWeight: '500',
   },
   footerCopy: {
     fontSize: 11,
-    color: '#333333',
+    color: COLORS.border.handle,
   },
 });

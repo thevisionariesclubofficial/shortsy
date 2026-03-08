@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -25,7 +26,7 @@ const slides: { id: number; title: string; description: string; colors: string[]
     title: 'Premium Short Films',
     description:
       'Discover award-winning short films and vertical series from independent creators',
-    colors: ['#a855f7', '#9333ea'],   // purple-500 → purple-600
+    colors: [COLORS.brand.violet, COLORS.brand.primary],   // purple-500 → purple-600
     iconName: 'film',
   },
   {
@@ -33,7 +34,7 @@ const slides: { id: number; title: string; description: string; colors: string[]
     title: 'Pay Per Story',
     description:
       'No subscription trap. Rent only what you want to watch. Starting at just ₹29',
-    colors: ['#ec4899', '#db2777'],   // pink-500 → pink-600
+    colors: [COLORS.brand.pink, COLORS.brand.pinkDeep],   // pink-500 → pink-600
     iconName: 'flash',
   },
   {
@@ -41,7 +42,7 @@ const slides: { id: number; title: string; description: string; colors: string[]
     title: 'Support Creators',
     description:
       '70% of your payment goes directly to filmmakers. Own their success',
-    colors: ['#f59e0b', '#ea580c'],   // amber-500 → orange-600
+    colors: [COLORS.accent.gold, COLORS.accent.orange600],   // amber-500 → orange-600
     iconName: 'heart',
   },
   {
@@ -49,14 +50,14 @@ const slides: { id: number; title: string; description: string; colors: string[]
     title: 'Vertical Cinema',
     description:
       'First OTT to treat vertical content as premium storytelling, not just reels',
-    colors: ['#3b82f6', '#06b6d4'],   // blue-500 → cyan-600
+    colors: [COLORS.accent.blue500, COLORS.accent.cyan],   // blue-500 → cyan-600
     iconName: 'videocam',
   },
 ];
 
 // ─── Chevron right icon ───────────────────────────────────────────────────────
 function ChevronRight() {
-  return <Ionicons name="chevron-forward" size={22} color="#fff" />;
+  return <Ionicons name="chevron-forward" size={22} color={COLORS.text.primary} />;
 }
 
 // ─── Single slide page ────────────────────────────────────────────────────────
@@ -69,7 +70,7 @@ function SlidePage({ slide }: { slide: (typeof slides)[number] }) {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.iconCircle}>
-        <Ionicons name={slide.iconName} size={56} color="#fff" />
+        <Ionicons name={slide.iconName} size={56} color={COLORS.text.primary} />
       </LinearGradient>
 
       {/* Title + description */}
@@ -152,9 +153,9 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         </View>
 
         {/* Next / Get Started button */}
-        <Pressable onPress={handleNext} android_ripple={{ color: '#ffffff30' }}>
+        <Pressable onPress={handleNext} android_ripple={{ color: COLORS.overlay.rippleMed }}>
           <LinearGradient
-            colors={['#9333ea', '#ec4899']}
+            colors={[COLORS.brand.primary, COLORS.brand.pink]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.nextBtn}>
@@ -188,7 +189,7 @@ function AnimatedDot({ active }: { active: boolean }) {
         styles.dot,
         {
           width,
-          backgroundColor: active ? '#a855f7' : '#404040',
+          backgroundColor: active ? COLORS.brand.violet : COLORS.border.medium,
         },
       ]}
     />
@@ -199,7 +200,7 @@ function AnimatedDot({ active }: { active: boolean }) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
     paddingHorizontal: 32,
     paddingBottom: Platform.OS === 'ios' ? 48 : 32,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   skipText: {
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
     fontSize: 16,
   },
   scrollView: {
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 64,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: COLORS.bg.black,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -249,13 +250,13 @@ const styles = StyleSheet.create({
   slideTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
   slideDesc: {
     fontSize: 17,
-    color: '#d4d4d4',
+    color: COLORS.text.secondary,
     textAlign: 'center',
     lineHeight: 26,
   },
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nextBtnText: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 18,
     fontWeight: '600',
   },

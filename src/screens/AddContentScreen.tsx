@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
 import { addContent } from '../services/contentService';
+import { COLORS } from '../constants/colors';
 
 export default function AddContentScreen({ navigation }: any) {
   const [title, setTitle] = useState('');
@@ -42,7 +43,7 @@ export default function AddContentScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.text.primary,
     flexGrow: 1,
     justifyContent: 'center',
   },
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: COLORS.receipt.textLight,
     borderRadius: 6,
     padding: 12,
     marginBottom: 12,

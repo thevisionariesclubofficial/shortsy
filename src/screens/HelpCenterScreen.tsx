@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 interface HelpCenterScreenProps {
   onBack: () => void;
@@ -51,7 +52,7 @@ export function HelpCenterScreen({ onBack, onNavigateToFAQ, onNavigateToContact 
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.gradient}>
+      <LinearGradient colors={[COLORS.bg.legal, COLORS.bg.legalEnd]} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -122,7 +123,7 @@ export function HelpCenterScreen({ onBack, onNavigateToFAQ, onNavigateToContact 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: COLORS.bg.legal,
   },
   gradient: {
     flex: 1,
@@ -134,19 +135,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: COLORS.overlay.white10,
   },
   backButton: {
     padding: 8,
   },
   backIcon: {
     fontSize: 24,
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   placeholder: {
     width: 40,
@@ -168,12 +169,12 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 8,
   },
   heroSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -184,12 +185,12 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: COLORS.overlay.white10,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: COLORS.overlay.white20,
   },
   actionIcon: {
     fontSize: 32,
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   section: {
     marginBottom: 30,
@@ -206,18 +207,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 16,
   },
   topicCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: COLORS.overlay.white05,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: COLORS.overlay.white10,
   },
   topicIcon: {
     fontSize: 28,
@@ -229,39 +230,39 @@ const styles = StyleSheet.create({
   topicTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   topicDescription: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: COLORS.overlay.white60,
     lineHeight: 18,
   },
   topicArrow: {
     fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: COLORS.overlay.white40,
   },
   supportInfo: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: COLORS.overlay.infoBg,
     borderRadius: 12,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderColor: COLORS.overlay.infoBorderStrong,
   },
   supportTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#3b82f6',
+    color: COLORS.accent.blue500,
     marginBottom: 12,
   },
   supportText: {
     fontSize: 14,
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 6,
   },
   supportNote: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: COLORS.overlay.white60,
     marginTop: 8,
     fontStyle: 'italic',
   },

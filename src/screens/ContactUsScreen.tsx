@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 interface ContactUsScreenProps {
   onBack: () => void;
@@ -40,7 +41,7 @@ export function ContactUsScreen({ onBack }: ContactUsScreenProps) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.gradient}>
+      <LinearGradient colors={[COLORS.bg.legal, COLORS.bg.legalEnd]} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -99,7 +100,7 @@ export function ContactUsScreen({ onBack }: ContactUsScreenProps) {
               <TextInput
                 style={styles.input}
                 placeholder="Enter your name"
-                placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                placeholderTextColor={COLORS.overlay.white40}
                 value={name}
                 onChangeText={setName}
               />
@@ -110,7 +111,7 @@ export function ContactUsScreen({ onBack }: ContactUsScreenProps) {
               <TextInput
                 style={styles.input}
                 placeholder="your@email.com"
-                placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                placeholderTextColor={COLORS.overlay.white40}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
@@ -123,7 +124,7 @@ export function ContactUsScreen({ onBack }: ContactUsScreenProps) {
               <TextInput
                 style={styles.input}
                 placeholder="What's this about?"
-                placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                placeholderTextColor={COLORS.overlay.white40}
                 value={subject}
                 onChangeText={setSubject}
               />
@@ -134,7 +135,7 @@ export function ContactUsScreen({ onBack }: ContactUsScreenProps) {
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Tell us more..."
-                placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                placeholderTextColor={COLORS.overlay.white40}
                 multiline
                 numberOfLines={6}
                 textAlignVertical="top"
@@ -148,7 +149,7 @@ export function ContactUsScreen({ onBack }: ContactUsScreenProps) {
               onPress={handleSubmit}
               activeOpacity={0.8}>
               <LinearGradient
-                colors={['#3b82f6', '#2563eb']}
+                colors={[COLORS.accent.blue500, COLORS.accent.blue600]}
                 style={styles.submitGradient}>
                 <Text style={styles.submitButtonText}>Send Message</Text>
               </LinearGradient>
@@ -182,7 +183,7 @@ export function ContactUsScreen({ onBack }: ContactUsScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: COLORS.bg.legal,
   },
   gradient: {
     flex: 1,
@@ -194,19 +195,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: COLORS.overlay.white10,
   },
   backButton: {
     padding: 8,
   },
   backIcon: {
     fontSize: 24,
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   placeholder: {
     width: 40,
@@ -228,12 +229,12 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 8,
   },
   introSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     textAlign: 'center',
   },
   contactMethods: {
@@ -242,12 +243,12 @@ const styles = StyleSheet.create({
   methodCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: COLORS.overlay.white05,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: COLORS.overlay.white10,
   },
   methodIcon: {
     fontSize: 28,
@@ -258,13 +259,13 @@ const styles = StyleSheet.create({
   },
   methodLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: COLORS.overlay.white60,
     marginBottom: 4,
   },
   methodValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   formSection: {
     marginBottom: 30,
@@ -272,7 +273,7 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 20,
   },
   inputGroup: {
@@ -281,17 +282,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: COLORS.overlay.white08,
     borderRadius: 10,
     padding: 14,
     fontSize: 15,
-    color: '#fff',
+    color: COLORS.text.primary,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: COLORS.overlay.progress,
   },
   textArea: {
     height: 120,
@@ -309,18 +310,18 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   socialSection: {
     alignItems: 'center',
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: COLORS.overlay.white10,
   },
   socialTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 16,
   },
   socialIcons: {
@@ -331,11 +332,11 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: COLORS.overlay.white10,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: COLORS.overlay.white20,
   },
   socialEmoji: {
     fontSize: 24,

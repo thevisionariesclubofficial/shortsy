@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 const { width, height } = Dimensions.get('window');
 
@@ -85,7 +86,7 @@ export function WelcomeChoice({ onLogin, onSignup }: WelcomeChoiceProps) {
     <View style={styles.root}>
       {/* Background */}
       <LinearGradient
-        colors={['#1a0533', '#000000', '#1a0519']}
+        colors={[COLORS.bg.heroStart, COLORS.bg.black, COLORS.bg.heroEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -94,12 +95,12 @@ export function WelcomeChoice({ onLogin, onSignup }: WelcomeChoiceProps) {
       {/* Blobs */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <PulsingBlob
-          color="#a855f7"
+          color={COLORS.brand.violet}
           delay={0}
           style={blobStyles.blobTopLeft}
         />
         <PulsingBlob
-          color="#ec4899"
+          color={COLORS.brand.pink}
           delay={700}
           style={blobStyles.blobBottomRight}
         />
@@ -128,11 +129,11 @@ export function WelcomeChoice({ onLogin, onSignup }: WelcomeChoiceProps) {
 
         {/* Stats row */}
         <View style={styles.statsRow}>
-          <StatCard value="300+" label="Short Films" color="#c084fc" />
+          <StatCard value="300+" label="Short Films" color={COLORS.brand.violetMuted} />
           <View style={styles.statDivider} />
-          <StatCard value="50+" label="Series" color="#f472b6" />
+          <StatCard value="50+" label="Series" color={COLORS.accent.pink400} />
           <View style={styles.statDivider} />
-          <StatCard value="70%" label="To Creators" color="#fbbf24" />
+          <StatCard value="70%" label="To Creators" color={COLORS.accent.amber400} />
         </View>
       </View>
 
@@ -141,15 +142,15 @@ export function WelcomeChoice({ onLogin, onSignup }: WelcomeChoiceProps) {
         {/* Get Started */}
         <Pressable
           onPress={onSignup}
-          android_ripple={{ color: '#ffffff20' }}>
+          android_ripple={{ color: COLORS.overlay.ripple }}>
           <LinearGradient
-            colors={['#9333ea', '#ec4899']}
+            colors={[COLORS.brand.primary, COLORS.brand.pink]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.primaryBtn}>
             <Text style={styles.primaryBtnText}>Get Started</Text>
             {/* <ArrowRightIcon /> */}
-            <Ionicons name="arrow-forward" size={15} color="#fff" />
+            <Ionicons name="arrow-forward" size={15} color={COLORS.text.primary} />
           </LinearGradient>
         </Pressable>
 
@@ -173,7 +174,7 @@ export function WelcomeChoice({ onLogin, onSignup }: WelcomeChoiceProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
     paddingHorizontal: 32,
     paddingBottom: Platform.OS === 'ios' ? 48 : 32,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#9333ea',
+    shadowColor: COLORS.brand.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -209,17 +210,17 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 44,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: -1,
   },
   tagline: {
     fontSize: 18,
-    color: '#d8b4fe',
+    color: COLORS.brand.violetLight,
     fontWeight: '500',
   },
   description: {
     fontSize: 14,
-    color: '#737373',
+    color: COLORS.text.muted,
     textAlign: 'center',
     lineHeight: 22,
     maxWidth: width * 0.75,
@@ -229,10 +230,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
-    backgroundColor: '#0d0d0d',
+    backgroundColor: COLORS.bg.nearBlack,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1f1f1f',
+    borderColor: COLORS.bg.modal,
     paddingVertical: 16,
     paddingHorizontal: 8,
     width: '100%',
@@ -248,14 +249,14 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    color: '#737373',
+    color: COLORS.text.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: '#262626',
+    backgroundColor: COLORS.border.default,
   },
   actions: {
     gap: 12,
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryBtnText: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -277,18 +278,18 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#404040',
+    borderColor: COLORS.border.medium,
     alignItems: 'center',
     justifyContent: 'center',
   },
   outlineBtnText: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 17,
     fontWeight: '500',
   },
   legalText: {
     fontSize: 11,
-    color: '#525252',
+    color: COLORS.text.dimmed,
     textAlign: 'center',
     paddingTop: 4,
   },

@@ -11,6 +11,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import type { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
+import { COLORS } from '../constants/colors';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface HistoryScreenProps {
@@ -29,7 +30,7 @@ export function HistoryScreen({
     <View style={styles.root}>
       {/* Background gradient */}
       <LinearGradient
-        colors={['#0d001a', '#000000']}
+        colors={[COLORS.bg.onboardingStart, COLORS.bg.black]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 0.4 }}
         style={StyleSheet.absoluteFill}
@@ -42,7 +43,7 @@ export function HistoryScreen({
           onPress={onBack}
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Ionicons name="chevron-back" size={22} color="#ffffff" />
+          <Ionicons name="chevron-back" size={22} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Watch History</Text>
         {/* spacer to centre the title */}
@@ -53,7 +54,7 @@ export function HistoryScreen({
         // ── Empty state ──
         <View style={styles.emptyWrap}>
           <View style={styles.emptyIconCircle}>
-            <Ionicons name="film-outline" size={32} color="#a855f7" />
+            <Ionicons name="film-outline" size={32} color={COLORS.brand.violet} />
           </View>
           <Text style={styles.emptyTitle}>No history yet</Text>
           <Text style={styles.emptySubtitle}>
@@ -96,7 +97,7 @@ export function HistoryScreen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   header: {
     flexDirection: 'row',
@@ -105,14 +106,14 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: COLORS.bg.elevated,
   },
   backBtn: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderRadius: 12,
   },
   headerTitle: {
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   // ── Empty state ──
   emptyWrap: {
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#1a0533',
+    backgroundColor: COLORS.bg.heroStart,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -142,12 +143,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#737373',
+    color: COLORS.text.muted,
     textAlign: 'center',
     lineHeight: 21,
   },
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
   },
   countLabel: {
     fontSize: 13,
-    color: '#737373',
+    color: COLORS.text.muted,
     marginBottom: 16,
   },
   grid: {

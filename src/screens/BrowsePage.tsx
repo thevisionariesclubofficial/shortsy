@@ -13,6 +13,7 @@ import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { clearContentCache, getContentMetadata, listContent } from '../services/contentService';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS } from '../constants/colors';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TypeFilter = 'all' | 'short-film' | 'vertical-series';
@@ -119,7 +120,7 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
             onPress={() => setShowFilters(v => !v)}
             style={[styles.filterBtn, showFilters && styles.filterBtnActive]}
             activeOpacity={0.7}>
-            <Ionicons name="funnel-outline" size={18} color="#ffffff" />
+            <Ionicons name="funnel-outline" size={18} color={COLORS.text.primary} />
           </TouchableOpacity>
         </View>
 
@@ -141,8 +142,8 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#a855f7"
-            colors={['#a855f7']}
+            tintColor={COLORS.brand.violet}
+            colors={[COLORS.brand.violet]}
           />
         }>
 
@@ -167,7 +168,7 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#a855f7" />
+            <ActivityIndicator size="large" color={COLORS.brand.violet} />
           </View>
         ) : (
           <>
@@ -207,7 +208,7 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   loadingContainer: {
     paddingVertical: 80,
@@ -215,9 +216,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
-    backgroundColor: 'rgba(0,0,0,0.97)',
+    backgroundColor: COLORS.overlay.headerBg,
     borderBottomWidth: 1,
-    borderBottomColor: '#262626',
+    borderBottomColor: COLORS.border.default,
     zIndex: 10,
   },
   headerTop: {
@@ -231,18 +232,18 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   filterBtn: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterBtnActive: {
-    backgroundColor: '#4c1d95',
+    backgroundColor: COLORS.accent.violet900,
   },
   typeRow: {
     flexDirection: 'row',
@@ -254,16 +255,16 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   filterPanel: {
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderBottomWidth: 1,
-    borderBottomColor: '#262626',
+    borderBottomColor: COLORS.border.default,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
   filterSectionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#737373',
+    color: COLORS.text.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 10,
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: 13,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   row: {
     flexDirection: 'row',
@@ -296,25 +297,25 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#525252',
+    color: COLORS.text.dimmed,
   },
   // shared pill
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
   },
   pillActive: {
-    backgroundColor: '#7c3aed',
+    backgroundColor: COLORS.brand.primaryDark,
   },
   pillText: {
     fontSize: 13,
-    color: '#737373',
+    color: COLORS.text.muted,
     fontWeight: '500',
   },
   pillTextActive: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
 });
 

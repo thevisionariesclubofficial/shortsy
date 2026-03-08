@@ -10,16 +10,17 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Content } from '../data/mockData';
+import { COLORS } from '../constants/colors';
 
 // Deterministic bg colours per genre (image placeholder)
 const GENRE_COLORS: Record<string, [string, string, string]> = {
-  Drama:          ['#2e1065', '#4c1d95', '#7c3aed'],
-  Thriller:       ['#0c0a09', '#1c1917', '#92400e'],
-  'Musical Drama':['#4a0d2e', '#831843', '#be185d'],
-  Comedy:         ['#052e16', '#14532d', '#16a34a'],
-  Romance:        ['#4c0519', '#881337', '#e11d48'],
-  'Sci-Fi':       ['#082f49', '#0c4a6e', '#0284c7'],
-  default:        ['#0f0e30', '#1e1b4b', '#4338ca'],
+  Drama:          [COLORS.accent.violet950, COLORS.accent.violet900, COLORS.brand.primaryDark],
+  Thriller:       [COLORS.bg.stoneBlack, COLORS.bg.stone900, COLORS.accent.amber800],
+  'Musical Drama':[COLORS.accent.pinkDark, COLORS.accent.pink900, COLORS.accent.rose700],
+  Comedy:         [COLORS.accent.greenDark, COLORS.accent.green900, COLORS.accent.green700],
+  Romance:        [COLORS.accent.rose950, COLORS.accent.rose900, COLORS.accent.rose600],
+  'Sci-Fi':       [COLORS.accent.sky950, COLORS.accent.sky900, COLORS.accent.sky600],
+  default:        [COLORS.bg.splash, COLORS.accent.indigoDark, COLORS.accent.indigo700],
 };
 
 interface ContentCardProps {
@@ -68,11 +69,11 @@ export function ContentCard({ content, onClick }: ContentCardProps) {
         {/* Hover/press overlay with play button */}
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
           <LinearGradient
-            colors={['transparent', '#000000cc']}
+            colors={['transparent', COLORS.overlay.dark]}
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.playCircle}>
-            <Ionicons name="play" size={18} color="#ffffff" />
+            <Ionicons name="play" size={18} color={COLORS.text.primary} />
           </View>
         </Animated.View>
 
@@ -103,7 +104,7 @@ export function ContentCard({ content, onClick }: ContentCardProps) {
         <Text style={styles.title} numberOfLines={1}>{content.title}</Text>
 
         <View style={styles.ratingRow}>
-          <Ionicons name="star" size={11} color="#f59e0b" />
+          <Ionicons name="star" size={11} color={COLORS.accent.gold} />
           <Text style={styles.ratingText}>{content.rating}</Text>
           <Text style={styles.dot}>•</Text>
           <Text style={styles.durationText}>{content.duration}</Text>
@@ -120,19 +121,19 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#0d0d0d',
+    backgroundColor: COLORS.bg.nearBlack,
   },
   thumb: {
     aspectRatio: 2 / 3,
     overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.bg.elevated,
   },
   thumbCircle: {
     position: 'absolute',
     width: '80%',
     aspectRatio: 1,
     borderRadius: 9999,
-    backgroundColor: '#ffffff08',
+    backgroundColor: COLORS.overlay.surfaceXFaint,
     top: '-20%',
     right: '-20%',
   },
@@ -162,25 +163,25 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   badgeAmber: {
-    backgroundColor: '#b45309',
+    backgroundColor: COLORS.accent.amber700,
   },
   badgePurple: {
-    backgroundColor: '#7c3aed',
+    backgroundColor: COLORS.brand.primaryDark,
   },
   badgeText: {
     fontSize: 10,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontWeight: '600',
   },
   priceBadge: {
-    backgroundColor: '#000000b0',
+    backgroundColor: COLORS.overlay.heavy,
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 3,
   },
   priceText: {
     fontSize: 11,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontWeight: '600',
   },
   info: {
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#ffffff',
+    color: COLORS.text.primary,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -200,25 +201,25 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 11,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   dot: {
     fontSize: 11,
-    color: '#404040',
+    color: COLORS.border.medium,
   },
   durationText: {
     fontSize: 11,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   language: {
     fontSize: 11,
-    color: '#525252',
+    color: COLORS.text.dimmed,
   },
   playCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#ffffff30',
+    backgroundColor: COLORS.overlay.rippleMed,
     alignItems: 'center',
     justifyContent: 'center',
   },

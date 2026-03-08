@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 // ─── Bouncing dot ─────────────────────────────────────────────────────────────
 function BounceDot({ delay }: { delay: number }) {
@@ -78,11 +79,11 @@ export function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps) {
       {/* Pulsing gradient icon */}
       <Animated.View style={[styles.iconWrap, { opacity: pulse }]}>
         <LinearGradient
-          colors={['#9333ea', '#ec4899']}
+          colors={[COLORS.brand.primary, COLORS.brand.pink]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.iconGrad}>
-          <Ionicons name="film" size={32} color="#ffffff" />
+          <Ionicons name="film" size={32} color={COLORS.text.primary} />
         </LinearGradient>
       </Animated.View>
 
@@ -103,7 +104,7 @@ export function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#9333ea',
+    shadowColor: COLORS.brand.primary,
     shadowOpacity: 0.6,
     shadowRadius: 20,
     elevation: 12,
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: '#a3a3a3',
+    color: COLORS.text.tertiary,
     fontWeight: '500',
   },
   dots: {
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#a855f7',
+    backgroundColor: COLORS.brand.violet,
   },
 });
 

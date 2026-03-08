@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../constants/colors';
 
 interface CookiePolicyScreenProps {
   onBack: () => void;
@@ -16,7 +17,7 @@ interface CookiePolicyScreenProps {
 export function CookiePolicyScreen({ onBack }: CookiePolicyScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#1a1a2e', '#16213e']} style={styles.gradient}>
+      <LinearGradient colors={[COLORS.bg.legal, COLORS.bg.legalEnd]} style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -207,7 +208,7 @@ export function CookiePolicyScreen({ onBack }: CookiePolicyScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: COLORS.bg.legal,
   },
   gradient: {
     flex: 1,
@@ -219,19 +220,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: COLORS.overlay.white10,
   },
   backButton: {
     padding: 8,
   },
   backIcon: {
     fontSize: 24,
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   placeholder: {
     width: 40,
@@ -252,20 +253,20 @@ const styles = StyleSheet.create({
   },
   lastUpdated: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: COLORS.overlay.white50,
     fontStyle: 'italic',
   },
   highlight: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: COLORS.overlay.amberBg,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: COLORS.overlay.amberBorder,
   },
   highlightText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: COLORS.overlay.white90,
     lineHeight: 22,
     textAlign: 'center',
   },
@@ -275,68 +276,68 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#f59e0b',
+    color: COLORS.accent.gold,
     marginBottom: 12,
   },
   subheading: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginTop: 12,
     marginBottom: 8,
   },
   paragraph: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: COLORS.overlay.white80,
     lineHeight: 22,
     marginBottom: 8,
   },
   bulletPoint: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     lineHeight: 22,
     marginLeft: 16,
     marginBottom: 6,
   },
   bold: {
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
   },
   cookieCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: COLORS.overlay.white05,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: COLORS.overlay.white10,
   },
   cookieType: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: COLORS.text.primary,
     marginBottom: 8,
   },
   cookieDesc: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     lineHeight: 20,
     marginBottom: 8,
   },
   cookieExample: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: COLORS.overlay.white60,
     marginTop: 8,
     marginBottom: 4,
   },
   warningBox: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: COLORS.overlay.redTint10,
     borderRadius: 10,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderColor: COLORS.overlay.redTint30,
   },
   warningIcon: {
     fontSize: 20,
@@ -345,21 +346,21 @@ const styles = StyleSheet.create({
   warningText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: COLORS.overlay.white80,
     lineHeight: 18,
   },
   footer: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: COLORS.overlay.amberBg,
     borderRadius: 12,
     padding: 16,
     marginTop: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: COLORS.overlay.amberBorder,
   },
   footerText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.overlay.white70,
     textAlign: 'center',
     lineHeight: 20,
   },

@@ -11,6 +11,7 @@ import {
 import RazorpayCheckout from 'react-native-razorpay';
 import { Content } from '../data/mockData';
 import { ENV } from '../constants/env';
+import { COLORS } from '../constants/colors';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function CloseIcon() {
@@ -32,7 +33,7 @@ function CheckIcon() {
 }
 
 function SmartphoneIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#a3a3a3';
+  const c = active ? COLORS.brand.violet : COLORS.text.tertiary;
   return (
     <View style={[iconStyles.phoneOuter, { borderColor: c }]}>
       <View style={[iconStyles.phoneScreen, { backgroundColor: c + '33' }]} />
@@ -42,7 +43,7 @@ function SmartphoneIcon({ active }: { active: boolean }) {
 }
 
 function CreditCardIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#a3a3a3';
+  const c = active ? COLORS.brand.violet : COLORS.text.tertiary;
   return (
     <View style={[iconStyles.cardOuter, { borderColor: c }]}>
       <View style={[iconStyles.cardStripe, { backgroundColor: c }]} />
@@ -52,7 +53,7 @@ function CreditCardIcon({ active }: { active: boolean }) {
 }
 
 function WalletIcon({ active }: { active: boolean }) {
-  const c = active ? '#a855f7' : '#a3a3a3';
+  const c = active ? COLORS.brand.violet : COLORS.text.tertiary;
   return (
     <View style={[iconStyles.walletOuter, { borderColor: c }]}>
       <View style={[iconStyles.walletFlap, { borderColor: c }]} />
@@ -200,7 +201,7 @@ export function RentalModal({ content, onClose, onConfirm }: RentalModalProps) {
             : `You will get ${ENV.RENTAL_EXPIRY_SHORT_FILM_DAYS}-day viewing access`}
         </Text>
         {error && (
-          <Text style={[styles.note, { color: '#ef4444' }]}>{error}</Text>
+          <Text style={[styles.note, { color: COLORS.accent.red }]}>{error}</Text>
         )}
       </Animated.View>
     </View>
@@ -211,14 +212,14 @@ export function RentalModal({ content, onClose, onConfirm }: RentalModalProps) {
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.88)',
+    backgroundColor: COLORS.overlay.dark88,
     justifyContent: 'flex-end',
     zIndex: 100,
   },
 
   // Sheet
   sheet: {
-    backgroundColor: '#111111',
+    backgroundColor: COLORS.bg.subtle,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -227,59 +228,59 @@ const styles = StyleSheet.create({
   handle: {
     width: 40, height: 4,
     borderRadius: 2,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: COLORS.border.muted,
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 4,
   },
 
   // Header
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#1e1e1e' },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#ffffff' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border.subtle },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text.primary },
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
 
   // Summary
-  summaryCard: { flexDirection: 'row', gap: 14, backgroundColor: '#1a1a1a', borderRadius: 14, padding: 14, marginTop: 16 },
-  thumbWrap:   { width: 56, height: 80, borderRadius: 8, overflow: 'hidden', backgroundColor: '#0d0d0d' },
+  summaryCard: { flexDirection: 'row', gap: 14, backgroundColor: COLORS.bg.elevated, borderRadius: 14, padding: 14, marginTop: 16 },
+  thumbWrap:   { width: 56, height: 80, borderRadius: 8, overflow: 'hidden', backgroundColor: COLORS.bg.nearBlack },
   thumbImg:    { width: '100%', height: '100%' },
   summaryInfo: { flex: 1, justifyContent: 'space-between' },
-  summaryTitle:{ fontSize: 14, fontWeight: '600', color: '#ffffff' },
-  summaryDur:  { fontSize: 12, color: '#737373' },
-  summaryPrice:{ fontSize: 18, fontWeight: '700', color: '#ffffff' },
+  summaryTitle:{ fontSize: 14, fontWeight: '600', color: COLORS.text.primary },
+  summaryDur:  { fontSize: 12, color: COLORS.text.muted },
+  summaryPrice:{ fontSize: 18, fontWeight: '700', color: COLORS.text.primary },
 
   // Methods
-  methodLabel: { fontSize: 12, fontWeight: '600', color: '#737373', textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 20, marginBottom: 10 },
+  methodLabel: { fontSize: 12, fontWeight: '600', color: COLORS.text.muted, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 20, marginBottom: 10 },
   methods:     { gap: 10 },
-  methodRow:   { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 14, borderWidth: 2, borderColor: '#1e1e1e', backgroundColor: '#1a1a1a' },
-  methodRowActive: { borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)' },
+  methodRow:   { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 14, borderWidth: 2, borderColor: COLORS.border.subtle, backgroundColor: COLORS.bg.elevated },
+  methodRowActive: { borderColor: COLORS.brand.primaryDark, backgroundColor: COLORS.overlay.brandTint },
   methodText:  { flex: 1 },
-  methodName:  { fontSize: 14, fontWeight: '600', color: '#a3a3a3' },
-  methodNameActive: { color: '#a855f7' },
-  methodSub:   { fontSize: 11, color: '#525252', marginTop: 2 },
+  methodName:  { fontSize: 14, fontWeight: '600', color: COLORS.text.tertiary },
+  methodNameActive: { color: COLORS.brand.violet },
+  methodSub:   { fontSize: 11, color: COLORS.text.dimmed, marginTop: 2 },
 
   // Pay button
-  payBtn: { height: 52, borderRadius: 14, backgroundColor: '#7c3aed', alignItems: 'center', justifyContent: 'center', marginTop: 20 },
+  payBtn: { height: 52, borderRadius: 14, backgroundColor: COLORS.brand.primaryDark, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
   payBtnProcessing: { opacity: 0.7 },
   payBtnRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  payBtnText: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
+  payBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.text.primary },
 
-  note: { fontSize: 12, color: '#525252', textAlign: 'center', marginTop: 12 },
+  note: { fontSize: 12, color: COLORS.text.dimmed, textAlign: 'center', marginTop: 12 },
 
   // Success
-  successCard: { backgroundColor: '#111111', borderRadius: 24, padding: 40, alignItems: 'center', gap: 14, margin: 24 },
-  successIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(34,197,94,0.15)', alignItems: 'center', justifyContent: 'center' },
-  successTitle: { fontSize: 22, fontWeight: '700', color: '#ffffff' },
-  successSub:   { fontSize: 14, color: '#737373' },
+  successCard: { backgroundColor: COLORS.bg.subtle, borderRadius: 24, padding: 40, alignItems: 'center', gap: 14, margin: 24 },
+  successIconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.overlay.greenTint15, alignItems: 'center', justifyContent: 'center' },
+  successTitle: { fontSize: 22, fontWeight: '700', color: COLORS.text.primary },
+  successSub:   { fontSize: 14, color: COLORS.text.muted },
 });
 
 const iconStyles = StyleSheet.create({
   // Close X
   closeWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
-  closeBar:  { position: 'absolute', width: 16, height: 2, backgroundColor: '#737373', borderRadius: 1 },
+  closeBar:  { position: 'absolute', width: 16, height: 2, backgroundColor: COLORS.text.muted, borderRadius: 1 },
 
   // Check
   checkOuter: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  checkBar:   { position: 'absolute', height: 3, backgroundColor: '#22c55e', borderRadius: 2 },
+  checkBar:   { position: 'absolute', height: 3, backgroundColor: COLORS.accent.green, borderRadius: 2 },
   checkShort: { width: 12, bottom: 15, left: 8, transform: [{ rotate: '45deg' }] },
   checkLong:  { width: 22, bottom: 19, right: 4, transform: [{ rotate: '-50deg' }] },
 
@@ -299,5 +300,5 @@ const iconStyles = StyleSheet.create({
   walletDot:   { width: 6, height: 6, borderRadius: 3 },
 
   // Spinner
-  spinner: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)', borderTopColor: '#ffffff' },
+  spinner: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: COLORS.overlay.spinner, borderTopColor: COLORS.text.primary },
 });

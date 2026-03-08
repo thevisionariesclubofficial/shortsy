@@ -16,9 +16,10 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { login } from '../services/authService';
+import { COLORS } from '../constants/colors';
 
 // ─── Spinner ──────────────────────────────────────────────────────────────────
-function Spinner({ color = '#ffffff' }: { color?: string }) {
+function Spinner({ color = COLORS.text.primary }: { color?: string }) {
   const rotation = useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
     Animated.loop(
@@ -66,7 +67,7 @@ function Field({
         <TextInput
           style={fieldStyles.input}
           placeholder={placeholder}
-          placeholderTextColor="#737373"
+          placeholderTextColor={COLORS.text.muted}
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
@@ -152,7 +153,7 @@ export function LoginScreen({
     <View style={styles.root}>
       {/* Background gradient */}
       <LinearGradient
-        colors={['#1a0533', '#000000', '#1a0519']}
+        colors={[COLORS.bg.heroStart, COLORS.bg.black, COLORS.bg.heroEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -165,7 +166,7 @@ export function LoginScreen({
           onPress={onBack}
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={COLORS.text.primary} />
         </TouchableOpacity>
       )}
 
@@ -180,11 +181,11 @@ export function LoginScreen({
           {/* Logo */}
           <View style={styles.logoWrap}>
             <LinearGradient
-              colors={['#9333ea', '#ec4899']}
+              colors={[COLORS.brand.primary, COLORS.brand.pink]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.logoBox}>
-              <Ionicons name="person" size={32} color="#fff" />
+              <Ionicons name="person" size={32} color={COLORS.text.primary} />
             </LinearGradient>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>Sign in to continue watching</Text>
@@ -199,7 +200,7 @@ export function LoginScreen({
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
-              leftIcon={<Ionicons name="mail" size={18} color="#737373" />}
+              leftIcon={<Ionicons name="mail" size={18} color={COLORS.text.muted} />}
             />
 
             {/* Password */}
@@ -209,12 +210,12 @@ export function LoginScreen({
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
-              leftIcon={<Ionicons name="lock-closed" size={18} color="#737373" />}
+              leftIcon={<Ionicons name="lock-closed" size={18} color={COLORS.text.muted} />}
               RightSlot={
                 <TouchableOpacity
                   onPress={() => setShowPassword(p => !p)}
                   style={fieldStyles.rightIcon}>
-                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color="#737373" />
+                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color={COLORS.text.muted} />
                 </TouchableOpacity>
               }
             />
@@ -237,9 +238,9 @@ export function LoginScreen({
             <Pressable
               onPress={handleLogin}
               disabled={isLoading}
-              android_ripple={{ color: '#ffffff20' }}>
+              android_ripple={{ color: COLORS.overlay.ripple }}>
               <LinearGradient
-                colors={isLoading ? ['#4a1f6e', '#7c2453'] : ['#9333ea', '#ec4899']}
+                colors={isLoading ? [COLORS.brand.primaryDeep, COLORS.brand.pinkDark] : [COLORS.brand.primary, COLORS.brand.pink]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.signInBtn}>
@@ -268,7 +269,7 @@ export function LoginScreen({
               onPress={handleGoogleSignIn}
               disabled={isGoogleLoading || isLoading}>
               {isGoogleLoading
-                ? <Spinner color="#3c4043" />
+                ? <Spinner color={COLORS.text.googleDark} />
                 : <Image source={require('../assets/google.png')} style={{ width: 22, height: 22, borderRadius: 10 }} resizeMode="contain" />}
               <Text style={styles.googleText}>
                 {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
@@ -293,7 +294,7 @@ export function LoginScreen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.bg.black,
   },
   backBtn: {
     position: 'absolute',
@@ -324,7 +325,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    shadowColor: '#9333ea',
+    shadowColor: COLORS.brand.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -333,12 +334,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text.primary,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 15,
-    color: '#737373',
+    color: COLORS.text.muted,
   },
   form: {
     width: '100%',
@@ -349,19 +350,19 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   forgotText: {
-    color: '#c084fc',
+    color: COLORS.brand.violetMuted,
     fontSize: 13,
   },
   errorWrap: {
-    backgroundColor: '#3b0a0a',
+    backgroundColor: COLORS.accent.redDark,
     borderWidth: 1,
-    borderColor: '#7f1d1d',
+    borderColor: COLORS.accent.redBorder,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
   errorText: {
-    color: '#fca5a5',
+    color: COLORS.accent.redSoft,
     fontSize: 13,
     textAlign: 'center',
   },
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   signInText: {
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -390,10 +391,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#262626',
+    backgroundColor: COLORS.border.default,
   },
   dividerText: {
-    color: '#737373',
+    color: COLORS.text.muted,
     fontSize: 13,
   },
   googleBtn: {
@@ -404,11 +405,11 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#dadce0',
-    backgroundColor: '#ffffff',
+    borderColor: COLORS.border.google,
+    backgroundColor: COLORS.text.primary,
   },
   googleText: {
-    color: '#3c4043',
+    color: COLORS.text.googleDark,
     fontSize: 15,
     fontWeight: '500',
   },
@@ -419,11 +420,11 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   signupPrompt: {
-    color: '#737373',
+    color: COLORS.text.muted,
     fontSize: 15,
   },
   signupLink: {
-    color: '#c084fc',
+    color: COLORS.brand.violetMuted,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -431,18 +432,18 @@ const styles = StyleSheet.create({
 
 const fieldStyles = StyleSheet.create({
   wrap: { gap: 6 },
-  label: { fontSize: 13, color: '#a3a3a3' },
+  label: { fontSize: 13, color: COLORS.text.tertiary },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#171717',
+    backgroundColor: COLORS.bg.card,
     borderWidth: 1,
-    borderColor: '#262626',
+    borderColor: COLORS.border.default,
     borderRadius: 12,
     height: 52,
     paddingHorizontal: 4,
   },
-  rowFocused: { borderColor: '#7c3aed' },
+  rowFocused: { borderColor: COLORS.brand.primaryDark },
   leftIcon: {
     width: 44,
     alignItems: 'center',
@@ -450,7 +451,7 @@ const fieldStyles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#ffffff',
+    color: COLORS.text.primary,
     fontSize: 15,
     paddingRight: 12,
   },
@@ -467,8 +468,8 @@ const spinnerStyles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2.5,
-    borderColor: '#ffffff40',
-    borderTopColor: '#ffffff',
+    borderColor: COLORS.overlay.spinnerBorder,
+    borderTopColor: COLORS.text.primary,
   },
 });
 
