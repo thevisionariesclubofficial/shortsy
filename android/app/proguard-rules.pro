@@ -8,3 +8,6 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# react-native-html-to-pdf / pdfbox optional JP2 decoder not present at runtime
+-dontwarn com.gemalto.jp2.JP2Decoder

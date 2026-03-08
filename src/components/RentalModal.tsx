@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { Content } from '../data/mockData';
+import { ENV } from '../constants/env';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function CloseIcon() {
@@ -195,8 +196,8 @@ export function RentalModal({ content, onClose, onConfirm }: RentalModalProps) {
         {/* Access note */}
         <Text style={styles.note}>
           {content.type === 'vertical-series'
-            ? 'You will get full season access for 7 days'
-            : 'You will get 48-hour viewing access'}
+            ? `You will get full season access for ${ENV.RENTAL_EXPIRY_VERTICAL_SERIES_DAYS} ${ENV.RENTAL_EXPIRY_VERTICAL_SERIES_DAYS === 1 ? 'day' : 'days'}`
+            : `You will get ${ENV.RENTAL_EXPIRY_SHORT_FILM_DAYS}-day viewing access`}
         </Text>
         {error && (
           <Text style={[styles.note, { color: '#ef4444' }]}>{error}</Text>

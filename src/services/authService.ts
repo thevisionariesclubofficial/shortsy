@@ -50,14 +50,12 @@ import { saveAuthTokens, saveAuthUser, saveAuthFlag, clearAuthStorage, getAuthTo
 import { authorize } from 'react-native-app-auth';
 
 // ── Google OAuth configuration (react-native-app-auth, browser-based PKCE) ───
-// Uses the iOS OAuth client ID for both platforms — no SHA-1, no Firebase SDK.
-// The redirect URI uses the reverse-DNS of the client ID, which is registered
-// as a URL scheme in both Info.plist (iOS) and AndroidManifest.xml (Android).
-const GOOGLE_CLIENT_ID  = '411501052320-ctaen736unlri4e0fhapjujnf56b92jv.apps.googleusercontent.com';
-const GOOGLE_REDIRECT   = `com.googleusercontent.apps.411501052320-ctaen736unlri4e0fhapjujnf56b92jv:/oauth2redirect`;
+// Values are loaded from .env via react-native-config → src/constants/env.ts
+import { ENV } from '../constants/env';
 
-// Kept only for sending to backend — backend validates aud against its whitelist.
-const GOOGLE_WEB_CLIENT_ID = '411501052320-i88soetdamgrna06pdj00peqsbuaac85.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID      = ENV.GOOGLE_IOS_CLIENT_ID;
+const GOOGLE_REDIRECT        = ENV.GOOGLE_OAUTH_REDIRECT_URI;
+const GOOGLE_WEB_CLIENT_ID  = ENV.GOOGLE_WEB_CLIENT_ID;
 
 const GOOGLE_OAUTH_CONFIG = {
   issuer:      'https://accounts.google.com',

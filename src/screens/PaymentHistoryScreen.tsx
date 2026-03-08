@@ -343,7 +343,9 @@ export function PaymentHistoryScreen({ onBack, paymentHistory, onRefreshPaymentH
             {paymentHistory.length} {paymentHistory.length === 1 ? 'transaction' : 'transactions'}
           </Text>
 
-          {paymentHistory.map((order) => {
+          {[...paymentHistory]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .map((order) => {
             const content = contentMap[order.contentId];
             return (
             <View key={order.orderId} style={styles.card}>

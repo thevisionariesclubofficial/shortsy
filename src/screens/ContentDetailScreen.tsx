@@ -17,6 +17,7 @@ import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Content, Episode } from '../data/mockData';
 import { checkRentalStatus } from '../services/rentalService';
 import { getContentDetail } from '../services/contentService';
+import { ENV } from '../constants/env';
 
 const SCREEN_H = Dimensions.get('window').height;
 
@@ -149,7 +150,7 @@ export function ContentDetailScreen({
     v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
 
   const handleShare = async () => {
-    const webLink = `https://shortsy-7c19f.web.app/open.html?id=${content.id}&title=${encodeURIComponent(content.title)}`;
+    const webLink = `${ENV.APP_WEB_URL}/open.html?id=${content.id}&title=${encodeURIComponent(content.title)}`;
     const message = `🎬 Watch "${content.title}" on Shortsy!\n\n${content.description?.slice(0, 120)}...\n\n${webLink}`;
     try {
       await Share.share({ message, title: content.title, url: webLink });
