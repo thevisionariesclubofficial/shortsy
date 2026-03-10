@@ -97,11 +97,15 @@ async function request<T>(
     headers['Authorization'] = `Bearer ${_accessToken}`;
   }
 
-  // Log outgoing request details at DEBUG level (params + body visible)
-  const reqMeta: Record<string, unknown> = { url };
-  if (options.params) { reqMeta.params = options.params; }
-  if (options.body)   { reqMeta.body   = options.body;   }
-  logger.debug('API', `${method} ${path}`, reqMeta);
+  // Log full outgoing request details
+  const reqMeta: Record<string, unknown> = {
+    method,
+    url,
+    headers,
+    params: options.params,
+    body: options.body,
+  };
+  logger.debug('API', `REQUEST: ${method} ${url}`, reqMeta);
 
   const timer = logger.startTimer('API', `${method} ${path}`);
 
@@ -109,6 +113,26 @@ async function request<T>(
     method,
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  // Clone response to read body for logging
+  let responseBody: any = null;
+  let responseText: string | null = null;
+  try {
+    responseText = await response.clone().text();
+    try {
+      responseBody = JSON.parse(responseText);
+    } catch {
+      responseBody = responseText;
+    }
+  } catch (e) {
+    responseBody = '[unreadable]';
+  }
+  logger.debug('API', `RESPONSE: ${method} ${url}`, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: Object.fromEntries(response.headers.entries()),
+    body: responseBody,
   });
 
   if (!response.ok) {

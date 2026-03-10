@@ -4,11 +4,10 @@ import {
   Animated,
   Dimensions,
   Easing,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  FlatList,
+  Image,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -17,182 +16,346 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from '../constants/colors';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const ITEM_SIZE   = width * 0.78;
+const SPACER_SIZE = (width - ITEM_SIZE) / 2;
 
-// ─── Slide data ───────────────────────────────────────────────────────────────
-const slides: { id: number; title: string; description: string; colors: string[]; iconName: IoniconsIconName }[] = [
+// ─── Slide data (3 steps) ─────────────────────────────────────────────────────
+type Slide = {
+  key: string;
+  title: string;
+  description: string;
+  tags: string[];
+  iconName: IoniconsIconName;
+  cardColors: [string, string];
+  bgColors:   [string, string, string];
+};
+
+const SLIDES: Slide[] = [
   {
-    id: 0,
+    key: 's1',
     title: 'Premium Short Films',
     description:
-      'Discover award-winning short films and vertical series from independent creators',
-    colors: [COLORS.brand.violet, COLORS.brand.primary],   // purple-500 → purple-600
+      'Award-winning short films from independent creators. Cinematic storytelling — in minutes.',
+    tags: ['Short Films', 'Award-Winning'],
     iconName: 'film',
+    cardColors: [COLORS.brand.violet, COLORS.brand.primaryDark],
+    bgColors:   [COLORS.bg.onboardingStart, COLORS.bg.splash, COLORS.brand.primaryDark],
   },
   {
-    id: 1,
+    key: 's2',
     title: 'Pay Per Story',
     description:
-      'No subscription trap. Rent only what you want to watch. Starting at just ₹29',
-    colors: [COLORS.brand.pink, COLORS.brand.pinkDeep],   // pink-500 → pink-600
+      'No subscription trap. Rent only what you love — starting at just ₹29.',
+    tags: ['Rent & Watch', '₹29 Onwards'],
     iconName: 'flash',
+    cardColors: [COLORS.brand.pink, COLORS.brand.pinkDeep],
+    bgColors:   [COLORS.bg.legalEnd, COLORS.bg.legal, COLORS.brand.pinkDeep],
   },
   {
-    id: 2,
+    key: 's3',
     title: 'Support Creators',
     description:
-      '70% of your payment goes directly to filmmakers. Own their success',
-    colors: [COLORS.accent.gold, COLORS.accent.orange600],   // amber-500 → orange-600
+      '70% of your payment goes directly to filmmakers. Watch great stories, fund greater ones.',
+    tags: ['70% to Creators', 'Vertical Cinema'],
     iconName: 'heart',
-  },
-  {
-    id: 3,
-    title: 'Vertical Cinema',
-    description:
-      'First OTT to treat vertical content as premium storytelling, not just reels',
-    colors: [COLORS.accent.blue500, COLORS.accent.cyan],   // blue-500 → cyan-600
-    iconName: 'videocam',
+    cardColors: [COLORS.accent.gold, COLORS.accent.amber600],
+    bgColors:   [COLORS.bg.stoneBlack, COLORS.accent.amber900, COLORS.accent.orange600],
   },
 ];
 
-// ─── Chevron right icon ───────────────────────────────────────────────────────
-function ChevronRight() {
-  return <Ionicons name="chevron-forward" size={22} color={COLORS.text.primary} />;
-}
+// FlatList data: left spacer → slides → right spacer
+type SpacerItem = { key: string; isSpacerItem: true };
+type ListItem   = Slide | SpacerItem;
 
-// ─── Single slide page ────────────────────────────────────────────────────────
-function SlidePage({ slide }: { slide: (typeof slides)[number] }) {
+const LIST_DATA: ListItem[] = [
+  { key: 'left-spacer',  isSpacerItem: true },
+  ...SLIDES,
+  { key: 'right-spacer', isSpacerItem: true },
+];
+
+// ─── Poster images per slide ────────────────────────────────────────────────────
+// 9 portrait images per slide (3 columns × 3 rows) sourced from picsum.
+// Replace these URLs with real TMDB / CDN poster URLs in production.
+const SLIDE_POSTERS: string[][] = [
+  // Slide 1 — Short Films
+  [103, 180, 250, 328, 432, 517, 619, 742, 891].map(
+    s => `https://picsum.photos/seed/${s}/200/300`,
+  ),
+  // Slide 2 — Pay Per Story
+  [113, 190, 267, 345, 447, 530, 635, 760, 870].map(
+    s => `https://picsum.photos/seed/${s}/200/300`,
+  ),
+  // Slide 3 — Support Creators
+  [123, 201, 287, 365, 467, 550, 655, 780, 850].map(
+    s => `https://picsum.photos/seed/${s}/200/300`,
+  ),
+];
+
+// Per-slide colour wash that tints the poster mosaic
+const SLIDE_TINTS = [
+  'rgba(109,40,217,0.38)',  // violet — Short Films
+  'rgba(219,39,119,0.38)',  // pink   — Pay Per Story
+  'rgba(217,119,6,0.38)',   // amber  — Support Creators
+];
+
+// ─── Poster mosaic ────────────────────────────────────────────────────────────
+function PosterGrid({ posters, tint }: { posters: string[]; tint: string }) {
+  const columns = [
+    posters.slice(0, 3),
+    posters.slice(3, 6),
+    posters.slice(6, 9),
+  ];
   return (
-    <View style={styles.slidePage}>
-      {/* Circle icon */}
-      <LinearGradient
-        colors={slide.colors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.iconCircle}>
-        <Ionicons name={slide.iconName} size={56} color={COLORS.text.primary} />
-      </LinearGradient>
-
-      {/* Title + description */}
-      <View style={styles.textBlock}>
-        <Text style={styles.slideTitle}>{slide.title}</Text>
-        <Text style={styles.slideDesc}>{slide.description}</Text>
+    <View style={StyleSheet.absoluteFill}>
+      {/* 3-column poster grid — height: height ensures full-screen coverage */}
+      <View
+        style={{
+          height,
+          flexDirection: 'row',
+          gap: 4,
+          paddingHorizontal: 4,
+          overflow: 'hidden',
+        }}>
+        {columns.map((col, ci) => (
+          // middle column offset so rows feel staggered
+          <View key={ci} style={{ flex: 1, gap: 4, marginTop: ci === 1 ? -44 : 0, height: height + (ci === 1 ? 44 : 0) }}>
+            {col.map((uri, ii) => (
+              <View
+                key={ii}
+                style={{
+                  width: '100%',
+                  flex: 1,          // stretch to fill column height evenly
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  backgroundColor: '#111',
+                }}>
+                <Image
+                  source={{ uri }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+                {/* Subtle per-poster darkening for depth */}
+                <View
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { backgroundColor: 'rgba(0,0,0,0.22)' },
+                  ]}
+                />
+              </View>
+            ))}
+          </View>
+        ))}
       </View>
+      {/* Slide colour tint overlay */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: tint }]} />
     </View>
   );
 }
 
-// ─── Main OnboardingScreen ────────────────────────────────────────────────────
-interface OnboardingScreenProps {
-  onComplete: () => void;
-}
-
-export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
-  const isLast = currentSlide === slides.length - 1;
-
-  // Scroll programmatically when Next is tapped
-  const handleNext = useCallback(() => {
-    if (!isLast) {
-      const next = currentSlide + 1;
-      scrollRef.current?.scrollTo({ x: next * width, animated: true });
-      setCurrentSlide(next);
-    } else {
-      onComplete();
-    }
-  }, [currentSlide, isLast, onComplete]);
-
-  // Track current slide when user swipes
-  const handleScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetX = e.nativeEvent.contentOffset.x;
-      const index = Math.round(offsetX / width);
-      if (index !== currentSlide) {
-        setCurrentSlide(index);
-      }
-    },
-    [currentSlide],
-  );
-
+// ─── Animated background ──────────────────────────────────────────────────────
+function AnimatedBackground({ scrollX }: { scrollX: Animated.Value }) {
   return (
-    <View style={styles.root}>
-      {/* Skip button */}
-      {!isLast && (
-        <TouchableOpacity
-          onPress={onComplete}
-          style={styles.skipBtn}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Swipeable slide area */}
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={handleScroll}
-        decelerationRate="fast"
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}>
-        {slides.map(slide => (
-          <SlidePage key={slide.id} slide={slide} />
-        ))}
-      </ScrollView>
-
-      {/* Bottom navigation */}
-      <View style={styles.navArea}>
-        {/* Dot indicators */}
-        <View style={styles.dotsRow}>
-          {slides.map((_, index) => (
-            <AnimatedDot key={index} active={index === currentSlide} />
-          ))}
-        </View>
-
-        {/* Next / Get Started button */}
-        <Pressable onPress={handleNext} android_ripple={{ color: COLORS.overlay.rippleMed }}>
-          <LinearGradient
-            colors={[COLORS.brand.primary, COLORS.brand.pink]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.nextBtn}>
-            <Text style={styles.nextBtnText}>
-              {isLast ? 'Get Started' : 'Next'}
-            </Text>
-            <ChevronRight />
-          </LinearGradient>
-        </Pressable>
-      </View>
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.bg.black }]} />
+      {SLIDES.map((slide, index) => {
+        const inputRange = [
+          (index - 1) * ITEM_SIZE,
+          index       * ITEM_SIZE,
+          (index + 1) * ITEM_SIZE,
+        ];
+        const opacity = scrollX.interpolate({
+          inputRange,
+          outputRange: [0, 1, 0],
+          extrapolate: 'clamp',
+        });
+        return (
+          <Animated.View key={slide.key} style={[StyleSheet.absoluteFill, { opacity }]}>
+            <PosterGrid posters={SLIDE_POSTERS[index]} tint={SLIDE_TINTS[index]} />
+          </Animated.View>
+        );
+      })}
+      {/* Bottom fade for readability — semi-transparent so posters bleed through */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.72)', 'rgba(0,0,0,0.88)']}
+        style={styles.bgFade}
+      />
     </View>
   );
 }
 
 // ─── Animated dot ─────────────────────────────────────────────────────────────
 function AnimatedDot({ active }: { active: boolean }) {
-  const width = useRef(new Animated.Value(active ? 32 : 8)).current;
+  const dotWidth = useRef(new Animated.Value(active ? 28 : 8)).current;
 
   React.useEffect(() => {
-    Animated.timing(width, {
-      toValue: active ? 32 : 8,
-      duration: 300,
+    Animated.timing(dotWidth, {
+      toValue: active ? 28 : 8,
+      duration: 280,
       easing: Easing.out(Easing.quad),
-      useNativeDriver: false, // width is a layout prop
+      useNativeDriver: false,
     }).start();
-  }, [active, width]);
+  }, [active, dotWidth]);
 
   return (
     <Animated.View
       style={[
         styles.dot,
         {
-          width,
-          backgroundColor: active ? COLORS.brand.violet : COLORS.border.medium,
+          width: dotWidth,
+          backgroundColor: active ? COLORS.brand.violet : COLORS.overlay.white20,
         },
       ]}
     />
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+interface OnboardingScreenProps {
+  onComplete: () => void;
+}
+
+export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
+  const scrollX     = useRef(new Animated.Value(0)).current;
+  const flatListRef = useRef<FlatList<ListItem>>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const isLast = activeIndex === SLIDES.length - 1;
+
+  const handleNext = useCallback(() => {
+    if (isLast) {
+      onComplete();
+    } else {
+      const next = activeIndex + 1;
+      flatListRef.current?.scrollToOffset({ offset: next * ITEM_SIZE, animated: true });
+      setActiveIndex(next);
+    }
+  }, [activeIndex, isLast, onComplete]);
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: ListItem; index: number }) => {
+      if ((item as SpacerItem).isSpacerItem) {
+        return <View style={{ width: SPACER_SIZE }} />;
+      }
+
+      const slide = item as Slide;
+      const inputRange = [
+        (index - 2) * ITEM_SIZE,
+        (index - 1) * ITEM_SIZE,
+        index       * ITEM_SIZE,
+      ];
+
+      const translateY = scrollX.interpolate({
+        inputRange,
+        outputRange: [60, 0, 60],
+        extrapolate: 'clamp',
+      });
+      const scale = scrollX.interpolate({
+        inputRange,
+        outputRange: [0.87, 1, 0.87],
+        extrapolate: 'clamp',
+      });
+      const opacity = scrollX.interpolate({
+        inputRange,
+        outputRange: [0.45, 1, 0.45],
+        extrapolate: 'clamp',
+      });
+
+      return (
+        <View style={styles.itemWrap}>
+          <Animated.View style={[styles.card, { opacity, transform: [{ scale }, { translateY }] }]}>
+            {/* Coloured accent strip */}
+            <LinearGradient
+              colors={slide.cardColors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.cardStrip}
+            />
+            {/* Icon */}
+            <View style={styles.iconWrap}>
+              <LinearGradient
+                colors={slide.cardColors}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.iconCircle}>
+                <Ionicons name={slide.iconName} size={54} color={COLORS.text.primary} />
+              </LinearGradient>
+            </View>
+            {/* Text */}
+            <View style={styles.cardBody}>
+              <Text style={styles.cardTitle}>{slide.title}</Text>
+              <Text style={styles.cardDesc}>{slide.description}</Text>
+              <View style={styles.tagsRow}>
+                {slide.tags.map(tag => (
+                  <View key={tag} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      );
+    },
+    [scrollX],
+  );
+
+  return (
+    <View style={styles.root}>
+      <AnimatedBackground scrollX={scrollX} />
+
+      {/* Skip */}
+      {!isLast && (
+        <TouchableOpacity
+          style={styles.skipBtn}
+          onPress={onComplete}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Carousel */}
+      <Animated.FlatList
+        ref={flatListRef as React.RefObject<FlatList<ListItem>>}
+        data={LIST_DATA}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={ITEM_SIZE}
+        decelerationRate={0}
+        bounces={false}
+        scrollEventThrottle={16}
+        keyExtractor={item => item.key}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: true },
+        )}
+        onMomentumScrollEnd={e => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / ITEM_SIZE);
+          setActiveIndex(Math.max(0, Math.min(index, SLIDES.length - 1)));
+        }}
+        renderItem={renderItem}
+        style={styles.flatList}
+      />
+
+      {/* Bottom nav */}
+      <View style={styles.navArea}>
+        <View style={styles.dotsRow}>
+          {SLIDES.map((_, i) => (
+            <AnimatedDot key={i} active={i === activeIndex} />
+          ))}
+        </View>
+
+        <Pressable onPress={handleNext} android_ripple={{ color: COLORS.overlay.rippleMed }}>
+          <LinearGradient
+            colors={[COLORS.brand.primary, COLORS.brand.pink]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.nextBtn}>
+            <Text style={styles.nextBtnText}>{isLast ? 'Get Started' : 'Next'}</Text>
+            <Ionicons name="chevron-forward" size={22} color={COLORS.text.primary} />
+          </LinearGradient>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -201,13 +364,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: COLORS.bg.black,
-    paddingHorizontal: 32,
     paddingBottom: Platform.OS === 'ios' ? 48 : 32,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
   },
   skipBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
+    top: Platform.OS === 'ios' ? 60 : 44,
     right: 24,
     zIndex: 10,
   },
@@ -215,53 +376,92 @@ const styles = StyleSheet.create({
     color: COLORS.text.tertiary,
     fontSize: 16,
   },
-  scrollView: {
-    flex: 1,
-    marginHorizontal: -32, // cancel root horizontal padding so pages are full-width
+  bgFade: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.35,
   },
-  scrollContent: {
-    // width is set per-page inside SlidePage
-  },
-  slidePage: {
-    width: width,
+  flatList: {
     flex: 1,
-    alignItems: 'center',
+  },
+  itemWrap: {
+    width: ITEM_SIZE,
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 32,
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 90 : 70,
+    paddingBottom: 16,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: COLORS.bg.elevated,
+    borderRadius: 28,
+    overflow: 'hidden',
+    paddingBottom: 28,
+    shadowColor: COLORS.bg.black,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.65,
+    shadowRadius: 28,
+    elevation: 18,
+  },
+  cardStrip: {
+    height: 5,
+    width: '100%',
+  },
+  iconWrap: {
+    alignItems: 'center',
+    paddingTop: 30,
+    paddingBottom: 22,
   },
   iconCircle: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.bg.black,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 16,
   },
-  textBlock: {
+  cardBody: {
+    paddingHorizontal: 24,
     alignItems: 'center',
     gap: 12,
-    maxWidth: width * 0.8,
   },
-  slideTitle: {
-    fontSize: 28,
-    fontWeight: '700',
+  cardTitle: {
+    fontSize: 26,
+    fontWeight: '800',
     color: COLORS.text.primary,
     textAlign: 'center',
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
-  slideDesc: {
-    fontSize: 17,
+  cardDesc: {
+    fontSize: 15,
     color: COLORS.text.secondary,
     textAlign: 'center',
-    lineHeight: 26,
+    lineHeight: 23,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  tag: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border.medium,
+    backgroundColor: COLORS.overlay.white07,
+  },
+  tagText: {
+    fontSize: 13,
+    color: COLORS.text.muted,
+    fontWeight: '500',
   },
   navArea: {
-    gap: 24,
+    paddingHorizontal: 24,
+    gap: 20,
   },
   dotsRow: {
     flexDirection: 'row',
@@ -287,4 +487,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

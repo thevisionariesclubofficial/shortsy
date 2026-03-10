@@ -38,6 +38,7 @@ import { TermsScreen } from '../screens/TermsScreen';
 import { WelcomeChoice } from '../screens/WelcomeChoice';
 import { resolveWatchNowScreen } from '../services/navigationService';
 import { COLORS } from '../constants/colors';
+import { BrowseDetailScreen } from '../screens/BrowseDetailScreen';
 
 function App() {
   const {
@@ -200,6 +201,7 @@ function App() {
               onRentedClick={onRentedClick}
               onRefreshRentals={onRefreshRentals}
               onGenreClick={(genre) => navigate({ type: 'genreDetail', genre })}
+              onLanguageClick={(language) => navigate({ type: 'languageDetail', language })}
             />
           )}
           {screen.type === 'browse' && (
@@ -236,8 +238,15 @@ function App() {
 
       {/* ── Genre Detail ── */}
       {screen.type === 'genreDetail' && (
-        <GenreDetailScreen
+        <BrowseDetailScreen
           genre={screen.genre}
+          onBack={() => navigate({ type: 'home' })}
+          onContentClick={onContentClick}
+        />
+      )}
+      {screen.type === 'languageDetail' && (
+        <BrowseDetailScreen
+          language={screen.language}
           onBack={() => navigate({ type: 'home' })}
           onContentClick={onContentClick}
         />

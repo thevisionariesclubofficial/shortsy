@@ -18,8 +18,9 @@ import { COLORS } from '../constants/colors';
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TypeFilter = 'all' | 'short-film' | 'vertical-series';
 
-interface GenreDetailScreenProps {
-  genre: { id: string; name: string; emoji: string };
+interface BrowseDetailScreenProps {
+  genre?: { id: string; name: string; emoji: string };
+  language?: string;
   onBack: () => void;
   onContentClick: (content: Content) => void;
 }
@@ -47,10 +48,8 @@ function Pill({
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function GenreDetailScreen({ genre, onBack, onContentClick }: GenreDetailScreenProps) {
+export function BrowseDetailScreen({ genre, language, onBack, onContentClick }: BrowseDetailScreenProps) {
   const [selectedType, setSelectedType] = useState<TypeFilter>('all');
-
-  // ── Service-fetched state ─────────────────────────────────────────────────
   const [allContent, setAllContent] = useState<Content[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,28 +58,34 @@ export function GenreDetailScreen({ genre, onBack, onContentClick }: GenreDetail
     clearContentCache();
     setRefreshing(true);
     try {
-      const allRes = await listContent({ genre: genre.name });
+      const filter: any = {};
+      if (genre) filter.genre = genre.name;
+      if (language) filter.language = language;
+      const allRes = await listContent(filter);
       setAllContent(allRes.data);
     } catch (err) {
       console.error('[GenreDetailScreen] Pull-to-refresh failed:', err);
     } finally {
       setRefreshing(false);
     }
-  }, [genre.name]);
+  }, [genre, language]);
 
   useEffect(() => {
-    async function fetchGenreContent() {
+    async function fetchContent() {
       try {
-        const allRes = await listContent({ genre: genre.name });
+        const filter: any = {};
+        if (genre) filter.genre = genre.name;
+        if (language) filter.language = language;
+        const allRes = await listContent(filter);
         setAllContent(allRes.data);
       } catch (err) {
-        console.error('[GenreDetailScreen] Failed to fetch genre content:', err);
+        console.error('[GenreDetailScreen] Failed to fetch content:', err);
       } finally {
         setLoading(false);
       }
     }
-    fetchGenreContent();
-  }, [genre.name]);
+    fetchContent();
+  }, [genre, language]);
 
   // Client-side filtering by type
   const filtered = allContent.filter(c => {
@@ -108,8 +113,8 @@ export function GenreDetailScreen({ genre, onBack, onContentClick }: GenreDetail
             <Ionicons name="chevron-back" size={22} color={COLORS.text.primary} />
           </TouchableOpacity>
           <View style={styles.headerTitleRow}>
-            <Text style={styles.headerEmoji}>{genre.emoji}</Text>
-            <Text style={styles.headerTitle}>{genre.name}</Text>
+            {genre ? <Text style={styles.headerEmoji}>{genre.emoji}</Text> : <Ionicons name="language" size={24} color={COLORS.icon.brand} />}
+            <Text style={styles.headerTitle}>{genre ? genre.name : language}</Text>
           </View>
           <View style={{ width: 36 }} />
         </View>
@@ -165,7 +170,7 @@ export function GenreDetailScreen({ genre, onBack, onContentClick }: GenreDetail
               ))
             ) : (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>No {genre.name.toLowerCase()} content found</Text>
+                <Text style={styles.emptyText}>No {genre ? genre.name.toLowerCase() : language && language.toLowerCase()} content found</Text>
               </View>
             )}
           </>

@@ -13,7 +13,6 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { MoodCard } from '../components/MoodCard';
@@ -27,7 +26,7 @@ import {
 import type { WatchProgress, FeaturedHero } from '../types/api';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { COLORS } from '../constants/colors';
-import { ENV } from '../constants/env';
+import { LanguageCard } from '../components/LanguageCard';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
@@ -178,7 +177,6 @@ function HeroCard({
   rentedContent,
   progressRecord,
   onWatchNow,
-  safeTop,
 }: {
   hero: FeaturedHero;
   onPress: () => void;
@@ -186,7 +184,6 @@ function HeroCard({
   rentedContent: Content[];
   progressRecord: Record<string, WatchProgress>;
   onWatchNow: () => void;
-  safeTop: number;
 }) {
   const [showVideo, setShowVideo] = useState(false);
   const [imageOpacity] = useState(new Animated.Value(1));
@@ -258,7 +255,7 @@ function HeroCard({
       />
 
       {/* App bar */}
-      <View style={[heroStyles.appBar, { top: safeTop + 8 }]}>
+      <View style={heroStyles.appBar}>
         <View style={heroStyles.appBarBrand}>
           <Image
             source={require('../assets/logo.png')}
@@ -311,12 +308,12 @@ interface HomePageProps {
   onRentedClick: (content: Content) => void;
   onRefreshRentals?: () => Promise<void>;
   onGenreClick: (genre: { id: string; name: string; emoji: string }) => void;
+  onLanguageClick: (language: string) => void;
 }
 
-export function HomePage({ onContentClick, onSearchClick, rentedContent = [], progressMap = new Map(), onRentedClick, onRefreshRentals, onGenreClick }: HomePageProps) {
-  const { top: safeTop } = useSafeAreaInsets();
+export function HomePage({ onContentClick, onSearchClick, rentedContent = [], progressMap = new Map(), onRentedClick, onRefreshRentals, onGenreClick, onLanguageClick }: HomePageProps) {
   // ── Service-fetched state ─────────────────────────────────────────────────
-  const [shortFilms,        setShortFilms]        = useState<Content[]>([]);
+  const [allContent,       setAllContent]       = useState<Content[]>([]);
   const [featuredContent,  setFeaturedContent]  = useState<Content[]>([]);
   const [festivalWinners,  setFestivalWinners]  = useState<Content[]>([]);
   const [verticalSeries,   setVerticalSeries]   = useState<Content[]>([]);
@@ -324,6 +321,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
   const [hero,             setHero]             = useState<FeaturedHero | null>(null);
   const [loading,          setLoading]          = useState(true);
   const [refreshing,       setRefreshing]       = useState(false);
+  const [languageList, setLanguageList] = useState<string[]>([]);
   
   // Convert Map to Record for ContentCard compatibility
   const progressRecord = React.useMemo(() => {
@@ -343,14 +341,10 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         await onRefreshRentals();
       }
       
-      const vsLimit   = ENV.HOME_VERTICAL_SERIES_COUNT  > 0 ? ENV.HOME_VERTICAL_SERIES_COUNT  : undefined;
-      const fwLimit   = ENV.HOME_FESTIVAL_WINNERS_COUNT > 0 ? ENV.HOME_FESTIVAL_WINNERS_COUNT : undefined;
-      const [featuredRes, metaRes, sfRes, vsRes, fwRes] = await Promise.all([
+      const [featuredRes, metaRes, allRes] = await Promise.all([
         getFeaturedContent(),
         getContentMetadata(),
-        listContent({ type: 'short-film' }),
-        listContent({ type: 'vertical-series', limit: vsLimit }),
-        listContent({ festivalWinner: true,    limit: fwLimit }),
+        listContent(),
       ]);
       setHero(featuredRes.hero);
       setFeaturedContent(featuredRes.featured);
@@ -373,10 +367,11 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
             emoji: genreIcons[g] || '🎬',
           }))
       );
-      // Apply local filters as safety net in case API ignores query params
-      setShortFilms(sfRes.data.filter((c: Content) => c.type === 'short-film'));
-      setVerticalSeries(vsRes.data.filter((c: Content) => c.type === 'vertical-series'));
-      setFestivalWinners(fwRes.data.filter((c: Content) => c.festivalWinner));
+      setLanguageList(metaRes.languages || []);
+      const all = allRes.data;
+      setAllContent(all);
+      setFestivalWinners(all.filter((c: Content) => c.festivalWinner));
+      setVerticalSeries(all.filter((c: Content) => c.type === 'vertical-series'));
     } catch (err) {
       console.error('[HomePage] Pull-to-refresh failed:', err);
     } finally {
@@ -387,15 +382,11 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
   useEffect(() => {
     async function fetchHomeData() {
       try {
-        // All five calls fire in parallel — section limits come from ENV
-        const vsLimit = ENV.HOME_VERTICAL_SERIES_COUNT  > 0 ? ENV.HOME_VERTICAL_SERIES_COUNT  : undefined;
-        const fwLimit = ENV.HOME_FESTIVAL_WINNERS_COUNT > 0 ? ENV.HOME_FESTIVAL_WINNERS_COUNT : undefined;
-        const [featuredRes, metaRes, sfRes, vsRes, fwRes] = await Promise.all([
+        // All three calls fire in parallel
+        const [featuredRes, metaRes, allRes] = await Promise.all([
           getFeaturedContent(),
           getContentMetadata(),
-          listContent({ type: 'short-film' }),
-          listContent({ type: 'vertical-series', limit: vsLimit }),
-          listContent({ festivalWinner: true,    limit: fwLimit }),
+          listContent(),
         ]);
 
         setHero(featuredRes.hero);
@@ -419,11 +410,11 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
               emoji: genreIcons[g] || '🎬',
             }))
         );
-
-        // Apply local filters as safety net in case API ignores query params
-        setShortFilms(sfRes.data.filter((c: Content) => c.type === 'short-film'));
-        setVerticalSeries(vsRes.data.filter((c: Content) => c.type === 'vertical-series'));
-        setFestivalWinners(fwRes.data.filter((c: Content) => c.festivalWinner));
+        setLanguageList(metaRes.languages || []);
+        const all = allRes.data;
+        setAllContent(all);
+        setFestivalWinners(all.filter(c => c.festivalWinner));
+        setVerticalSeries(all.filter(c => c.type === 'vertical-series'));
       } catch (err) {
         console.error('[HomePage] Failed to fetch home data:', err);
       } finally {
@@ -439,7 +430,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
   
   const player = useVideoPlayer(videoSource, p => {
     p.loop = false;
-    p.muted = false;
+    p.muted = true;
     p.play();
   });
   
@@ -458,7 +449,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
       {/* Fixed search button floating top-right over hero */}
       <TouchableOpacity
         onPress={onSearchClick}
-        style={[styles.searchFab, { top: safeTop + 8 }]}
+        style={styles.searchFab}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Ionicons name="search" size={20} color={COLORS.icon.white} />
       </TouchableOpacity>
@@ -500,7 +491,6 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
             player={player}
             rentedContent={rentedContent}
             progressRecord={progressRecord}
-            safeTop={safeTop}
             onWatchNow={() => {
               // Find the actual rented content to preserve all properties and progress
               const rentedHeroContent = rentedContent.find(c => c.id === hero.id);
@@ -583,10 +573,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.hRow}>
-            {(ENV.HOME_VERTICAL_SERIES_COUNT > 0
-              ? verticalSeries.slice(0, ENV.HOME_VERTICAL_SERIES_COUNT)
-              : verticalSeries
-            ).map(content => (
+            {verticalSeries.map(content => (
               <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}
@@ -607,10 +594,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.hRow}>
-            {(ENV.HOME_FESTIVAL_WINNERS_COUNT > 0
-              ? festivalWinners.slice(0, ENV.HOME_FESTIVAL_WINNERS_COUNT)
-              : festivalWinners
-            ).map(content => (
+            {festivalWinners.map(content => (
               <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}
@@ -621,18 +605,40 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
           </ScrollView>
         </View>
 
-        {/* ── Short Films ── */}
+        
+
+        {/* ── Browse by Language ── */}
+        <View style={styles.section}>
+          <SectionHeader
+            Icon={<Ionicons name="language" size={18} color={COLORS.icon.brand} />}
+            title="Browse by Language"
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.moodRow}
+          >
+            {languageList.filter(lang => lang !== 'All').map(lang => (
+              <LanguageCard
+                key={lang}
+                name={lang}
+                onClick={() => onLanguageClick(lang)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* ── All Content ── */}
         <View style={styles.section}>
           <SectionHeader
             Icon={<Ionicons name="film" size={18} color={COLORS.icon.brand} />}
-            title="Short Films"
-            subtitle="Curated cinema under 40 minutes"
+            title="All Content"
           />
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.hRow}>
-            {shortFilms.map(content => (
+            {allContent.map(content => (
               <View key={content.id} style={styles.hItem}>
                 <ContentCard
                   content={content}
@@ -665,7 +671,7 @@ const styles = StyleSheet.create({
   },
   searchFab: {
     position: 'absolute',
-    top: 0,
+    top: Platform.OS === 'ios' ? 54 : 18,
     right: 16,
     zIndex: 20,
     width: 38,
@@ -755,7 +761,7 @@ const heroStyles = StyleSheet.create({
   },
   appBar: {
     position: 'absolute',
-    top: 0,
+    top: Platform.OS === 'ios' ? 52 : 16,
     left: 16,
     right: 64,
     flexDirection: 'row',
