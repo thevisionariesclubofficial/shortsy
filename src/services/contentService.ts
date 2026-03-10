@@ -1,3 +1,10 @@
+/**
+ * Fetch metadata items by type from new API
+ */
+export async function fetchMetadata(type: 'genre' | 'language' | 'mood', includeInactive = false): Promise<any[]> {
+  const res = await apiClient.get<{ data: any[] }>(`/metadata/items?type=${type}&includeInactive=${includeInactive}`);
+  return res.data;
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // 3.x  Add Content (Upload)
 // POST /content

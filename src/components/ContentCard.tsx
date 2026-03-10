@@ -103,10 +103,15 @@ export function ContentCard({ content, onClick }: ContentCardProps) {
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>{content.title}</Text>
 
-        <View style={styles.ratingRow}>
+        {/* TODO: Implement ratings and views in future */}
+        {/* <View style={styles.ratingRow}>
           <Ionicons name="star" size={11} color={COLORS.accent.gold} />
           <Text style={styles.ratingText}>{content.rating}</Text>
           <Text style={styles.dot}>•</Text>
+          <Text style={styles.durationText}>{content.duration}</Text>
+        </View> */}
+
+        <View style={styles.ratingRow}>
           <Text style={styles.durationText}>{content.duration}</Text>
         </View>
 

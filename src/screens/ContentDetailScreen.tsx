@@ -185,8 +185,9 @@ export function ContentDetailScreen({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content.id]);
 
-  const formatViews = (v: number) =>
-    v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
+  // TODO: Implement ratings and views in future
+  // const formatViews = (v: number) =>
+  //   v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v);
 
   const handleShare = async () => {
     const webLink = `${ENV.APP_WEB_URL}/open.html?id=${content.id}&title=${encodeURIComponent(content.title)}`;
@@ -280,14 +281,15 @@ export function ContentDetailScreen({
 
           {/* Stats row */}
           <View style={styles.statsRow}>
-            <View style={styles.statItem}>
+            {/* TODO: Implement ratings and views in future */}
+            {/* <View style={styles.statItem}>
               <Ionicons name="star" size={14} color={COLORS.accent.gold} />
               <Text style={styles.statHighlight}>{content.rating}</Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="people" size={14} color={COLORS.text.muted} />
               <Text style={styles.statDim}>{formatViews(content.views)} views</Text>
-            </View>
+            </View> */}
             <View style={styles.statItem}>
               <Ionicons name="time-outline" size={14} color={COLORS.text.muted} />
               <Text style={styles.statDim}>{content.duration}</Text>
