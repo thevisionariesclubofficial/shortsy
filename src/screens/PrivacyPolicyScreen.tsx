@@ -86,7 +86,7 @@ export function PrivacyPolicyScreen({ onBack }: PrivacyPolicyScreenProps) {
             <Text style={styles.bulletPoint}>• Cloud service providers for infrastructure</Text>
             <Text style={styles.bulletPoint}>• Analytics partners to improve our service</Text>
             <Text style={styles.bulletPoint}>• Legal authorities when required by law</Text>
-            <Text style={styles.paragraph} style={{marginTop: 12}}>
+            <Text style={styles.paragraph}>
               All third-party partners are contractually bound to protect your data.
             </Text>
           </View>
@@ -125,7 +125,7 @@ export function PrivacyPolicyScreen({ onBack }: PrivacyPolicyScreenProps) {
             <Text style={styles.bulletPoint}>• Remember your preferences</Text>
             <Text style={styles.bulletPoint}>• Analyze app performance</Text>
             <Text style={styles.bulletPoint}>• Improve content recommendations</Text>
-            <Text style={styles.paragraph} style={{marginTop: 12}}>
+            <Text style={styles.paragraph}>
               You can manage cookie preferences in your device settings.
             </Text>
           </View>
@@ -271,6 +271,7 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     fontSize: 14,
+    marginTop: 12,
     color: COLORS.overlay.white80,
     lineHeight: 22,
     marginBottom: 8,

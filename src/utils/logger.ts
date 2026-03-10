@@ -47,8 +47,7 @@
  * Automatically false in release builds (Metro sets __DEV__ = false).
  * Override manually if needed: const LOG_ENABLED = true;
  */
-const LOG_ENABLED: boolean =
-  typeof __DEV__ !== 'undefined' ? __DEV__ : true;
+const LOG_ENABLED: boolean = true; // Force logging enabled for debugging
 
 /**
  * Minimum severity to print. Raise to 'INFO' or 'WARN' to reduce noise.

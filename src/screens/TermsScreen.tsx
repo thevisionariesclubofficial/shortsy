@@ -85,7 +85,7 @@ export function TermsScreen({ onBack }: TermsScreenProps) {
             </Text>
             <Text style={styles.bulletPoint}>• Stream content for personal, non-commercial use</Text>
             <Text style={styles.bulletPoint}>• Watch within the rental or subscription period</Text>
-            <Text style={styles.paragraph} style={{marginTop: 12}}>
+            <Text style={styles.paragraph}>
               You may NOT:
             </Text>
             <Text style={styles.bulletPoint}>• Download, copy, or redistribute content</Text>
@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     fontSize: 14,
+    marginTop: 12,
     color: COLORS.overlay.white80,
     lineHeight: 22,
     marginBottom: 8,

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Linking,
@@ -17,8 +18,11 @@ import { Content } from '../data/mockData';
 import { getPremiumStatus, PremiumSubscription } from '../services/premiumService';
 import { logger } from '../utils/logger';
 import type { UserProfile, PaymentHistoryRecord } from '../types/api';
+import { launchImageLibrary, Asset } from 'react-native-image-picker';
 import { COLORS } from '../constants/colors';
 
+import { uploadAvatar } from '../services/avatarService';
+import { updateProfile } from '../services/profileService';
 
 // ─── SettingsModal ────────────────────────────────────────────────────────────
 function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClose: () => void; navigate: (screen: any) => void }) {
@@ -64,7 +68,7 @@ function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClo
             onPress={onClose}
             style={modalStyles.closeBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={16} color={COLORS.text.tertiary} />
+            <Ionicons name="close" size={16} color="#a3a3a3" />
           </TouchableOpacity>
         </View>
 
@@ -88,7 +92,7 @@ function SettingsModal({ visible, onClose, navigate }: { visible: boolean; onClo
                     }}
                     activeOpacity={0.7}>
                     <View style={modalStyles.itemIconWrap}>
-                      <Ionicons name={iconName as any} size={20} color={COLORS.brand.violet} />
+                      <Ionicons name={iconName as any} size={20} color="#a855f7" />
                     </View>
                     <Text style={modalStyles.itemLabel}>{label}</Text>
                     <View style={modalStyles.itemChevron} />
@@ -121,24 +125,31 @@ interface ProfilePageProps {
   premiumSubscription: PremiumSubscription | null;
   user: UserProfile | null;
   paymentHistory: PaymentHistoryRecord[];
-  favorites: Content[];
+   favorites: Content[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, onPaymentHistoryClick, navigate, isPremium, premiumSubscription, user, paymentHistory, favorites }: ProfilePageProps) {
+export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, onPaymentHistoryClick, navigate, isPremium, premiumSubscription, user, paymentHistory,favorites }: ProfilePageProps) {
   const [totalSpent, setTotalSpent] = useState(0);
   const [contentWatched, setContentWatched] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const favoritesRef = useRef<ScrollView>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? null);
   
+  // Update avatarUrl if user.avatarUrl changes (e.g., on login)
+  useEffect(() => {
+    setAvatarUrl(user?.avatarUrl ?? null);
+  }, [user?.avatarUrl]);
+  
+  const favoritesRef = useRef<ScrollView>(null);
+
   const menuItems: Array<{ iconName: string; label: string; onPress?: () => void }> = [
-    
     { iconName: 'time-outline',     label: 'Watch History', onPress: onHistoryClick },
     { iconName: 'receipt-outline',  label: 'Payment History', onPress: onPaymentHistoryClick },
     { iconName: 'settings-outline', label: 'Settings',      onPress: () => setShowSettings(true) },
   ];
-
+  
   useEffect(() => {
     // Calculate total spent and content watched from payment history (only paid orders)
     const paidOrders = paymentHistory.filter(order => order.status === 'paid');
@@ -152,6 +163,43 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
     navigate({ type: 'premiumPayment' });
   };
 
+  const handleAvatarUpload = async () => {
+    launchImageLibrary({ mediaType: 'photo', quality: 0.7, includeBase64: true }, async (response) => {
+      if (response.didCancel || response.errorCode || !response.assets || response.assets.length === 0) return;
+      setAvatarUploading(true);
+      const asset: Asset = response.assets[0];
+      try {
+        let base64 = asset.base64;
+        if (!base64 && asset.uri) {
+          // Fallback: fetch and convert to base64 if not provided (shouldn't happen with includeBase64)
+          const res = await fetch(asset.uri);
+          const blob = await res.blob();
+          base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const dataUrl = reader.result as string;
+              resolve(dataUrl.split(',')[1]);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+        if (!base64) throw new Error('Could not get image data');
+        const dataUrl = `data:${asset.type ?? 'image/jpeg'};base64,${base64}`;
+        const uploadedUrl = await uploadAvatar(dataUrl);
+        setAvatarUrl(uploadedUrl);
+        // Update user profile with new avatarUrl
+        await updateProfile({ avatarUrl: uploadedUrl });
+        logger.info('PROFILE', 'Avatar uploaded and profile updated', { avatarUrl: uploadedUrl });
+      } catch (err) {
+        logger.error('PROFILE', 'Avatar upload failed', err);
+        Alert.alert('Upload Failed', 'Could not upload avatar. Please try again.');
+      } finally {
+        setAvatarUploading(false);
+      }
+    });
+  };
+
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ScrollView
@@ -160,13 +208,27 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         showsVerticalScrollIndicator={false}>
         {/* ── Avatar + name ── */}
         <View style={styles.avatarRow}>
-          <LinearGradient
-            colors={[COLORS.brand.violet, COLORS.brand.pink]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.avatarCircle}>
-            <Ionicons name="person" size={32} color={COLORS.text.primary} />
-          </LinearGradient>
+          <View style={styles.avatarWrapper}>
+            <LinearGradient
+              colors={['#a855f7', '#ec4899']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.avatarCircle}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <Ionicons name="person" size={32} color="#ffffff" />
+              )}
+              <TouchableOpacity style={styles.avatarUploadBtn} onPress={handleAvatarUpload} disabled={avatarUploading}>
+                <Ionicons name="camera" size={18} color="#ffffff" />
+              </TouchableOpacity>
+            </LinearGradient>
+            {avatarUploading && (
+              <View style={styles.avatarLoadingOverlay}>
+                <ActivityIndicator size="large" color="#a855f7" />
+              </View>
+            )}
+          </View>
           <View style={styles.avatarInfo}>
             <Text style={styles.userName}>{user?.displayName ?? 'Film Lover'}</Text>
             <Text style={styles.userEmail}>{user?.email ?? 'filmfan@shortsy.app'}</Text>
@@ -195,7 +257,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         {!isPremium && (
           <View style={styles.upgradeWrap}>
             <LinearGradient
-              colors={[COLORS.accent.violetBg, COLORS.brand.primaryDark, COLORS.brand.fuchsia]}
+              colors={['#4f1fa3', '#7c3aed', '#c026d3']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.upgradeCard}>
@@ -208,7 +270,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                 <View style={styles.upgradeLeft}>
                   {/* Badge row */}
                   <View style={styles.upgradePill}>
-                    <Ionicons name="diamond" size={12} color={COLORS.accent.yellow} />
+                    <Ionicons name="diamond" size={12} color="#fde047" />
                     <Text style={styles.upgradePillText}>SHORTSY+</Text>
                   </View>
 
@@ -223,14 +285,14 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                       handleUpgradePress();
                     }}>
                     <Text style={styles.upgradeBtnText}>Get Started</Text>
-                    <Ionicons name="arrow-forward" size={14} color={COLORS.brand.primaryDark} />
+                    <Ionicons name="arrow-forward" size={14} color="#7c3aed" />
                   </TouchableOpacity>
                 </View>
 
                 {/* Right: decorative icon stack */}
                 <View style={styles.upgradeRight}>
                   <View style={styles.upgradeIconRing}>
-                    <Ionicons name="diamond" size={36} color={COLORS.overlay.yellowStrong} />
+                    <Ionicons name="diamond" size={36} color="rgba(253,224,71,0.9)" />
                   </View>
                   
                 </View>
@@ -241,7 +303,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         {isPremium && premiumSubscription && (
           <View style={styles.upgradeWrap}>
             <LinearGradient
-              colors={[COLORS.accent.emerald900, COLORS.accent.emerald, COLORS.accent.emerald600]}
+              colors={['#064e35', '#10b981', '#059669']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.upgradeCard}>
@@ -252,7 +314,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                 {/* Left */}
                 <View style={styles.upgradeLeft}>
                   <View style={[styles.upgradePill, styles.upgradePillGreen]}>
-                    <Ionicons name="checkmark-circle" size={12} color={COLORS.accent.emerald300} />
+                    <Ionicons name="checkmark-circle" size={12} color="#6ee7b7" />
                     <Text style={[styles.upgradePillText, styles.upgradePillTextGreen]}>ACTIVE</Text>
                   </View>
 
@@ -260,7 +322,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                   <Text style={styles.upgradePrice}>Unlimited premium access{"\n\n"}</Text>
 
                   <View style={styles.premiumExpiryRow}>
-                    <Ionicons name="calendar-outline" size={13} color={COLORS.overlay.white60} />
+                    <Ionicons name="calendar-outline" size={13} color="rgba(255,255,255,0.6)" />
                     <Text style={styles.premiumExpiryLabel}>Valid until </Text>
                     <Text style={styles.premiumExpiryDate}>
                       {new Date(premiumSubscription.expiresAt).toLocaleDateString('en-US', {
@@ -275,7 +337,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                 {/* Right */}
                 <View style={styles.upgradeRight}>
                   <View style={[styles.upgradeIconRing, styles.upgradeIconRingGreen]}>
-                    <Ionicons name="shield-checkmark" size={36} color={COLORS.overlay.emeraldStrong} />
+                    <Ionicons name="shield-checkmark" size={36} color="rgba(110,231,183,0.9)" />
                   </View>
                 </View>
               </View>
@@ -337,13 +399,13 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
         <View style={styles.menuSection}>
           {menuItems.map(({ iconName, label, onPress }) => (
             <TouchableOpacity key={label} style={styles.menuItem} activeOpacity={0.7} onPress={onPress}>
-              <Ionicons name={iconName as any} size={20} color={COLORS.text.tertiary} />
+              <Ionicons name={iconName as any} size={20} color="#a3a3a3" />
               <Text style={styles.menuLabel}>{label}</Text>
               <View style={styles.menuChevron} />
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setShowLogoutConfirm(true)}>
-            <Ionicons name="log-out-outline" size={20} color={COLORS.accent.red} />
+            <Ionicons name="log-out-outline" size={20} color="#ef4444" />
             <Text style={[styles.menuLabel, styles.menuDanger]}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -360,7 +422,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
           <View style={styles.logoutModal}>
             {/* Icon */}
             <View style={styles.logoutIconWrap}>
-              <Ionicons name="log-out-outline" size={24} color={COLORS.accent.red} />
+              <Ionicons name="log-out-outline" size={24} color="#ef4444" />
             </View>
             <Text style={styles.logoutTitle}>Log Out?</Text>
             <Text style={styles.logoutSubtitle}>
@@ -391,11 +453,11 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.bg.black,
+    backgroundColor: '#000000',
   },
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg.black,
+    backgroundColor: '#000000',
   },
   scroll: {
     paddingBottom: 100,
@@ -405,12 +467,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.bg.elevated,
+    borderBottomColor: '#1a1a1a',
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#ffffff',
     paddingBottom: 14,
   },
   avatarRow: {
@@ -421,6 +483,11 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 8,
   },
+  avatarWrapper: {
+    position: 'relative',
+    width: 72,
+    height: 72,
+  },
   avatarCircle: {
     width: 72,
     height: 72,
@@ -428,17 +495,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 36,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 999,
+  },
+  uploadingText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 36,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  avatarUploadBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+  },
   avatarInfo: {
     flex: 1,
   },
   userName: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#ffffff',
   },
   userEmail: {
     fontSize: 13,
-    color: COLORS.text.muted,
+    color: '#737373',
     marginTop: 2,
   },
   statsRow: {
@@ -449,7 +553,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: COLORS.bg.subtle,
+    backgroundColor: '#111111',
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -457,11 +561,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.brand.violet,
+    color: '#a855f7',
   },
   statLabel: {
     fontSize: 11,
-    color: COLORS.text.muted,
+    color: '#737373',
     marginTop: 4,
   },
   upgradeWrap: {
@@ -479,7 +583,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: COLORS.overlay.white07,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     top: -50,
     left: -40,
   },
@@ -488,7 +592,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: COLORS.overlay.white07,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     bottom: -30,
     right: -20,
   },
@@ -512,45 +616,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: COLORS.overlay.progress,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 20,
     paddingVertical: 4,
     paddingHorizontal: 10,
     alignSelf: 'flex-start',
   },
   upgradePillGreen: {
-    backgroundColor: COLORS.overlay.emeraldLight20,
+    backgroundColor: 'rgba(110,231,183,0.2)',
   },
   upgradePillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.accent.yellowLight,
+    color: '#fde68a',
     letterSpacing: 0.8,
   },
   upgradePillTextGreen: {
-    color: COLORS.accent.emerald300,
+    color: '#6ee7b7',
   },
   upgradeTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: COLORS.text.primary,
+    color: '#ffffff',
     lineHeight: 28,
   },
   upgradePrice: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.overlay.white95,
+    color: 'rgba(255,255,255,0.95)',
   },
   upgradeSub: {
     fontSize: 12,
-    color: COLORS.overlay.white55,
+    color: 'rgba(255,255,255,0.55)',
     marginTop: -2,
   },
   upgradeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.text.primary,
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -560,21 +664,21 @@ const styles = StyleSheet.create({
   upgradeBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.brand.primaryDark,
+    color: '#7c3aed',
   },
   upgradeIconRing: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: COLORS.overlay.white12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1.5,
-    borderColor: COLORS.overlay.white20,
+    borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   upgradeIconRingGreen: {
-    backgroundColor: COLORS.overlay.emeraldLight15,
-    borderColor: COLORS.overlay.emeraldLight30,
+    backgroundColor: 'rgba(110,231,183,0.15)',
+    borderColor: 'rgba(110,231,183,0.3)',
   },
   upgradeFeatureTags: {
     gap: 5,
@@ -583,18 +687,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.overlay.white10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 6,
     paddingVertical: 3,
     paddingHorizontal: 7,
   },
   featureTagGreen: {
-    backgroundColor: COLORS.overlay.emeraldTint,
+    backgroundColor: 'rgba(52,211,153,0.15)',
   },
   featureTagText: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.overlay.white80,
+    color: 'rgba(255,255,255,0.8)',
   },
   premiumExpiryRow: {
     flexDirection: 'row',
@@ -603,24 +707,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: COLORS.overlay.progress,
+    borderTopColor: 'rgba(255,255,255,0.15)',
   },
   premiumExpiryLabel: {
     fontSize: 12,
-    color: COLORS.overlay.white60,
+    color: 'rgba(255,255,255,0.6)',
     fontWeight: '500',
   },
   premiumExpiryDate: {
     fontSize: 13,
-    color: COLORS.text.primary,
+    color: '#ffffff',
     fontWeight: '700',
   },
-  menuSection: {
-    paddingHorizontal: 20,
-    gap: 8,
-    marginBottom: 8,
-  },
-
   // ── Favorites shelf ──
   favSection: {
     paddingHorizontal: 20,
@@ -705,11 +803,16 @@ const styles = StyleSheet.create({
     color: COLORS.border.medium,
     textAlign: 'center',
   },
+  menuSection: {
+    paddingHorizontal: 20,
+    gap: 8,
+    marginBottom: 8,
+  },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: COLORS.bg.subtle,
+    backgroundColor: '#111111',
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -717,45 +820,45 @@ const styles = StyleSheet.create({
   menuLabel: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: '#ffffff',
     fontWeight: '500',
   },
   menuDanger: {
-    color: COLORS.accent.red,
+    color: '#ef4444',
   },
   menuChevron: {
     width: 6,
     height: 6,
     borderTopWidth: 2,
     borderRightWidth: 2,
-    borderColor: COLORS.text.dimmed,
+    borderColor: '#525252',
     transform: [{ rotate: '45deg' }],
   },
 
   // Logout confirmation modal
   logoutOverlay: {
     flex: 1,
-    backgroundColor: COLORS.overlay.dark70,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
   },
   logoutModal: {
     width: '100%',
-    backgroundColor: COLORS.bg.elevated,
+    backgroundColor: '#1a1a1a',
     borderRadius: 20,
     paddingTop: 28,
     paddingBottom: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border.muted,
+    borderColor: '#2a2a2a',
   },
   logoutIconWrap: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: COLORS.overlay.redTint12,
+    backgroundColor: 'rgba(239,68,68,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -764,12 +867,12 @@ const styles = StyleSheet.create({
   logoutTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#ffffff',
     marginBottom: 8,
   },
   logoutSubtitle: {
     fontSize: 13,
-    color: COLORS.text.tertiary,
+    color: '#a3a3a3',
     textAlign: 'center',
     lineHeight: 19,
     marginBottom: 24,
@@ -787,34 +890,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoutBtnCancel: {
-    backgroundColor: COLORS.border.muted,
+    backgroundColor: '#2a2a2a',
   },
   logoutBtnConfirm: {
-    backgroundColor: COLORS.accent.red,
+    backgroundColor: '#ef4444',
   },
   logoutBtnCancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#ffffff',
   },
   logoutBtnConfirmText: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#ffffff',
   },
 });
 
 const modalStyles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: COLORS.bg.black,
+    backgroundColor: '#000000',
     paddingTop: 12,
   },
   handle: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: COLORS.border.handle,
+    backgroundColor: '#333333',
     alignSelf: 'center',
     marginBottom: 16,
   },
@@ -824,19 +927,19 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.bg.elevated,
+    borderBottomColor: '#1a1a1a',
   },
   headerTitle: {
     flex: 1,
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#ffffff',
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.bg.modal,
+    backgroundColor: '#1f1f1f',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -850,13 +953,13 @@ const modalStyles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.text.dimmed,
+    color: '#525252',
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 8,
   },
   sectionCard: {
-    backgroundColor: COLORS.bg.subtle,
+    backgroundColor: '#111111',
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -869,20 +972,20 @@ const modalStyles = StyleSheet.create({
   },
   itemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.bg.elevated,
+    borderBottomColor: '#1a1a1a',
   },
   itemIconWrap: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: COLORS.bg.heroStart,
+    backgroundColor: '#1a0533',
     alignItems: 'center',
     justifyContent: 'center',
   },
   itemLabel: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: '#ffffff',
     fontWeight: '500',
   },
   itemChevron: {
@@ -890,7 +993,7 @@ const modalStyles = StyleSheet.create({
     height: 6,
     borderTopWidth: 2,
     borderRightWidth: 2,
-    borderColor: COLORS.text.dimmed,
+    borderColor: '#525252',
     transform: [{ rotate: '45deg' }],
   },
   footer: {
@@ -902,11 +1005,11 @@ const modalStyles = StyleSheet.create({
   },
   footerVersion: {
     fontSize: 13,
-    color: COLORS.text.dimmed,
+    color: '#525252',
     fontWeight: '500',
   },
   footerCopy: {
     fontSize: 11,
-    color: COLORS.border.handle,
+    color: '#333333',
   },
 });

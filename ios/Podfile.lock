@@ -1483,6 +1483,28 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - react-native-image-picker (8.2.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - react-native-orientation-locker (1.7.0):
     - React-Core
   - react-native-razorpay (2.3.1):
@@ -2059,6 +2081,7 @@ DEPENDENCIES:
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - react-native-app-auth (from `../node_modules/react-native-app-auth`)
   - react-native-config (from `../node_modules/react-native-config`)
+  - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-orientation-locker (from `../node_modules/react-native-orientation-locker`)
   - react-native-razorpay (from `../node_modules/react-native-razorpay`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
@@ -2198,6 +2221,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-app-auth"
   react-native-config:
     :path: "../node_modules/react-native-config"
+  react-native-image-picker:
+    :path: "../node_modules/react-native-image-picker"
   react-native-orientation-locker:
     :path: "../node_modules/react-native-orientation-locker"
   react-native-razorpay:
@@ -2334,6 +2359,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: ddaf25a8d69f694bc880fb6055e34d79f1d50138
   react-native-app-auth: 9b0a0e3ca279c3426a451e2607c8483808b8ed4a
   react-native-config: 0ac243e38516dbb8908a09eb87d76620a3083886
+  react-native-image-picker: 7793e84ad7b802351cf687c18bb42ad30150b29b
   react-native-orientation-locker: 5819fd23ca89cbac0d736fb4314745f62716d517
   react-native-razorpay: 41a407f4367b5b0e1bba89a77f9cab1918860844
   react-native-safe-area-context: 53f796cb6c814661bbe99fbdfd0585d07b996cdd
