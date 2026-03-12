@@ -17,6 +17,9 @@ end
 target 'shortsy' do
   config = use_native_modules!
 
+  # Required for Firebase and GoogleUtilities compatibility
+  use_modular_headers!
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.

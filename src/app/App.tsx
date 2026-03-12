@@ -39,6 +39,7 @@ import { WelcomeChoice } from '../screens/WelcomeChoice';
 import { resolveWatchNowScreen } from '../services/navigationService';
 import { COLORS } from '../constants/colors';
 import { BrowseDetailScreen } from '../screens/BrowseDetailScreen';
+import { requestNotificationPermissionsAndGetToken, getDeviceTokenForTesting, setupNotificationListener } from '../services/notificationService';
 
 function App() {
   const {
@@ -99,6 +100,37 @@ function App() {
   // State (not ref) so that the flush effect re-runs whenever either
   // the ID arrives OR the screen type changes — whichever happens last.
   const [pendingDeepLinkId, setPendingDeepLinkId] = useState<string | null>(null);
+
+  // Request notification permissions and get token on app load
+  useEffect(() => {
+    const initNotifications = async () => {
+      try {
+        // Add a small delay to ensure Firebase is fully initialized
+        await new Promise(resolve => setTimeout(() => resolve(true), 500));
+        
+        const token = await requestNotificationPermissionsAndGetToken();
+        if (token) {
+          console.log('===================================');
+          console.log('YOUR DEVICE FCM TOKEN:');
+          console.log(token);
+          console.log('===================================');
+        } else {
+          console.warn('[App] Failed to get FCM token - check logs');
+        }
+        
+        // Set up listener for incoming notifications
+        console.log('[App] Setting up notification listener...');
+        setupNotificationListener((data: any) => {
+          console.log('[App] Notification received in app:', data);
+          // The listener will handle displaying foreground notifications
+        });
+      } catch (error) {
+        console.error('[App] Error initializing notifications:', error);
+      }
+    };
+
+    initNotifications();
+  }, []);
 
   useEffect(() => {
     const extractId = (url: string): string | null => {

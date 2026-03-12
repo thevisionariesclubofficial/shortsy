@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>431180594705-e9e6v7m3h4u5k2n9j8p0f5g3k2l0m1n2.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.431180594705-e9e6v7m3h4u5k2n9j8p0f5g3k2l0m1n2</string>
+	<key>API_KEY</key>
+	<string>AIzaSyA4wFnNpzUGrJc2j4PS0BI89Rpg2Kjrl_U</string>
+	<key>GCM_SENDER_ID</key>
+	<string>431180594705</string>
+	<key>PROJECT_ID</key>
+	<string>shortsy-7c19f</string>
+	<key>STORAGE_BUCKET</key>
+	<string>shortsy-7c19f.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:431180594705:ios:920aec057a8b582f9f7bb0</string>
+	<key>DATABASE_URL</key>
+	<string>https://shortsy-7c19f.firebaseio.com</string>
+</dict>
+</plist>
