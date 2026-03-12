@@ -125,7 +125,7 @@ export function CookiePolicyScreen({ onBack }: CookiePolicyScreenProps) {
             <Text style={styles.bulletPoint}>
               • <Text style={styles.bold}>Cloud Providers:</Text> Content delivery and infrastructure
             </Text>
-            <Text style={styles.paragraph} style={{marginTop: 12}}>
+            <Text style={styles.paragraph}>
               These parties have their own privacy policies governing cookie usage.
             </Text>
           </View>

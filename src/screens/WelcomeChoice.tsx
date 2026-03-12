@@ -199,8 +199,8 @@ const styles = StyleSheet.create({
     elevation: 14,
   },
   logoImage: {
-    width: 120,
-    height: 120,
+    width: 200,
+    height: 200,
     borderRadius: 28,
   },
   brandBlock: {

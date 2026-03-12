@@ -186,9 +186,29 @@ export function PaymentScreen({ content, onBack, onSuccess }: PaymentScreenProps
         };
         onSuccess(stubRental);
       } else {
-        logger.error('PaymentScreen', 'Payment failed', err);
-        const errorMessage = err?.description || err?.message || 'Payment failed. Please try again.';
-        setErrorModal({ visible: true, message: errorMessage });
+        // Map error codes to user-friendly messages
+        let userMessage = 'Payment failed. Please try again.';
+        
+        if (err?.code === 'USER_CANCELLED' || err?.message?.includes('Cancel')) {
+          userMessage = 'Payment cancelled. Your money is safe.';
+        } else if (err?.code === 'NETWORK_ERROR' || err?.message?.includes('Network')) {
+          userMessage = 'Network error. Please check your connection and try again.';
+        } else if (err?.code === 'INVALID_CARD' || err?.message?.includes('card')) {
+          userMessage = 'Card details invalid. Please check and try again.';
+        } else if (err?.code === 'INSUFFICIENT_FUNDS') {
+          userMessage = 'Insufficient balance. Please try a different payment method.';
+        } else if (err?.code === 'TIMEOUT' || err?.message?.includes('timeout')) {
+          userMessage = 'Payment timeout. Please try again.';
+        } else if (err?.code === 'PAYMENT_DECLINED') {
+          userMessage = 'Payment declined. Please try a different payment method.';
+        }
+        
+        logger.error('PaymentScreen', 'Payment failed', { 
+          code: err?.code, 
+          contentId: content.id 
+        });
+        
+        setErrorModal({ visible: true, message: userMessage });
         setProcessing(false);
       }
     }

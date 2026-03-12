@@ -16,6 +16,7 @@ import {
 } from '../services/navigationService';
 import { clearRentalStore, getUserRentals, addPremiumRental } from '../services/rentalService';
 import { clearProgressStore, getWatchProgress, getStreamUrl, getEpisodeStreamUrl } from '../services/playbackService';
+import { clearContentCache, getFeaturedContent, getContentMetadata, listContent } from '../services/contentService';
 import type { WatchProgress } from '../types/api';
 import { clearProfileStore, getCurrentUser } from '../services/profileService';
 import { getPaymentHistory } from '../services/rentalService';
@@ -35,12 +36,22 @@ export interface AppStateHook {
   screen: AppScreen;
   isAuthenticated: boolean;
   rentedContent: Content[];
+  rentalMetadata: Map<string, { rentedAt: string }>;
   isPremium: boolean;
   premiumSubscription: PremiumSubscription | null;
   user: UserProfile | null;
   paymentHistory: PaymentHistoryRecord[];
   progressMap: Map<string, WatchProgress>;
   favorites: Content[];
+  // ── Home page data (cached, fetched once) ──
+  hero: FeaturedHero | null;
+  featuredContent: Content[];
+  allContent: Content[];
+  festivalWinners: Content[];
+  verticalSeries: Content[];
+  genreList: { id: string; name: string; emoji: string }[];
+  languageList: string[];
+  homeLoading: boolean;
   showRentalModal: boolean;
   showExpiredModal: boolean;
   expiredMessage: string;
@@ -90,6 +101,7 @@ export interface AppStateHook {
   onRefreshProfile: () => Promise<void>;
   onRefreshPaymentHistory: () => Promise<void>;
   onRefreshProgress: () => Promise<void>;
+  onRefreshContent: () => Promise<void>;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -98,6 +110,7 @@ export function useAppState(): AppStateHook {
   const [isAuthenticated,  setIsAuthenticated]  = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const [rentedContent,    setRentedContent]    = useState<Content[]>([]);
+  const [rentalMetadata,   setRentalMetadata]   = useState<Map<string, { rentedAt: string }>>(new Map());
   const [isPremium,        setIsPremium]        = useState(false);
   const [premiumSubscription, setPremiumSubscription] = useState<PremiumSubscription | null>(null);
   const [user,             setUser]             = useState<UserProfile | null>(null);
@@ -108,6 +121,15 @@ export function useAppState(): AppStateHook {
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   const [expiredMessage,   setExpiredMessage]   = useState('');
   const [isRestoringSession, setIsRestoringSession] = useState(true);
+  // ── Home page data (cached) ──
+  const [hero,             setHero]             = useState<FeaturedHero | null>(null);
+  const [featuredContent,  setFeaturedContent]  = useState<Content[]>([]);
+  const [allContent,       setAllContent]       = useState<Content[]>([]);
+  const [festivalWinners,  setFestivalWinners]  = useState<Content[]>([]);
+  const [verticalSeries,   setVerticalSeries]   = useState<Content[]>([]);
+  const [genreList,        setGenreList]        = useState<{ id: string; name: string; emoji: string }[]>([]);
+  const [languageList,     setLanguageList]     = useState<string[]>([]);
+  const [homeLoading,      setHomeLoading]      = useState(true);
 
   // ── Core navigation ─────────────────────────────────────────────────────────
   const navigate = useCallback((next: AppScreen) => setScreen(next), []);
@@ -126,7 +148,13 @@ export function useAppState(): AppStateHook {
   const updateProgress = useCallback((contentId: string, progress: WatchProgress) => {
     setProgressMap(prev => {
       const newMap = new Map(prev);
-      newMap.set(contentId, progress);
+      const existing = newMap.get(contentId);
+      // Preserve expiresAt from existing progress
+      const updatedProgress = {
+        ...progress,
+        expiresAt: existing?.expiresAt || progress.expiresAt,
+      };
+      newMap.set(contentId, updatedProgress);
       return newMap;
     });
   }, []);
@@ -149,10 +177,18 @@ export function useAppState(): AppStateHook {
     }
   }, []);
 
-  const addRented = useCallback((c: Content) => {
+  const addRented = useCallback((c: Content, rentedAt?: string) => {
     setRentedContent(prev =>
       prev.find(r => r.id === c.id) ? prev : [...prev, c],
     );
+    // Update metadata if rentedAt is provided
+    if (rentedAt) {
+      setRentalMetadata(prev => {
+        const updated = new Map(prev);
+        updated.set(c.id, { rentedAt });
+        return updated;
+      });
+    }
   }, []);
 
   const onPremiumWatch = useCallback(async (content: Content) => {
@@ -164,6 +200,12 @@ export function useAppState(): AppStateHook {
         // Refresh rentals to include the new premium rental
         const { rentals } = await getUserRentals({ active: true });
         setRentedContent(rentals.map(r => r.content));
+        // Update rental metadata from fetched rentals
+        const metadata = new Map<string, { rentedAt: string }>();
+        rentals.forEach(r => {
+          metadata.set(r.content.id, { rentedAt: r.rentedAt });
+        });
+        setRentalMetadata(metadata);
         logger.info('APP_STATE', 'Added premium rental and refreshed rentals');
       } catch (error) {
         logger.error('APP_STATE', 'Failed to add premium rental', error);
@@ -177,6 +219,12 @@ export function useAppState(): AppStateHook {
     if (session) {
       const { rentals } = await getUserRentals({ active: true });
       setRentedContent(rentals.map(r => r.content));
+      // Store rental metadata (rentedAt) for sorting
+      const metadata = new Map<string, { rentedAt: string }>();
+      rentals.forEach(r => {
+        metadata.set(r.content.id, { rentedAt: r.rentedAt });
+      });
+      setRentalMetadata(metadata);
       logger.info('APP', `Refreshed ${rentals.length} active rental(s) from service`);
     }
   }, []);
@@ -236,27 +284,119 @@ export function useAppState(): AppStateHook {
     }
 
     try {
-      const progressPromises = rentedContent.map(content =>
-        getWatchProgress(content.id)
-          .then(progress => ({ contentId: content.id, progress }))
-          .catch(() => ({ contentId: content.id, progress: null }))
+      // Fetch rentals again to get the latest expiry info
+      const { rentals } = await getUserRentals({ active: true });
+      
+      const progressPromises = rentals.map(rental =>
+        getWatchProgress(rental.content.id)
+          .then(progress => ({ 
+            contentId: rental.content.id, 
+            progress,
+            expiresAt: rental.expiresAt,
+          }))
+          .catch(() => ({ 
+            contentId: rental.content.id, 
+            progress: null,
+            expiresAt: rental.expiresAt,
+          }))
       );
 
       const results = await Promise.all(progressPromises);
       const newProgressMap = new Map<string, WatchProgress>();
       
-      results.forEach(({ contentId, progress }) => {
+      results.forEach(({ contentId, progress, expiresAt }) => {
         if (progress) {
-          newProgressMap.set(contentId, progress);
+          // Merge expiresAt from rental record with watch progress data
+          newProgressMap.set(contentId, { ...progress, expiresAt });
         }
       });
 
       setProgressMap(newProgressMap);
-      logger.info('APP', `Refreshed progress for ${newProgressMap.size}/${rentedContent.length} rented content`);
+      logger.info('APP', `Refreshed progress for ${newProgressMap.size}/${rentals.length} rented content`);
     } catch (err) {
       logger.error('APP', 'Failed to refresh progress', err);
     }
-  }, [rentedContent]);
+  }, []);
+
+  // Refresh browse/all content data (allContent, genres, languages)
+  const onRefreshContent = useCallback(async () => {
+    try {
+      const [allRes, metaRes] = await Promise.all([
+        listContent(),
+        getContentMetadata(),
+      ]);
+      setAllContent(allRes.data);
+      const genreIcons: Record<string, string> = {
+        'Drama': '🎭',
+        'Thriller': '🔪',
+        'Romance': '❤️',
+        'Comedy': '😂',
+        'Documentary': '🎥',
+        'Experimental': '🧪',
+        'Family': '👨‍👩‍👧‍👦',
+      };
+      setGenreList(
+        metaRes.genres
+          .filter((g: string) => g !== 'All')
+          .map((g: string) => ({
+            id: g.toLowerCase().replace(/\s+/g, '-'),
+            name: g,
+            emoji: genreIcons[g] || '🎬',
+          }))
+      );
+      setLanguageList(metaRes.languages || []);
+      logger.info('APP', 'Refreshed browse content data');
+    } catch (err) {
+      logger.error('APP', 'Failed to refresh content', err);
+    }
+  }, []);
+
+  // Load home page data (featured, all content, genres, etc.) - only once on app start
+  const loadHomePageData = useCallback(async () => {
+    try {
+      setHomeLoading(true);
+      const [featuredRes, metaRes, allRes] = await Promise.all([
+        getFeaturedContent(),
+        getContentMetadata(),
+        listContent(),
+      ]);
+
+      setHero(featuredRes.hero);
+      setFeaturedContent(featuredRes.featured);
+      
+      // Transform genres array to objects with emoji
+      const genreIcons: Record<string, string> = {
+        'Drama': '🎭',
+        'Thriller': '🔪',
+        'Romance': '❤️',
+        'Comedy': '😂',
+        'Documentary': '🎥',
+        'Experimental': '🧪',
+        'Family': '👨‍👩‍👧‍👦',
+      };
+      setGenreList(
+        metaRes.genres
+          .filter((g: string) => g !== 'All')
+          .map((g: string) => ({
+            id: g.toLowerCase().replace(/\s+/g, '-'),
+            name: g,
+            emoji: genreIcons[g] || '🎬',
+          }))
+      );
+      
+      setLanguageList(metaRes.languages || []);
+      const all = allRes.data;
+      setAllContent(all);
+      setFestivalWinners(all.filter((c: Content) => c.festivalWinner));
+      setVerticalSeries(all.filter((c: Content) => c.type === 'vertical-series'));
+      
+      logger.info('APP', 'Loaded home page data (featured, genres, languages)');
+    } catch (err) {
+      logger.error('APP', 'Failed to load home page data', err);
+    } finally {
+      setHomeLoading(false);
+    }
+  }, []);
 
   // Restore session from AsyncStorage on app initialization
   useEffect(() => {
@@ -296,19 +436,35 @@ export function useAppState(): AppStateHook {
               setRentedContent(rentals.map(r => r.content));
               logger.info('APP', `Loaded ${rentals.length} active rental(s) from service`);
               
-              // Fetch progress for all rented content
+              // Store rental metadata (rentedAt) for sorting
+              const metadata = new Map<string, { rentedAt: string }>();
+              rentals.forEach(r => {
+                metadata.set(r.content.id, { rentedAt: r.rentedAt });
+              });
+              setRentalMetadata(metadata);
+              
+              // Fetch progress for all rented content and merge with rental expiry data
               const progressPromises = rentals.map(rental =>
                 getWatchProgress(rental.content.id)
-                  .then(progress => ({ contentId: rental.content.id, progress }))
-                  .catch(() => ({ contentId: rental.content.id, progress: null }))
+                  .then(progress => ({ 
+                    contentId: rental.content.id, 
+                    progress,
+                    expiresAt: rental.expiresAt, // Include rental expiry from rental record
+                  }))
+                  .catch(() => ({ 
+                    contentId: rental.content.id, 
+                    progress: null,
+                    expiresAt: rental.expiresAt,
+                  }))
               );
 
               const results = await Promise.all(progressPromises);
               const newProgressMap = new Map<string, WatchProgress>();
               
-              results.forEach(({ contentId, progress }) => {
+              results.forEach(({ contentId, progress, expiresAt }) => {
                 if (progress) {
-                  newProgressMap.set(contentId, progress);
+                  // Merge expiresAt from rental record with watch progress data
+                  newProgressMap.set(contentId, { ...progress, expiresAt });
                 }
               });
 
@@ -360,6 +516,9 @@ export function useAppState(): AppStateHook {
             logger.info('APP', `Loaded ${favs.length} favorite(s)`);
           })
           .catch(err => logger.warn('APP', 'Failed to load favorites', err));
+
+        // Load home page data (featured, all content, genres, languages)
+        loadHomePageData();
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -397,6 +556,7 @@ export function useAppState(): AppStateHook {
     clearProfileStore();
     setIsAuthenticated(false);
     setRentedContent([]);
+    setRentalMetadata(new Map());
     setIsPremium(false);
     setPremiumSubscription(null);
     setUser(null);
@@ -582,7 +742,7 @@ export function useAppState(): AppStateHook {
 
   const onPaymentSuccess = useCallback(
     async (content: Content, rental: RentalRecord) => {
-      addRented(content);
+      addRented(content, rental.rentedAt);
       // Refresh payment history to update "Spent" amount in profile
       await onRefreshPaymentHistory().catch(err => 
         logger.error('APP', 'Failed to refresh payment history after payment', err)
@@ -654,6 +814,7 @@ export function useAppState(): AppStateHook {
     screen,
     isAuthenticated,
     rentedContent,
+    rentalMetadata,
     isPremium,
     premiumSubscription,
     user,
@@ -666,6 +827,15 @@ export function useAppState(): AppStateHook {
     needsAuth,
     showNav,
     activeTab,
+    // Home page data
+    hero,
+    featuredContent,
+    allContent,
+    festivalWinners,
+    verticalSeries,
+    genreList,
+    languageList,
+    homeLoading,
     isRented,
     getProgress,
     updateProgress,
@@ -695,5 +865,6 @@ export function useAppState(): AppStateHook {
     onRefreshProfile,
     onRefreshPaymentHistory,
     onRefreshProgress,
+    onRefreshContent,
   };
 }

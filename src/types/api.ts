@@ -386,6 +386,8 @@ export interface WatchProgress {
    */
   completed?: boolean;
   lastWatchedAt: string;
+  // Rental expiry information (from rental record)
+  expiresAt: string;    // ISO 8601 - when the rental expires
   // Vertical-series only:
   lastEpisodeId?: string;
   lastEpisodeNumber?: number;

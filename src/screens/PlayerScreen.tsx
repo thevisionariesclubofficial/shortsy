@@ -115,6 +115,7 @@ export function PlayerScreen({ content, onBack, videoUrl, episodeNumber, updateP
           progressPercent,
           completed: req.completed,
           lastWatchedAt: new Date().toISOString(),
+          expiresAt: existing?.expiresAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Default to 30 days from now
           ...(req.episodeId && { lastEpisodeId: req.episodeId }),
           ...(req.episodeNumber && { lastEpisodeNumber: req.episodeNumber }),
           completedEpisodes,

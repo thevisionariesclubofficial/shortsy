@@ -4,6 +4,7 @@ import {
   Animated,
   Dimensions,
   Image,
+  PanResponder,
   Platform,
   RefreshControl,
   ScrollView,
@@ -17,16 +18,11 @@ import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
 import { MoodCard } from '../components/MoodCard';
 import { VideoView, useVideoPlayer } from 'react-native-video';
-import {
-  clearContentCache,
-  getFeaturedContent,
-  getContentMetadata,
-  listContent,
-} from '../services/contentService';
 import type { WatchProgress, FeaturedHero } from '../types/api';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { COLORS } from '../constants/colors';
 import { LanguageCard } from '../components/LanguageCard';
+import { calculateExpiry, getExpiryColor } from '../utils/expiryUtils';
 
 const { width, height } = Dimensions.get('window');
 const HERO_HEIGHT = height * 0.68;
@@ -102,70 +98,97 @@ function ContinueWatchingCard({
   pct,
   subtitle,
   onPress,
+  onOpenExpiryModal,
 }: {
   content: Content;
   prog: WatchProgress | undefined;
   pct: number;
   subtitle: string;
   onPress: () => void;
+  onOpenExpiryModal: () => void;
 }) {
   const [imageLoaded, setImageLoaded] = useState(false);
 
   return (
-    <TouchableOpacity
-      style={cwStyles.card}
-      activeOpacity={0.8}
-      onPress={onPress}>
-      {/* Shimmer placeholder */}
-      {!imageLoaded && (
-        <View style={[cwStyles.thumb, { position: 'absolute' }]}>
-          <ShimmerPlaceholder width="100%" height={CW_WIDTH * 0.62} borderRadius={0} />
+    <>
+      <View style={cwStyles.card}>
+      {/* Image area - only this is clickable */}
+      <TouchableOpacity
+        style={cwStyles.thumbTouchable}
+        activeOpacity={0.8}
+        onPress={onPress}
+      >
+        {/* Shimmer placeholder */}
+        {!imageLoaded && (
+          <View style={[cwStyles.thumb, { position: 'absolute' }]}>
+            <ShimmerPlaceholder width="100%" height={CW_WIDTH * 0.62} borderRadius={0} />
+          </View>
+        )}
+        
+        {/* Thumbnail image */}
+        <Image
+          source={{ 
+            uri: content.thumbnail,
+            cache: 'force-cache',
+          }}
+          style={cwStyles.thumb}
+          resizeMode="cover"
+          onLoad={() => setImageLoaded(true)}
+        />
+        
+        {/* dark overlay */}
+        <View style={cwStyles.overlay} />
+        
+        {/* Progress bar — shown whenever we have progress data */}
+        {prog && pct > 0 && (
+          <View style={cwStyles.progressTrack}>
+            <LinearGradient
+              colors={COLORS.gradient.progress}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[cwStyles.progressFill, { width: `${pct}%` as any }]}
+            />
+          </View>
+        )}
+        
+        {/* series badge */}
+        {content.type === 'vertical-series' && (
+          <View style={cwStyles.badge}>
+            <Text style={cwStyles.badgeText}>Series</Text>
+          </View>
+        )}
+        
+        {/* play button */}
+        <View style={cwStyles.playCircle}>
+          <Ionicons name="play" size={12} color={COLORS.icon.white} style={{ marginLeft: 2 }} />
         </View>
+      </TouchableOpacity>
+      
+      {/* menu icon (three dots) */}
+      {prog?.expiresAt && (
+        (() => {
+          const expiryInfo = calculateExpiry(prog.expiresAt);
+          if (!expiryInfo.isExpired) {
+            return (
+              <TouchableOpacity
+                style={cwStyles.menuIcon}
+                activeOpacity={0.6}
+                onPress={onOpenExpiryModal}
+              >
+                <Ionicons name="ellipsis-vertical" size={20} color={COLORS.text.primary} />
+              </TouchableOpacity>
+            );
+          }
+          return null;
+        })()
       )}
-      
-      {/* Thumbnail image */}
-      <Image
-        source={{ 
-          uri: content.thumbnail,
-          cache: 'force-cache',
-        }}
-        style={cwStyles.thumb}
-        resizeMode="cover"
-        onLoad={() => setImageLoaded(true)}
-      />
-      
-      {/* dark overlay */}
-      <View style={cwStyles.overlay} />
-      
-      {/* Progress bar — shown whenever we have progress data */}
-      {prog && pct > 0 && (
-        <View style={cwStyles.progressTrack}>
-          <LinearGradient
-            colors={COLORS.gradient.progress}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[cwStyles.progressFill, { width: `${pct}%` as any }]}
-          />
-        </View>
-      )}
-      
-      {/* series badge */}
-      {content.type === 'vertical-series' && (
-        <View style={cwStyles.badge}>
-          <Text style={cwStyles.badgeText}>Series</Text>
-        </View>
-      )}
-      
-      {/* play button */}
-      <View style={cwStyles.playCircle}>
-        <Ionicons name="play" size={12} color={COLORS.icon.white} style={{ marginLeft: 2 }} />
-      </View>
       
       <View style={cwStyles.info}>
         <Text style={cwStyles.title} numberOfLines={1}>{content.title}</Text>
         <Text style={cwStyles.sub}>{subtitle}</Text>
       </View>
-    </TouchableOpacity>
+    </View>
+    </>
   );
 }
 
@@ -304,24 +327,69 @@ interface HomePageProps {
   onContentClick: (content: Content) => void;
   onSearchClick: () => void;
   rentedContent?: Content[];
+  rentalMetadata?: Map<string, { rentedAt: string }>;
   progressMap?: Map<string, WatchProgress>;
   onRentedClick: (content: Content) => void;
   onRefreshRentals?: () => Promise<void>;
   onGenreClick: (genre: { id: string; name: string; emoji: string }) => void;
   onLanguageClick: (language: string) => void;
+  // Home page data (cached from useAppState)
+  hero?: FeaturedHero | null;
+  featuredContent?: Content[];
+  allContent?: Content[];
+  festivalWinners?: Content[];
+  verticalSeries?: Content[];
+  genreList?: { id: string; name: string; emoji: string }[];
+  languageList?: string[];
+  homeLoading?: boolean;
 }
 
-export function HomePage({ onContentClick, onSearchClick, rentedContent = [], progressMap = new Map(), onRentedClick, onRefreshRentals, onGenreClick, onLanguageClick }: HomePageProps) {
-  // ── Service-fetched state ─────────────────────────────────────────────────
-  const [allContent,       setAllContent]       = useState<Content[]>([]);
-  const [featuredContent,  setFeaturedContent]  = useState<Content[]>([]);
-  const [festivalWinners,  setFestivalWinners]  = useState<Content[]>([]);
-  const [verticalSeries,   setVerticalSeries]   = useState<Content[]>([]);
-  const [genreList,        setGenreList]        = useState<{ id: string; name: string; emoji: string }[]>([]);
-  const [hero,             setHero]             = useState<FeaturedHero | null>(null);
-  const [loading,          setLoading]          = useState(true);
-  const [refreshing,       setRefreshing]       = useState(false);
-  const [languageList, setLanguageList] = useState<string[]>([]);
+function HomePageComponent({ onContentClick, onSearchClick, rentedContent = [], rentalMetadata = new Map(), progressMap = new Map(), onRentedClick, onRefreshRentals, onGenreClick, onLanguageClick, hero: propHero, featuredContent: propFeaturedContent, allContent: propAllContent, festivalWinners: propFestivalWinners, verticalSeries: propVerticalSeries, genreList: propGenreList, languageList: propLanguageList, homeLoading = true }: HomePageProps) {
+  
+  // Use props for home page data (no local state since it's cached in useAppState)
+  const hero = propHero;
+  const featuredContent = propFeaturedContent || [];
+  const allContent = propAllContent || [];
+  const festivalWinners = propFestivalWinners || [];
+  const verticalSeries = propVerticalSeries || [];
+  const genreList = propGenreList || [];
+  const languageList = propLanguageList || [];
+  const loading = homeLoading;
+  
+  // Only local state for refreshing (pull-to-refresh action)
+  const [refreshing, setRefreshing] = useState(false);
+  const [showExpiryModal, setShowExpiryModal] = useState(false);
+  const [selectedModalContent, setSelectedModalContent] = useState<{ content: Content; prog: WatchProgress; pct: number } | null>(null);
+  const modalTranslateY = useRef(new Animated.Value(400)).current;
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => showExpiryModal,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return showExpiryModal && Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          modalTranslateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+          // Close modal
+          Animated.timing(modalTranslateY, {
+            toValue: 400,
+            duration: 250,
+            useNativeDriver: true,
+          }).start(() => setShowExpiryModal(false));
+        } else {
+          // Snap back to position
+          Animated.spring(modalTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
   
   // Convert Map to Record for ContentCard compatibility
   const progressRecord = React.useMemo(() => {
@@ -332,97 +400,38 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
     return record;
   }, [progressMap]);
 
+  // Sort Continue Watching: 
+  // 1. Separate into watching (progress > 0) and not watching groups
+  // 2. Sort each group by rentedAt (newest first)
+  // 3. Combine: watching group + not watching group
+  const sortedRentedContent = React.useMemo(() => {
+    // Sort rented content by rental time (newest first)
+    return [...rentedContent].sort((a, b) => {
+      const metaA = rentalMetadata.get(a.id);
+      const metaB = rentalMetadata.get(b.id);
+      
+      const rentedAtA = metaA?.rentedAt ? new Date(metaA.rentedAt).getTime() : 0;
+      const rentedAtB = metaB?.rentedAt ? new Date(metaB.rentedAt).getTime() : 0;
+      
+      return rentedAtB - rentedAtA; // Newest first
+    });
+  }, [rentedContent, rentalMetadata]);
+
+  // Handle pull-to-refresh - just refresh rentals, home data is cached
   const handleRefresh = useCallback(async () => {
-    clearContentCache();
     setRefreshing(true);
     try {
-      // Also fetch user rentals if callback is provided
       if (onRefreshRentals) {
         await onRefreshRentals();
       }
-      
-      const [featuredRes, metaRes, allRes] = await Promise.all([
-        getFeaturedContent(),
-        getContentMetadata(),
-        listContent(),
-      ]);
-      setHero(featuredRes.hero);
-      setFeaturedContent(featuredRes.featured);
-      // Transform genres array to objects with emoji (excluding 'All')
-      const genreIcons: Record<string, string> = {
-        'Drama': '🎭',
-        'Thriller': '🔪',
-        'Romance': '❤️',
-        'Comedy': '😂',
-        'Documentary': '🎥',
-        'Experimental': '🧪',
-        'Family': '👨‍👩‍👧‍👦',
-      };
-      setGenreList(
-        metaRes.genres
-          .filter((g: string) => g !== 'All')
-          .map((g: string) => ({
-            id: g.toLowerCase().replace(/\s+/g, '-'),
-            name: g,
-            emoji: genreIcons[g] || '🎬',
-          }))
-      );
-      setLanguageList(metaRes.languages || []);
-      const all = allRes.data;
-      setAllContent(all);
-      setFestivalWinners(all.filter((c: Content) => c.festivalWinner));
-      setVerticalSeries(all.filter((c: Content) => c.type === 'vertical-series'));
     } catch (err) {
-      console.error('[HomePage] Pull-to-refresh failed:', err);
+      console.error('[HomePage] Pull-to-refresh rentals failed:', err);
     } finally {
       setRefreshing(false);
     }
   }, [onRefreshRentals]);
 
-  useEffect(() => {
-    async function fetchHomeData() {
-      try {
-        // All three calls fire in parallel
-        const [featuredRes, metaRes, allRes] = await Promise.all([
-          getFeaturedContent(),
-          getContentMetadata(),
-          listContent(),
-        ]);
 
-        setHero(featuredRes.hero);
-        setFeaturedContent(featuredRes.featured);
-        // Transform genres array to objects with emoji (excluding 'All')
-        const genreIcons: Record<string, string> = {
-          'Drama': '🎭',
-          'Thriller': '🔪',
-          'Romance': '❤️',
-          'Comedy': '😂',
-          'Documentary': '🎥',
-          'Experimental': '🧪',
-          'Family': '👨‍👩‍👧‍👦',
-        };
-        setGenreList(
-          metaRes.genres
-            .filter((g: string) => g !== 'All')
-            .map((g: string) => ({
-              id: g.toLowerCase().replace(/\s+/g, '-'),
-              name: g,
-              emoji: genreIcons[g] || '🎬',
-            }))
-        );
-        setLanguageList(metaRes.languages || []);
-        const all = allRes.data;
-        setAllContent(all);
-        setFestivalWinners(all.filter(c => c.festivalWinner));
-        setVerticalSeries(all.filter(c => c.type === 'vertical-series'));
-      } catch (err) {
-        console.error('[HomePage] Failed to fetch home data:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchHomeData();
-  }, []);
 
   // Use a placeholder video initially, will be replaced when hero loads
   const placeholderVideo = 'https://firebasestorage.googleapis.com/v0/b/shortsy-7c19f.firebasestorage.app/o/4220556-hd_1920_1080_30fps.mp4?alt=media&token=7892c187-adf2-46ef-a7d7-437c177ad9c3';
@@ -443,6 +452,21 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
       if (!player.isPlaying) player.play();
     }
   };
+
+  const handleOpenExpiryModal = (content: Content, prog: WatchProgress, pct: number) => {
+    setSelectedModalContent({ content, prog, pct });
+    setShowExpiryModal(true);
+  };
+
+  useEffect(() => {
+    if (showExpiryModal) {
+      modalTranslateY.setValue(400);
+      Animated.spring(modalTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showExpiryModal]);
 
   return (
     <View style={styles.root}>
@@ -512,7 +536,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.continueRow}>
-              {rentedContent.map(content => {
+              {sortedRentedContent.map(content => {
                 const prog = progressRecord[content.id];
                 const pct  = prog ? Math.min(Math.max(prog.progressPercent, 0), 100) : 0;
                 let subtitle: string;
@@ -534,6 +558,7 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
                     pct={pct}
                     subtitle={subtitle}
                     onPress={() => onRentedClick(content)}
+                    onOpenExpiryModal={() => handleOpenExpiryModal(content, prog, pct)}
                   />
                 );
               })}
@@ -652,6 +677,73 @@ export function HomePage({ onContentClick, onSearchClick, rentedContent = [], pr
         {/* bottom padding for tab bar */}
         <View style={{ height: 80 }} />
       </ScrollView>
+      )}
+
+      {/* Custom Swipeable Bottom Modal */}
+      {showExpiryModal && selectedModalContent && (
+        <TouchableOpacity
+          style={cwStyles.modalBackdrop}
+          onPress={() => setShowExpiryModal(false)}
+          activeOpacity={1}
+        >
+          <Animated.View
+            style={[
+              cwStyles.bottomModal,
+              {
+                transform: [
+                  {
+                    translateY: modalTranslateY,
+                  },
+                ],
+              },
+            ]}
+            {...panResponder.panHandlers}
+          >
+            {/* Drag handle indicator */}
+            <View style={cwStyles.dragHandle} />
+
+            {/* Expiry Info Section */}
+            <View style={cwStyles.modalContent}>
+              <View style={cwStyles.expirySection}>
+                <Text style={cwStyles.expiryLabel}>Expires in</Text>
+                <Text style={cwStyles.expiryTimeValue}>
+                  {calculateExpiry(selectedModalContent.prog.expiresAt).displayText}
+                </Text>
+              </View>
+
+              {/* Progress Bar */}
+              {selectedModalContent.prog && selectedModalContent.pct > 0 && (
+                <View style={cwStyles.progressSection}>
+                  <View style={cwStyles.progressBarContainer}>
+                    <LinearGradient
+                      colors={COLORS.gradient.progress}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[cwStyles.progressBarFill, { width: `${selectedModalContent.pct}%` as any }]}
+                    />
+                  </View>
+                  <Text style={cwStyles.progressText}>{Math.round(selectedModalContent.pct)}% watched</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Divider */}
+            <View style={cwStyles.modalDivider} />
+
+            {/* About Content Button */}
+            <TouchableOpacity
+              style={cwStyles.modalButton}
+              onPress={() => {
+                setShowExpiryModal(false);
+                onContentClick(selectedModalContent.content);
+              }}
+            >
+              <Ionicons name="information-circle" size={18} color={COLORS.icon.brand} />
+              <Text style={cwStyles.modalButtonText}>About this content</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.text.muted} />
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -861,8 +953,11 @@ const cwStyles = StyleSheet.create({
   card: {
     width: CW_WIDTH,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: 'visible',
     backgroundColor: COLORS.bg.elevated,
+  },
+  thumbTouchable: {
+    flex: 1,
   },
   thumb: {
     width: '100%',
@@ -886,6 +981,193 @@ const cwStyles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text.primary,
     letterSpacing: 0.4,
+  },
+  expiryBadgeRight: {
+    position: 'absolute',
+    right: 8,
+    bottom: 12,
+    alignItems: 'center',
+    gap: 2,
+  },
+  expiryInfoIcon: {
+    position: 'absolute',
+    right: 8,
+    bottom: 10,
+    zIndex: 100,
+  },
+  menuIcon: {
+    position: 'absolute',
+    right: 8,
+    bottom: 10,
+    zIndex: 100,
+    padding: 4,
+  },
+  infoIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoIconText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  bottomModal: {
+    backgroundColor: COLORS.bg.elevated,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
+    paddingHorizontal: 0,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: COLORS.text.muted,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+    opacity: 0.4,
+  },
+  modalContent: {
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  expirySection: {
+    gap: 4,
+  },
+  expiryLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.text.muted,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  expiryTimeValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  progressSection: {
+    gap: 8,
+  },
+  progressBarContainer: {
+    height: 3,
+    backgroundColor: COLORS.overlay.progress,
+    borderRadius: 1.5,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: 3,
+    borderRadius: 1.5,
+  },
+  progressText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: COLORS.text.muted,
+    textAlign: 'right',
+  },
+  miniProgressBar: {
+    gap: 8,
+  },
+  miniProgressBackground: {
+    height: 4,
+    backgroundColor: COLORS.overlay.progress,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  miniProgressFill: {
+    height: 4,
+    borderRadius: 2,
+  },
+  progressPercent: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+  },
+  modalDivider: {
+    height: 0.8,
+    backgroundColor: COLORS.overlay.progress,
+    marginVertical: 14,
+    marginHorizontal: 16,
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: COLORS.overlay.card,
+    gap: 10,
+  },
+  modalButtonText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    zIndex: 1000,
+  },
+  expiryModal: {
+    backgroundColor: COLORS.bg.elevated,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    gap: 12,
+    maxWidth: '80%',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  modalText: {
+    fontSize: 14,
+    color: COLORS.text.muted,
+    textAlign: 'center',
+  },
+  modalCloseBtn: {
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: COLORS.brand.primaryDark,
+    borderRadius: 6,
+  },
+  modalCloseText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  timerCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: -10,
   },
   playCircle: {
     position: 'absolute',
@@ -926,3 +1208,5 @@ const cwStyles = StyleSheet.create({
     borderRadius: 1.5,
   },
 });
+
+export const HomePage = React.memo(HomePageComponent);

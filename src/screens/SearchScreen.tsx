@@ -14,22 +14,11 @@ import {
 } from 'react-native';
 import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
-import { searchContent } from '../services/contentService';
+import { searchContent, getContentMetadata } from '../services/contentService';
 import { getPopularContent } from '../services/discoveryService';
 import { COLORS } from '../constants/colors';
 
 const { width } = Dimensions.get('window');
-
-// ─── Trending / recent seed data ─────────────────────────────────────────────
-const TRENDING = [
-  'Festival Winners',
-  'Vertical Series',
-  'Late Night',
-  'Hindi Films',
-  'Thriller',
-  'Romance',
-];
-const RECENT_SEED = ['The Last Train', 'Midnight Caller'];
 
 // ─── Pill badge (trending tags) ─────────────────────────────────────────────
 function TrendBadge({ label, onPress }: { label: string; onPress: () => void }) {
@@ -57,20 +46,32 @@ interface SearchScreenProps {
   onContentClick: (content: Content) => void;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────
 export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
   const [query, setQuery]                   = useState('');
-  const [history, setHistory]               = useState<string[]>(RECENT_SEED);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [trendingGenres, setTrendingGenres] = useState<string[]>([]);
   const [results, setResults]               = useState<Content[]>([]);
   const [searching, setSearching]           = useState(false);
   const [popularContent, setPopularContent] = useState<Content[]>([]);
   const inputRef                            = useRef<TextInput>(null);
 
-  // ── Load popular content once on mount ────────────────────────────────────
+  // ── Load trending genres and popular content on mount ──────────────────────
   useEffect(() => {
-    getPopularContent(6)
-      .then(setPopularContent)
-      .catch(() => {});
+    Promise.all([
+      getContentMetadata()
+        .then(meta => {
+          // Exclude 'All' and take first 6 genres
+          const genres = meta.genres
+            .filter((g: string) => g !== 'All')
+            .slice(0, 6);
+          setTrendingGenres(genres);
+        })
+        .catch(() => {}),
+      getPopularContent(6)
+        .then(setPopularContent)
+        .catch(() => {}),
+    ]);
   }, []);
 
   // ── Debounced search (300ms) ───────────────────────────────────────────────
@@ -83,22 +84,36 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
     setSearching(true);
     const timer = setTimeout(() => {
       searchContent({ q: query.trim() })
-        .then(res => setResults(res.data))
+        .then(res => {
+          setResults(res.data);
+          // Add to recent searches when search completes successfully
+          addToRecentSearches(query.trim());
+        })
         .catch(() => setResults([]))
         .finally(() => setSearching(false));
     }, 300);
     return () => clearTimeout(timer);
   }, [query]);
 
-  const handleSearch = (text: string) => {
-    setQuery(text);
-    if (text.trim() && !history.includes(text.trim())) {
-      setHistory(prev => [text.trim(), ...prev.slice(0, 4)]);
+  const addToRecentSearches = (text: string) => {
+    const trimmed = text.trim();
+    if (trimmed) {
+      setRecentSearches(prev => {
+        const filtered = prev.filter(s => s !== trimmed);
+        return [trimmed, ...filtered].slice(0, 5);
+      });
     }
   };
 
-  const removeFromHistory = (idx: number) =>
-    setHistory(prev => prev.filter((_, i) => i !== idx));
+  const handleSearch = (text: string) => {
+    const trimmed = text.trim();
+    if (trimmed) {
+      setQuery(trimmed);
+    }
+  };
+
+  const removeFromRecentSearches = (idx: number) =>
+    setRecentSearches(prev => prev.filter((_, i) => i !== idx));
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -173,40 +188,40 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
           </View>
         )}
 
+        {/* ── Recent searches (show in idle state or after results cleared) ── */}
+        {query.trim() === '' && recentSearches.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionRow}>
+              <View style={styles.sectionRowLeft}>
+                <Ionicons name="time-outline" size={16} color={COLORS.text.muted} />
+                <Text style={styles.sectionLabel}>Recent Searches</Text>
+              </View>
+              <TouchableOpacity onPress={() => setRecentSearches([])} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.clearText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+
+            {recentSearches.map((item, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.historyRow}
+                onPress={() => handleSearch(item)}
+                activeOpacity={0.7}>
+                <Ionicons name="time-outline" size={16} color={COLORS.text.muted} />
+                <Text style={styles.historyText}>{item}</Text>
+                <TouchableOpacity
+                  onPress={() => removeFromRecentSearches(idx)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close" size={14} color={COLORS.text.dimmed} />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* ── Idle state ── */}
         {query.trim() === '' && (
           <>
-            {/* Recent searches */}
-            {history.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionRow}>
-                  <View style={styles.sectionRowLeft}>
-                    <Ionicons name="time-outline" size={16} color={COLORS.text.muted} />
-                    <Text style={styles.sectionLabel}>Recent Searches</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setHistory([])} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Text style={styles.clearText}>Clear</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {history.map((item, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.historyRow}
-                    onPress={() => handleSearch(item)}
-                    activeOpacity={0.7}>
-                    <Ionicons name="time-outline" size={16} color={COLORS.text.muted} />
-                    <Text style={styles.historyText}>{item}</Text>
-                    <TouchableOpacity
-                      onPress={() => removeFromHistory(idx)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Ionicons name="close" size={14} color={COLORS.text.dimmed} />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
             {/* Trending searches */}
             <View style={styles.section}>
               <View style={styles.sectionRowLeft}>
@@ -214,8 +229,8 @@ export function SearchScreen({ onBack, onContentClick }: SearchScreenProps) {
                 <Text style={styles.sectionLabel}>Trending Searches</Text>
               </View>
               <View style={styles.trendWrap}>
-                {TRENDING.map((t, i) => (
-                  <TrendBadge key={i} label={t} onPress={() => handleSearch(t)} />
+                {trendingGenres.map((genre, i) => (
+                  <TrendBadge key={i} label={genre} onPress={() => handleSearch(genre)} />
                 ))}
               </View>
             </View>
