@@ -1,5 +1,5 @@
 import { Ionicons } from '@react-native-vector-icons/ionicons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Content } from '../data/mockData';
 import { ContentCard } from '../components/ContentCard';
-import { clearContentCache, getContentMetadata, listContent } from '../services/contentService';
+import { clearContentCache } from '../services/contentService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/colors';
 
@@ -20,6 +20,11 @@ type TypeFilter = 'all' | 'short-film' | 'vertical-series';
 
 interface BrowsePageProps {
   onContentClick: (content: Content) => void;
+  allContent?: Content[];
+  genreList?: string[];
+  langList?: string[];
+  loading?: boolean;
+  onRefreshContent?: () => Promise<void>;
 }
 
 // ─── Pill badge ───────────────────────────────────────────────────────────────
@@ -45,55 +50,33 @@ function Pill({
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function BrowsePage({ onContentClick }: BrowsePageProps) {
+function BrowsePageComponent({
+  onContentClick,
+  allContent = [],
+  genreList = [],
+  langList = [],
+  loading = false,
+  onRefreshContent,
+}: BrowsePageProps) {
   const [selectedType, setSelectedType] = useState<TypeFilter>('all');
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [selectedLanguage, setSelectedLanguage] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
-
-  // ── Service-fetched state ─────────────────────────────────────────────────
-  const [allContent, setAllContent] = useState<Content[]>([]);
-  const [genreList,  setGenreList]  = useState<string[]>([]);
-  const [langList,   setLangList]   = useState<string[]>([]);
-  const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     clearContentCache();
     setRefreshing(true);
     try {
-      const [allRes, metaRes] = await Promise.all([
-        listContent(),
-        getContentMetadata(),
-      ]);
-      setAllContent(allRes.data);
-      setGenreList(metaRes.genres);
-      setLangList(metaRes.languages);
+      if (onRefreshContent) {
+        await onRefreshContent();
+      }
     } catch (err) {
       console.error('[BrowsePage] Pull-to-refresh failed:', err);
     } finally {
       setRefreshing(false);
     }
-  }, []);
-
-  useEffect(() => {
-    async function fetchBrowseData() {
-      try {
-        const [allRes, metaRes] = await Promise.all([
-          listContent(),
-          getContentMetadata(),
-        ]);
-        setAllContent(allRes.data);
-        setGenreList(metaRes.genres);
-        setLangList(metaRes.languages);
-      } catch (err) {
-        console.error('[BrowsePage] Failed to fetch browse data:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchBrowseData();
-  }, []);
+  }, [onRefreshContent]);
 
   // Client-side filtering on the fetched data
   const filtered = allContent.filter(c => {
@@ -203,6 +186,8 @@ export function BrowsePage({ onContentClick }: BrowsePageProps) {
     </SafeAreaView>
   );
 }
+
+export const BrowsePage = React.memo(BrowsePageComponent);
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({

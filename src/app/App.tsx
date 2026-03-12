@@ -44,6 +44,7 @@ function App() {
   const {
     screen,
     rentedContent,
+    rentalMetadata,
     isPremium,
     premiumSubscription,
     user,
@@ -83,6 +84,15 @@ function App() {
     onRefreshPaymentHistory,
     favorites,
     onToggleFavorite,
+    hero,
+    featuredContent,
+    allContent,
+    festivalWinners,
+    verticalSeries,
+    genreList,
+    languageList,
+    homeLoading,
+    onRefreshContent,
   } = useAppState();
 
   // ── Deep link handler ─────────────────────────────────────────────────────
@@ -197,15 +207,31 @@ function App() {
               onContentClick={onContentClick}
               onSearchClick={() => navigate({ type: 'search' })}
               rentedContent={rentedContent}
+              rentalMetadata={rentalMetadata}
               progressMap={progressMap}
               onRentedClick={onRentedClick}
               onRefreshRentals={onRefreshRentals}
               onGenreClick={(genre) => navigate({ type: 'genreDetail', genre })}
               onLanguageClick={(language) => navigate({ type: 'languageDetail', language })}
+              hero={hero}
+              featuredContent={featuredContent}
+              allContent={allContent}
+              festivalWinners={festivalWinners}
+              verticalSeries={verticalSeries}
+              genreList={genreList}
+              languageList={languageList}
+              homeLoading={homeLoading}
             />
           )}
           {screen.type === 'browse' && (
-            <BrowsePage onContentClick={onContentClick} />
+            <BrowsePage
+              onContentClick={onContentClick}
+              allContent={allContent}
+              genreList={genreList.map(g => g.name)}
+              langList={languageList}
+              loading={homeLoading}
+              onRefreshContent={onRefreshContent}
+            />
           )}
           {screen.type === 'profile' && (
             <ProfilePage
@@ -220,6 +246,7 @@ function App() {
               user={user}
               paymentHistory={paymentHistory}
               favorites={favorites}
+              onToggleFavorite={onToggleFavorite}
             />
           )}
           {showNav && (

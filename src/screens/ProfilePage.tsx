@@ -125,11 +125,12 @@ interface ProfilePageProps {
   premiumSubscription: PremiumSubscription | null;
   user: UserProfile | null;
   paymentHistory: PaymentHistoryRecord[];
-   favorites: Content[];
+  favorites: Content[];
+  onToggleFavorite: (contentId: string, currentlyFavorited: boolean) => Promise<void>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, onPaymentHistoryClick, navigate, isPremium, premiumSubscription, user, paymentHistory,favorites }: ProfilePageProps) {
+export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistoryClick, onPaymentHistoryClick, navigate, isPremium, premiumSubscription, user, paymentHistory, favorites, onToggleFavorite }: ProfilePageProps) {
   const [totalSpent, setTotalSpent] = useState(0);
   const [contentWatched, setContentWatched] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -220,7 +221,7 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
                 <Ionicons name="person" size={32} color="#ffffff" />
               )}
               <TouchableOpacity style={styles.avatarUploadBtn} onPress={handleAvatarUpload} disabled={avatarUploading}>
-                <Ionicons name="camera" size={18} color="#ffffff" />
+                <Ionicons name="pencil" size={18} color="#ffffff" />
               </TouchableOpacity>
             </LinearGradient>
             {avatarUploading && (
@@ -365,32 +366,41 @@ export function ProfilePage({ onLogout, rentedContent, onContentClick, onHistory
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.favScroll}>
               {favorites.map(item => (
-                <TouchableOpacity
+                <View
                   key={item.id}
-                  style={styles.favCard}
-                  activeOpacity={0.8}
-                  onPress={() => onContentClick(item)}>
-                  <View style={styles.favThumb}>
-                    {item.thumbnail ? (
-                      <Image
-                        source={{ uri: item.thumbnail }}
-                        style={StyleSheet.absoluteFillObject}
-                        resizeMode="cover"
+                  style={styles.favCardWrapper}>
+                  <TouchableOpacity
+                    style={styles.favCard}
+                    activeOpacity={0.8}
+                    onPress={() => onContentClick(item)}>
+                    <View style={styles.favThumb}>
+                      {item.thumbnail ? (
+                        <Image
+                          source={{ uri: item.thumbnail }}
+                          style={StyleSheet.absoluteFillObject}
+                          resizeMode="cover"
+                        />
+                      ) : null}
+                      <LinearGradient
+                        colors={['transparent', COLORS.overlay.dark75]}
+                        style={styles.favGradient}
                       />
-                    ) : null}
-                    <LinearGradient
-                      colors={['transparent', COLORS.overlay.dark75]}
-                      style={styles.favGradient}
-                    />
-                    {item.type === 'vertical-series' && (
-                      <View style={styles.favBadge}>
-                        <Text style={styles.favBadgeText}>Series</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.favCardTitle} numberOfLines={2}>{item.title}</Text>
-                  <Text style={styles.favCardMeta}>{item.genre} · {item.duration}</Text>
-                </TouchableOpacity>
+                      {item.type === 'vertical-series' && (
+                        <View style={styles.favBadge}>
+                          <Text style={styles.favBadgeText}>Series</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.favCardTitle} numberOfLines={2}>{item.title}</Text>
+                    <Text style={styles.favCardMeta}>{item.genre} · {item.duration}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.favRemoveBtn}
+                    onPress={() => onToggleFavorite(item.id, true)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={22} color={COLORS.accent.red} />
+                  </TouchableOpacity>
+                </View>
               ))}
             </ScrollView>
           )}
@@ -522,15 +532,15 @@ const styles = StyleSheet.create({
     left: 0,
   },
   avatarUploadBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+//    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
-    bottom: 4,
-    right: 4,
+    bottom: -5,
+    right: -5,
   },
   avatarInfo: {
     flex: 1,
@@ -745,8 +755,17 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingRight: 4,
   },
+  favCardWrapper: {
+    position: 'relative',
+  },
   favCard: {
     width: 110,
+  },
+  favRemoveBtn: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    zIndex: 10,
   },
   favThumb: {
     width: 110,
