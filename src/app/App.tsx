@@ -5,7 +5,7 @@
  * This component is responsible only for mapping screen state → UI.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { Linking, StatusBar, StyleSheet, View, Modal, Text, TouchableOpacity } from 'react-native';
+import { Linking, StatusBar, StyleSheet, View, Modal, Text, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomNav } from '../components/BottomNav';
 import { RentalModal } from '../components/RentalModal';
@@ -17,7 +17,6 @@ import { ContentDetailScreen } from '../screens/ContentDetailScreen';
 import { CookiePolicyScreen } from '../screens/CookiePolicyScreen';
 import { FAQScreen } from '../screens/FAQScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
-import { GenreDetailScreen } from '../screens/GenreDetailScreen';
 import { HelpCenterScreen } from '../screens/HelpCenterScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomePage } from '../screens/HomePage';
@@ -39,6 +38,10 @@ import { WelcomeChoice } from '../screens/WelcomeChoice';
 import { resolveWatchNowScreen } from '../services/navigationService';
 import { COLORS } from '../constants/colors';
 import { BrowseDetailScreen } from '../screens/BrowseDetailScreen';
+import { registerDevice } from '../services/notificationService';
+import { initializeFirebase, isFirebaseInitialized } from '../services/firebaseService';
+import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import notifee, { AndroidImportance } from '@notifee/react-native';
 
 function App() {
   const {
@@ -100,6 +103,173 @@ function App() {
   // the ID arrives OR the screen type changes — whichever happens last.
   const [pendingDeepLinkId, setPendingDeepLinkId] = useState<string | null>(null);
 
+  const getFCMToken = async () => {
+    try {
+      console.log('[FCM] Fetching FCM token...');
+      
+      // Initialize Firebase first
+      const firebaseReady = await initializeFirebase();
+      
+      if (!firebaseReady) {
+        console.log('[FCM] ❌ Firebase not available - FCM tokens will not be available');
+        return;
+      }
+      
+      console.log('[FCM] ✅ Firebase initialized');
+      
+      // Request permissions (especially for iOS and Android 13+)
+      console.log('[FCM] Requesting notification permissions...');
+      const authStatus = await messaging().requestPermission();
+      console.log('[FCM] Auth status:', authStatus);
+      
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (enabled) {
+        console.log('[FCM] ✅ Authorization granted (status:', authStatus, ')');
+        
+        // Get the token
+        console.log('[FCM] Retrieving token...');
+        const token = await messaging().getToken();
+        console.log('[FCM] ✅ FCM Token acquired:', token);
+        console.log('[FCM] Token length:', token?.length, 'chars');
+        
+        // You should save this token to your backend database
+        // along with the user's ID for later use
+      } else {
+        console.log('[FCM] ❌ User denied notification permissions (status:', authStatus, ')');
+      }
+
+    } catch (error) {
+      console.log('[FCM] ❌ Error getting FCM token:', error);
+      console.log('[FCM] Error type:', typeof error);
+      console.log('[FCM] Error message:', (error as any)?.message);
+    }
+  };
+
+  // ── Display local notification (for foreground messages) ─────────────────────
+  const displayLocalNotification = async (title?: string, body?: string, data?: any) => {
+    try {
+      console.log('[Notifee] Displaying local notification');
+      console.log('[Notifee] Title:', title);
+      console.log('[Notifee] Body:', body);
+      console.log('[Notifee] Data:', data);
+
+      // Create Android channel (required for API 26+)
+      if (Platform.OS === 'android') {
+        try {
+          await notifee.createChannel({
+            id: 'shortsy-notifications',
+            name: 'Shortsy Notifications',
+            lightColor: '#FF6B00', // Shortsy orange
+            vibration: true,
+            lights: true,
+            importance: AndroidImportance.DEFAULT,
+          });
+          console.log('[Notifee] ✅ Channel created');
+        } catch (channelError) {
+          console.log('[Notifee] Channel may already exist:', (channelError as any)?.message);
+        }
+      }
+
+      // Display the notification
+      await notifee.displayNotification({
+        title: title || 'Shortsy',
+        body: body || 'You have a new notification',
+        data: data,
+        android: {
+          channelId: 'shortsy-notifications',
+          color: '#FF6B00', // Shortsy orange
+          lightUpScreen: true,
+          pressAction: {
+            id: 'default',
+          },
+        },
+        ios: {
+          sound: 'default',
+        },
+      });
+
+      console.log('[Notifee] ✅ Notification displayed');
+    } catch (error) {
+      console.log('[Notifee] ❌ Error displaying notification:', error);
+      console.log('[Notifee] Error message:', (error as any)?.message);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    console.log('[Notifee] Triggering test notification from button');
+    await displayLocalNotification('Test Notification', 'This is a test from the button.', { debug: 'true' });
+  };
+
+  useEffect(() => {
+    const unsubscribers: Array<() => void> = [];
+    
+    const setupMessaging = async () => {
+      try {
+        console.log('[FCM] Starting messaging setup...');
+        const firebaseReady = await initializeFirebase();
+        
+        if (!firebaseReady) {
+          console.log('[FCM] ❌ Firebase not ready - skipping messaging setup');
+          return;
+        }
+        
+        console.log('[FCM] ✅ Firebase ready');
+
+        // Handle foreground messages (app in focus)
+        console.log('[FCM] Setting up onMessage listener...');
+        const unsubscribeMsg = messaging().onMessage(async remoteMessage => {
+          console.log('[FCM] 💬 Foreground message received:', JSON.stringify(remoteMessage, null, 2));
+          console.log('[FCM] Title:', remoteMessage.notification?.title);
+          console.log('[FCM] Body:', remoteMessage.notification?.body);
+          console.log('[FCM] Data:', remoteMessage.data);
+          
+          // Display the notification to the user
+          const title = remoteMessage.notification?.title || 'Shortsy';
+          const body = remoteMessage.notification?.body || 'New notification';
+          await displayLocalNotification(title, body, remoteMessage.data);
+        });
+        unsubscribers.push(unsubscribeMsg);
+
+        // Handle background messages (app killed or backgrounded)
+        console.log('[FCM] Setting up setBackgroundMessageHandler...');
+        messaging().setBackgroundMessageHandler(async remoteMessage => {
+          console.log('[FCM] 🔔 Background message received:', JSON.stringify(remoteMessage, null, 2));
+          console.log('[FCM] Title:', remoteMessage.notification?.title);
+          console.log('[FCM] Body:', remoteMessage.notification?.body);
+          console.log('[FCM] Data:', remoteMessage.data);
+          
+          // Display the notification (will be shown by system if app is backgrounded)
+          // But we also display it locally for consistency
+          const title = remoteMessage.notification?.title || 'Shortsy';
+          const body = remoteMessage.notification?.body || 'New notification';
+          await displayLocalNotification(title, body, remoteMessage.data);
+        });
+
+        // Listen for token refreshes
+        console.log('[FCM] Setting up onTokenRefresh listener...');
+        const unsubscribeToken = messaging().onTokenRefresh(newToken => {
+          console.log('[FCM] 🔄 Token Refreshed:', newToken);
+        });
+        unsubscribers.push(unsubscribeToken);
+
+        console.log('[FCM] ✅ All messaging handlers registered');
+      } catch (error) {
+        console.log('[FCM] ❌ Error setting up messaging:', error);
+      }
+    };
+
+    setupMessaging();
+    getFCMToken();
+
+    return () => {
+      console.log('[FCM] Cleaning up messaging subscriptions');
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, []);
+
   useEffect(() => {
     const extractId = (url: string): string | null => {
       const match = url.match(/shortsy:\/\/content\/([^/?#]+)/);
@@ -156,7 +326,6 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-
       {/* ── Pre-auth ── */}
       {screen.type === 'splash' && (
         <SplashScreen onComplete={onSplashComplete} />
