@@ -42,6 +42,7 @@ export interface SignupRequest {
   email: string;
   password: string;
   displayName: string;
+  fcmToken?: string;
 }
 
 /** Returned by signup when email OTP verification is required. */

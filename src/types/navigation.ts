@@ -18,6 +18,7 @@ export type AppScreen =
   | { type: 'paymentHistory' }
   | { type: 'premiumPayment' }
   | { type: 'genreDetail';    genre: { id: string; name: string; emoji: string } }
+  | { type: 'languageDetail'; language: string }
   | { type: 'helpCenter' }
   | { type: 'faq' }
   | { type: 'contactUs' }
