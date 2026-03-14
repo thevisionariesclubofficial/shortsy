@@ -160,7 +160,16 @@ export function SignupScreen({ onSignup, onLogin, onBack, onGoogleSignIn }: Sign
     }
     setIsLoading(true);
     try {
-      await signup({ email: email.trim(), password, displayName: name.trim() });
+      // Get FCM token from notificationService
+      let fcmToken = undefined;
+      try {
+        const notif = await require('../services/notificationService');
+        const reg = await notif.registerDevice();
+        fcmToken = reg?.fcmToken;
+      } catch (e) {
+        console.log('[SignupScreen] Failed to get FCM token:', e);
+      }
+      await signup({ email: email.trim(), password, displayName: name.trim(), fcmToken });
       onSignup(email.trim(), password);
     } catch (err: any) {
       const code = err?.code ?? '';

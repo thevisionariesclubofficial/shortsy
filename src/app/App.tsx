@@ -41,7 +41,7 @@ import { BrowseDetailScreen } from '../screens/BrowseDetailScreen';
 import { registerDevice } from '../services/notificationService';
 import { initializeFirebase, isFirebaseInitialized } from '../services/firebaseService';
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
-import notifee, { AndroidImportance } from '@notifee/react-native';
+import notifee, { AndroidImportance, AndroidStyle } from '@notifee/react-native';
 
 function App() {
   const {
@@ -156,6 +156,14 @@ function App() {
       console.log('[Notifee] Body:', body);
       console.log('[Notifee] Data:', data);
 
+      // Extract image URL from all possible locations
+      let imageUrl: string | undefined = undefined;
+      if (data?.image) {
+        imageUrl = data.image;
+      } else if (data?.imageUrl) {
+        imageUrl = data.imageUrl;
+      }
+
       // Create Android channel (required for API 26+)
       if (Platform.OS === 'android') {
         try {
@@ -165,7 +173,7 @@ function App() {
             lightColor: '#FF6B00', // Shortsy orange
             vibration: true,
             lights: true,
-            importance: AndroidImportance.DEFAULT,
+            importance: AndroidImportance.HIGH,
           });
           console.log('[Notifee] ✅ Channel created');
         } catch (channelError) {
@@ -173,7 +181,7 @@ function App() {
         }
       }
 
-      // Display the notification
+      // Display the notification with optional image banner
       await notifee.displayNotification({
         title: title || 'Shortsy',
         body: body || 'You have a new notification',
@@ -185,9 +193,11 @@ function App() {
           pressAction: {
             id: 'default',
           },
+          ...(imageUrl ? { style: { type: AndroidStyle.BIGPICTURE, picture: imageUrl } } : {}),
         },
         ios: {
           sound: 'default',
+          ...(imageUrl ? { attachments: [{ url: imageUrl }] } : {}),
         },
       });
 
@@ -225,11 +235,23 @@ function App() {
           console.log('[FCM] Title:', remoteMessage.notification?.title);
           console.log('[FCM] Body:', remoteMessage.notification?.body);
           console.log('[FCM] Data:', remoteMessage.data);
-          
+
+          // Merge imageUrl from notification.android.imageUrl or notification.imageUrl into data
+          let mergedData = { ...remoteMessage.data };
+          let imageUrl: string | undefined = undefined;
+          if (remoteMessage.notification?.android?.imageUrl) {
+            imageUrl = remoteMessage.notification.android.imageUrl;
+          } else if ((remoteMessage.notification as any)?.imageUrl) {
+            imageUrl = (remoteMessage.notification as any).imageUrl;
+          }
+          if (imageUrl) {
+            mergedData.image = imageUrl;
+          }
+
           // Display the notification to the user
           const title = remoteMessage.notification?.title || 'Shortsy';
           const body = remoteMessage.notification?.body || 'New notification';
-          await displayLocalNotification(title, body, remoteMessage.data);
+          await displayLocalNotification(title, body, mergedData);
         });
         unsubscribers.push(unsubscribeMsg);
 
